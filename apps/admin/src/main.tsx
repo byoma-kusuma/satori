@@ -7,7 +7,6 @@ import {
   QueryClientProvider,
 } from '@tanstack/react-query';
 import { RouterProvider, createRouter } from '@tanstack/react-router';
-import { useAuthStore } from '@/stores/authStore';
 import { handleServerError } from '@/utils/handle-server-error';
 import { toast } from '@/hooks/use-toast';
 import './index.css';
