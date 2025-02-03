@@ -7,10 +7,12 @@
   "dependencies": {
     "better-auth": "^1.1.15",
     "hono": "^4.6.20",
+    "nodemailer": "^6.10.0",
     "pg": "^8.13.1"
   },
   "devDependencies": {
     "@types/bun": "latest",
+    "@types/nodemailer": "^6.4.17",
     "@types/pg": "^8.11.11"
   }
 }
