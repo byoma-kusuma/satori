@@ -1,5 +1,6 @@
 import ViteLogo from '@/assets/vite.svg'
 import { UserAuthForm } from './components/user-auth-form'
+import { Link } from '@tanstack/react-router'
 
 export default function SignIn2() {
   return (
@@ -51,6 +52,15 @@ export default function SignIn2() {
             </p>
           </div>
           <UserAuthForm />
+          <p className="text-sm text-center text-muted-foreground">
+            Don't have an account?{' '}
+            <Link
+              to='/sign-up'
+              className='underline underline-offset-4 hover:text-primary'
+            >
+              Sign up
+            </Link>
+          </p>
           <p className='px-8 text-center text-sm text-muted-foreground'>
             By clicking login, you agree to our{' '}
             <a

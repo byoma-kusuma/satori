@@ -1,4 +1,4 @@
-import { createTransport, SentMessageInfo } from "nodemailer";
+import nodemailer from "nodemailer";
 
 export interface EmailOptions {
   to: string;
@@ -7,23 +7,23 @@ export interface EmailOptions {
   html?: string;
 }
 
-const EMAIL_USER: string = process.env.EMAIL_USER!;
-const EMAIL_PASS: string = process.env.EMAIL_PASS!;
+export async function sendEmail(options: EmailOptions): Promise<any> {
+  const transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+      user: process.env.GMAIL_USER,
+      pass: process.env.GMAIL_PASS 
+    }
+  });
 
-const transporter = createTransport({
-  service: "gmail",
-  auth: {
-    user: EMAIL_USER,
-    pass: EMAIL_PASS,
-  },
-});
-
-export async function sendEmail(options: EmailOptions): Promise<SentMessageInfo> {
-  return transporter.sendMail({
-    from: EMAIL_USER,
+  const mailOptions = {
+    from: process.env.GMAIL_USER,
     to: options.to,
     subject: options.subject,
     text: options.text,
-    html: options.html,
-  });
+    html: options.html || ""
+  };
+
+  const info = await transporter.sendMail(mailOptions);
+  return info;
 }

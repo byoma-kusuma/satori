@@ -3,6 +3,7 @@ import { Pool } from "pg";
 import { sendEmail } from "./email";
 
 export const auth = betterAuth({
+  trustedOrigins: [process.env.ORIGIN!],
   database: new Pool({
     connectionString: process.env.DATABASE_URL,
   }),

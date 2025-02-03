@@ -1,4 +1,5 @@
-import { Link } from '@tanstack/react-router'
+import { Link, useNavigate } from '@tanstack/react-router'
+import { authClient } from '@/auth-client'
 import {
   BadgeCheck,
   Bell,
@@ -33,6 +34,7 @@ export function NavUser({
     avatar: string
   }
 }) {
+  const navigate = useNavigate()
   const { isMobile } = useSidebar()
 
   return (
@@ -102,7 +104,12 @@ export function NavUser({
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => {
+                authClient.signOut()
+                navigate({ to: '/sign-in-2' })
+              }}
+            >
               <LogOut />
               Log out
             </DropdownMenuItem>
