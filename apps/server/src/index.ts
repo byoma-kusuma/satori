@@ -7,16 +7,17 @@ import { usersRoutes } from "./api/user/user.route";
 const app = new Hono();
 
 // CORS middleware configuration
-const corsMiddleware = cors({
-	origin: process.env.ORIGIN!,
-	allowHeaders: ["Content-Type", "Authorization"],
-	allowMethods: ["POST", "GET", "OPTIONS"],
-	exposeHeaders: ["Content-Length"],
-	credentials: true,
-});
+app.use(
+  '/api/*',
+  cors({
+    origin: process.env.ORIGIN!,
+    allowHeaders: ['Content-Type', 'Authorization'],
+    allowMethods: ['POST', 'GET', 'OPTIONS'],
+    exposeHeaders: ['Content-Length'],
+    credentials: true,
+  })
+);
 
-// Auth routes
-app.use("/api/auth/*", corsMiddleware);
 app.get("/api/auth/*", (c) => auth.handler(c.req.raw));
 app.post("/api/auth/*", (c) => auth.handler(c.req.raw));
 
