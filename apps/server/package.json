@@ -3,7 +3,8 @@
   "scripts": {
     "dev": "bun run --hot src/index.ts",
     "start": "bun run src/index.ts",
-    "migrate": "npx @better-auth/cli migrate"
+    "migrate": "npx @better-auth/cli migrate",
+    "codegen": "kysely-codegen --out-file=./src/types.ts"
   },
   "dependencies": {
     "better-auth": "^1.1.15",

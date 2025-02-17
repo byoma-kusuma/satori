@@ -107,6 +107,9 @@ importers:
       date-fns:
         specifier: ^4.1.0
         version: 4.1.0
+      hono:
+        specifier: ^4.6.20
+        version: 4.6.20
       jotai:
         specifier: ^2.11.3
         version: 2.11.3(@types/react@19.0.8)(react@19.0.0)
@@ -131,6 +134,9 @@ importers:
       recharts:
         specifier: ^2.14.1
         version: 2.15.1(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
+      server:
+        specifier: workspace:*
+        version: link:../server
       tailwind-merge:
         specifier: ^2.5.5
         version: 2.6.0
