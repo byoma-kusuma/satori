@@ -19,6 +19,7 @@
     "@types/bun": "latest",
     "@types/nodemailer": "^6.4.17",
     "@types/pg": "^8.11.11",
+    "dbmate": "^1.16.0",
     "kysely-codegen": "^0.17.0"
   }
 }
