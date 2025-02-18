@@ -1,3 +1,6 @@
+import { Suspense } from 'react'
+import { useSuspenseQuery } from '@tanstack/react-query'
+import { getUsers, getUsersQueryOptions } from '@/api/users'
 import { Header } from '@/components/layout/header'
 import { Main } from '@/components/layout/main'
 import { ProfileDropdown } from '@/components/profile-dropdown'
@@ -8,15 +11,13 @@ import { UsersDialogs } from './components/users-dialogs'
 import { UsersPrimaryButtons } from './components/users-primary-buttons'
 import { UsersTable } from './components/users-table'
 import UsersProvider from './context/users-context'
-import { userListSchema } from './data/schema'
-import { users } from './data/users'
 
-export default function Users() {
-  // Parse user list
-  const userList = userListSchema.parse(users)
+function UsersList() {
+  // fetch user data with react query (suspense = true)
+  const { data: userList } = useSuspenseQuery(getUsersQueryOptions)
 
   return (
-    <UsersProvider>
+    <>
       <Header fixed>
         <Search />
         <div className='ml-auto flex items-center space-x-4'>
@@ -39,6 +40,23 @@ export default function Users() {
           <UsersTable data={userList} columns={columns} />
         </div>
       </Main>
+    </>
+  )
+}
+
+export default function Users() {
+  return (
+    <UsersProvider>
+      {/*
+        Suspense will display a fallback until the query resolves.
+        Provide an ErrorBoundary around it in the parent or near root
+        for real production usage
+      */}
+      <Suspense
+        fallback={<div className='p-4 text-center'>Loading users...</div>}
+      >
+        <UsersList />
+      </Suspense>
 
       <UsersDialogs />
     </UsersProvider>

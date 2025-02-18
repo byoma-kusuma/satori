@@ -1,3 +1,4 @@
+import { authClient } from '@/auth-client'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -15,8 +16,15 @@ import { Search } from '@/components/search'
 import { ThemeSwitch } from '@/components/theme-switch'
 import { Overview } from './components/overview'
 import { RecentSales } from './components/recent-sales'
+import React from 'react'
 
 export default function Dashboard() {
+  React.useEffect(() => {
+    const data = authClient.getSession().then((data) => {
+      console.log(data)
+    })
+  }, [])
+
   return (
     <>
       {/* ===== Top Heading ===== */}
