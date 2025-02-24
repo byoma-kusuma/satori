@@ -5,7 +5,9 @@
 
 import type { ColumnType } from "kysely";
 
-export type CenterLocation = "Australia" | "BishalNagar" | "UK" | "USA";
+export type CenterLocation = "Australia" | "Nepal" | "UK" | "USA";
+
+export type GenderType = "female" | "male" | "other" | "prefer_not_to_say";
 
 export type Generated<T> = T extends ColumnType<infer S, infer I, infer U>
   ? ColumnType<S, I | undefined, U>
@@ -13,25 +15,79 @@ export type Generated<T> = T extends ColumnType<infer S, infer I, infer U>
 
 export type Timestamp = ColumnType<Date, Date | string, Date | string>;
 
-export interface Persons {
-  address: string | null;
+export interface Account {
+  accessToken: string | null;
+  accessTokenExpiresAt: Timestamp | null;
+  accountId: string;
+  createdAt: Timestamp;
+  id: string;
+  idToken: string | null;
+  password: string | null;
+  providerId: string;
+  refreshToken: string | null;
+  refreshTokenExpiresAt: Timestamp | null;
+  scope: string | null;
+  updatedAt: Timestamp;
+  userId: string;
+}
+
+export interface Person {
+  address: string;
   center: CenterLocation;
-  created_at: Generated<Timestamp | null>;
-  email_id: string | null;
-  first_name: string;
+  createdAt: Generated<Timestamp | null>;
+  createdBy: string;
+  emailId: string | null;
+  firstName: string;
+  gender: GenderType | null;
   id: Generated<string>;
-  last_name: string;
-  phone_number: string | null;
-  refugee: Generated<boolean>;
-  updated_at: Generated<Timestamp | null>;
-  year_of_birth: number | null;
+  lastName: string;
+  lastUpdatedBy: string;
+  phoneNumber: string | null;
+  photo: string | null;
+  refugee: boolean;
+  updatedAt: Generated<Timestamp | null>;
+  yearOfBirth: number | null;
 }
 
 export interface SchemaMigrations {
   version: string;
 }
 
+export interface Session {
+  createdAt: Timestamp;
+  expiresAt: Timestamp;
+  id: string;
+  ipAddress: string | null;
+  token: string;
+  updatedAt: Timestamp;
+  userAgent: string | null;
+  userId: string;
+}
+
+export interface User {
+  createdAt: Timestamp;
+  email: string;
+  emailVerified: boolean;
+  id: string;
+  image: string | null;
+  name: string;
+  updatedAt: Timestamp;
+}
+
+export interface Verification {
+  createdAt: Timestamp | null;
+  expiresAt: Timestamp;
+  id: string;
+  identifier: string;
+  updatedAt: Timestamp | null;
+  value: string;
+}
+
 export interface DB {
-  persons: Persons;
+  account: Account;
+  person: Person;
   schema_migrations: SchemaMigrations;
+  session: Session;
+  user: User;
+  verification: Verification;
 }
