@@ -1,5 +1,3 @@
-"use client"
-
 import { useState } from 'react'
 import { IconAlertTriangle } from '@tabler/icons-react'
 import { toast } from '@/hooks/use-toast'
@@ -7,30 +5,30 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { ConfirmDialog } from '@/components/confirm-dialog'
-import { User } from '../data/schema'
-import { useDeleteUser } from '@/api/users'
+import { Person } from '../data/schema'
+import { useDeletePerson } from '../data/api'
 
 interface Props {
   open: boolean
   onOpenChange: (open: boolean) => void
-  currentRow: User
+  currentRow: Person
 }
 
-export function UsersDeleteDialog({ open, onOpenChange, currentRow }: Props) {
+export function PersonsDeleteDialog({ open, onOpenChange, currentRow }: Props) {
   const [value, setValue] = useState('')
-  const deleteUserMutation = useDeleteUser()
+  const deleteMutation = useDeletePerson()
 
   const handleDelete = () => {
-    if (value.trim() !== currentRow.name) return
+    if (value.trim() !== `${currentRow.firstName} ${currentRow.lastName}`) return
     
-    deleteUserMutation.mutate(currentRow.id, {
+    deleteMutation.mutate(currentRow.id, {
       onSuccess: () => {
-        toast({ title: 'User deleted successfully' })
+        toast({ title: 'Person deleted successfully' })
         onOpenChange(false)
       },
       onError: (err: unknown) => {
-        toast({ title: 'Error deleting user', description: String(err) })
-      },
+        toast({ title: 'Error deleting person', description: String(err) })
+      }
     })
   }
 
@@ -42,29 +40,29 @@ export function UsersDeleteDialog({ open, onOpenChange, currentRow }: Props) {
         onOpenChange(state)
       }}
       handleConfirm={handleDelete}
-      disabled={value.trim() !== currentRow.name}
+      disabled={value.trim() !== `${currentRow.firstName} ${currentRow.lastName}`}
       title={
         <span className="text-destructive">
           <IconAlertTriangle
             className="mr-1 inline-block stroke-destructive"
             size={18}
           />{' '}
-          Delete Account
+          Delete Person
         </span>
       }
       desc={
         <div className="space-y-4">
           <p className="mb-2">
-            Are you sure you want to delete <strong>{currentRow.name}</strong>?
+            Are you sure you want to delete <strong>{currentRow.firstName} {currentRow.lastName}</strong>?
             <br />
-            This action will permanently remove the user from the system.
+            This action will permanently remove the person from the system.
           </p>
           <Label className="my-2">
-            Type their name to confirm:
+            Type their full name to confirm:
             <Input
               value={value}
               onChange={(e) => setValue(e.target.value)}
-              placeholder="Enter name to confirm deletion"
+              placeholder="Enter full name to confirm deletion"
             />
           </Label>
           <Alert variant="destructive">

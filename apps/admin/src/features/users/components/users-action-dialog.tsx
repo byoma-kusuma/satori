@@ -25,9 +25,7 @@ import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { User } from '../data/schema'
 import { useUsers } from '../context/users-context'
-import { useMutation } from '@tanstack/react-query'
-import { authClient } from '@/auth-client'
-import { queryClient } from '@/main'
+import { useCreateUser, useUpdateUser } from '@/api/users'
 
 // Admin user update schema
 const formSchema = z.object({
@@ -46,19 +44,8 @@ export function UsersActionDialog({ currentRow, open, onOpenChange }: Props) {
   const isEdit = !!currentRow
   const { setCurrentRow } = useUsers()
 
-  // Example mutation for updating user
-  const updateUserMutation = useMutation({
-    mutationFn: async (vals: UserForm) => {
-      await authClient.updateUser({ name: vals.name })
-      queryClient.invalidateQueries({ queryKey: ['users'] })
-    },
-    onSuccess: () => {
-      toast({ title: 'User updated successfully' })
-    },
-    onError: (err: unknown) => {
-      toast({ title: 'Update failed', description: String(err) })
-    },
-  })
+  const createUserMutation = useCreateUser()
+  const updateUserMutation = useUpdateUser()
 
   const form = useForm<UserForm>({
     resolver: zodResolver(formSchema),
@@ -68,11 +55,33 @@ export function UsersActionDialog({ currentRow, open, onOpenChange }: Props) {
   })
 
   const onSubmit = (vals: UserForm) => {
-    updateUserMutation.mutate(vals)
-    // Reset form and close dialog
-    form.reset()
-    onOpenChange(false)
-    setCurrentRow(null)
+    if (isEdit && currentRow) {
+      updateUserMutation.mutate(
+        { id: currentRow.id, userData: vals },
+        {
+          onSuccess: () => {
+            toast({ title: 'User updated successfully' })
+            form.reset()
+            onOpenChange(false)
+            setCurrentRow(null)
+          },
+          onError: (err: unknown) => {
+            toast({ title: 'Update failed', description: String(err) })
+          },
+        }
+      )
+    } else {
+      createUserMutation.mutate(vals, {
+        onSuccess: () => {
+          toast({ title: 'User created successfully' })
+          form.reset()
+          onOpenChange(false)
+        },
+        onError: (err: unknown) => {
+          toast({ title: 'Creation failed', description: String(err) })
+        },
+      })
+    }
   }
 
   return (
