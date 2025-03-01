@@ -3,6 +3,7 @@ import { cors } from "hono/cors";
 import { auth } from "./lib/auth";
 import { getEmailVerifiedTemplate } from "./templates/email-verified";
 import { usersRoutes } from "./api/user/user.route";
+import { personsRoutes } from "./api/person/person.route";
 
 const app = new Hono();
 
@@ -12,7 +13,7 @@ app.use(
   cors({
     origin: process.env.ORIGIN!,
     allowHeaders: ['Content-Type', 'Authorization'],
-    allowMethods: ['POST', 'GET', 'OPTIONS'],
+    allowMethods: ['POST', 'GET', 'PUT', 'DELETE', 'OPTIONS'],
     exposeHeaders: ['Content-Length'],
     credentials: true,
   })
@@ -28,5 +29,6 @@ app.get("/user_verified", (c) => {
 });
 
 app.route("/api/user", usersRoutes);
+app.route("/api/person", personsRoutes);
 
 export default app;
