@@ -2,6 +2,7 @@
 
 import { z } from 'zod'
 import { useForm } from 'react-hook-form'
+import { useEffect, useRef } from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { toast } from '@/hooks/use-toast'
 import { Button } from '@/components/ui/button'
@@ -46,9 +47,50 @@ interface Props {
 export function PersonsActionDialog({ currentRow, open, onOpenChange }: Props) {
   const isEdit = !!currentRow
   const { setCurrentRow } = usePersons()
+  const formRef = useRef<HTMLFormElement>(null)
   
   const createPersonMutation = useCreatePerson()
   const updatePersonMutation = useUpdatePerson()
+  
+  // Handle keyboard focus to prevent dialog selection during form navigation
+  useEffect(() => {
+    if (open && formRef.current) {
+      // Focus the first input when dialog opens
+      const firstInput = formRef.current.querySelector('input, select, textarea') as HTMLElement
+      if (firstInput) {
+        setTimeout(() => firstInput.focus(), 100)
+      }
+      
+      // Setup a focus trap within the form
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === 'Tab') {
+          const focusableElements = formRef.current?.querySelectorAll(
+            'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+          ) as NodeListOf<HTMLElement>
+          
+          if (focusableElements && focusableElements.length) {
+            const firstElement = focusableElements[0]
+            const lastElement = focusableElements[focusableElements.length - 1]
+            
+            // Handle tabbing beyond the last element
+            if (!e.shiftKey && document.activeElement === lastElement) {
+              e.preventDefault()
+              firstElement.focus()
+            }
+            
+            // Handle tabbing beyond the first element
+            if (e.shiftKey && document.activeElement === firstElement) {
+              e.preventDefault()
+              lastElement.focus()
+            }
+          }
+        }
+      }
+      
+      document.addEventListener('keydown', handleKeyDown)
+      return () => document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [open])
 
   const form = useForm<PersonForm>({
     resolver: zodResolver(personInputSchema),
@@ -131,6 +173,7 @@ export function PersonsActionDialog({ currentRow, open, onOpenChange }: Props) {
           <Form {...form}>
             <form
               id="person-form"
+              ref={formRef}
               onSubmit={form.handleSubmit(onSubmit)}
               className="space-y-4 p-0.5"
             >
