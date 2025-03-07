@@ -8,7 +8,6 @@ import {
   addPersonToGroup,
   removePersonFromGroup,
   getGroupMembers,
-  getPersonGroups,
   GroupInput
 } from "./group.service";
 import { authenticated } from "../../middlewares/session";
@@ -51,12 +50,12 @@ export const groupsRoutes = groups
     await deleteGroup(id);
     return c.json({ message: "Group deleted" });
   })
-  .get("/:id/members", async (c) => {
+  .get("/:id/persons", async (c) => {
     const id = c.req.param("id");
     const members = await getGroupMembers(id);
     return c.json(members);
   })
-  .post("/:id/members", async (c) => {
+  .post("/:id/persons", async (c) => {
     const groupId = c.req.param("id");
     const { personId } = await c.req.json<{ personId: string }>();
     const user = c.get("user");
@@ -64,28 +63,11 @@ export const groupsRoutes = groups
     const result = await addPersonToGroup(personId, groupId, user.id);
     return c.json(result, 201);
   })
-  .delete("/:groupId/members/:personId", async (c) => {
+  .delete("/:groupId/persons/:personId", async (c) => {
     const groupId = c.req.param("groupId");
     const personId = c.req.param("personId");
     await removePersonFromGroup(personId, groupId);
     return c.json({ message: "Person removed from group" });
   });
 
-// Additional routes for person-group relationships
-export const personGroupRoutes = new Hono<{
-  Variables: {
-    user: typeof auth.$Infer.Session.user | null;
-    session: typeof auth.$Infer.Session.session | null;
-  };
-}>();
-
-export const personGroupsRoutes = personGroupRoutes
-  .use(authenticated)
-  .get("/person/:personId/groups", async (c) => {
-    const personId = c.req.param("personId");
-    const groups = await getPersonGroups(personId);
-    return c.json(groups);
-  });
-
 export type GroupType = typeof groupsRoutes;
-export type PersonGroupType = typeof personGroupsRoutes;
