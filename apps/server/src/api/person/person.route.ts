@@ -5,6 +5,7 @@ import { auth } from "../../lib/auth";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
 import { HTTPException } from "hono/http-exception";
+import { getPersonGroups } from "../group/group.service";
 
 const persons = new Hono<{
   Variables: {
@@ -67,6 +68,11 @@ export const personsRoutes = persons
     const person = await getPersonById(id);
     return c.json(person);
   })
+  .get("/:id/groups", async (c) => {
+    const id = c.req.param("id");
+    const groups = await getPersonGroups(id);
+    return c.json(groups);
+  })
   .post("/", zValidator("json", personInputSchema), async (c) => {
     const personData = await c.req.valid("json");
     const user = c.get("user");
@@ -86,6 +92,11 @@ export const personsRoutes = persons
     const { id } = c.req.valid("param");
     await deletePerson(id);
     return c.json({ success: true });
+  })
+  .get("/:id/groups", async (c) => {
+    const id = c.req.param("id");
+    const groups = await getPersonGroups(id);
+    return c.json(groups);
   });
 
 export type PersonType = typeof personsRoutes;
