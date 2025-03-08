@@ -25,3 +25,8 @@ export const getUser = async (id: string) => {
   const response = await client[':id'].$get({ param: { id } });
   return await response.json();
 };
+
+export const getUserQueryOptions = (id: string) => queryOptions({
+  queryKey: ['user', id],
+  queryFn: () => getUser(id),
+});

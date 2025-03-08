@@ -1,6 +1,6 @@
 import { DotsHorizontalIcon } from '@radix-ui/react-icons'
 import { Row } from '@tanstack/react-table'
-import { IconEdit, IconTrash } from '@tabler/icons-react'
+import { IconEdit, IconTrash, IconUsersGroup } from '@tabler/icons-react'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -41,6 +41,17 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
             Edit
             <DropdownMenuShortcut>
               <IconEdit size={16} />
+            </DropdownMenuShortcut>
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => {
+              setCurrentRow(row.original)
+              setOpen('groups')
+            }}
+          >
+            Manage Groups
+            <DropdownMenuShortcut>
+              <IconUsersGroup size={16} />
             </DropdownMenuShortcut>
           </DropdownMenuItem>
           <DropdownMenuSeparator />

@@ -31,6 +31,16 @@ export interface Account {
   userId: string;
 }
 
+export interface Group {
+  createdAt: Generated<Timestamp | null>;
+  createdBy: string;
+  description: string | null;
+  id: Generated<string>;
+  lastUpdatedBy: string;
+  name: string;
+  updatedAt: Generated<Timestamp | null>;
+}
+
 export interface Person {
   address: string;
   center: CenterLocation;
@@ -47,6 +57,14 @@ export interface Person {
   refugee: boolean;
   updatedAt: Generated<Timestamp | null>;
   yearOfBirth: number | null;
+}
+
+export interface PersonGroup {
+  addedBy: string;
+  groupId: string;
+  id: Generated<string>;
+  joinedAt: Generated<Timestamp | null>;
+  personId: string;
 }
 
 export interface SchemaMigrations {
@@ -85,7 +103,9 @@ export interface Verification {
 
 export interface DB {
   account: Account;
+  group: Group;
   person: Person;
+  person_group: PersonGroup;
   schema_migrations: SchemaMigrations;
   session: Session;
   user: User;

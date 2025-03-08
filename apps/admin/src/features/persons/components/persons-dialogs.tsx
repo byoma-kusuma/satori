@@ -1,6 +1,7 @@
 import { usePersons } from '../context/persons-context'
 import { PersonsActionDialog } from './persons-action-dialog'
 import { PersonsDeleteDialog } from './persons-delete-dialog'
+import { PersonGroupsDialog } from './person-groups-dialog'
 
 export function PersonsDialogs() {
   const { open, setOpen, currentRow, setCurrentRow } = usePersons()
@@ -30,6 +31,15 @@ export function PersonsDialogs() {
               if (!state) setTimeout(() => setCurrentRow(null), 500)
             }}
             currentRow={currentRow}
+          />
+          <PersonGroupsDialog
+            key={`person-groups-${currentRow.id}`}
+            open={open === 'groups'}
+            onOpenChange={(state) => {
+              setOpen(state ? 'groups' : null)
+              if (!state) setTimeout(() => setCurrentRow(null), 500)
+            }}
+            person={currentRow}
           />
         </>
       )}

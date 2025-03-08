@@ -3,28 +3,31 @@
   "scripts": {
     "dev": "bun run --hot src/index.ts",
     "start": "bun run src/index.ts",
-    "migrate": "npx @better-auth/cli migrate",
+    "auth:migrate": "npx @better-auth/cli migrate",
     "codegen": "kysely-codegen --out-file=./src/types.ts",
-    "dbmate": "dbmate"
+    "dbmate": "dbmate",
+    "migrate": "pnpm run dbmate up && pnpm run codegen"
   },
   "exports": {
     "./person": "./src/api/person/person.route.ts",
     "./user": "./src/api/user/user.route.ts"
   },
   "dependencies": {
+    "@hono/zod-validator": "^0.4.3",
     "better-auth": "^1.1.15",
     "form-data": "^4.0.1",
     "hono": "^4.6.14",
     "kysely": "^0.27.5",
     "mailgun.js": "11.1.0",
     "nodemailer": "^6.10.0",
-    "pg": "^8.13.1"
+    "pg": "^8.13.1",
+    "zod": "^3.24.2"
   },
   "devDependencies": {
     "@types/bun": "latest",
     "@types/nodemailer": "^6.4.17",
     "@types/pg": "^8.11.11",
-    "dbmate": "^1.16.0",
+    "dbmate": "^1.16.1",
     "kysely-codegen": "^0.17.0"
   }
 }

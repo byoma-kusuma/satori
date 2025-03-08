@@ -3,7 +3,10 @@ import { Pool } from "pg";
 import { sendEmail } from "./email";
 
 export const auth = betterAuth({
-  trustedOrigins: [process.env.ORIGIN!],
+  logger: {
+    level: "debug",
+  },
+  trustedOrigins: process.env.ORIGIN ? process.env.ORIGIN.split(",").map((o) => o.trim()) : [],
   database: new Pool({
     connectionString: process.env.DATABASE_URL,
   }),
@@ -21,7 +24,7 @@ export const auth = betterAuth({
   emailVerification: {
     sendOnSignUp: true,
     sendVerificationEmail: async ({ user, url, token }, request) => {
-    await sendEmail({
+      await sendEmail({
         to: user.email,
         subject: "Verify your email address",
         text: `Click the link to verify your email: ${url}`,

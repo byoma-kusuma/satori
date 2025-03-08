@@ -1,4 +1,5 @@
-import { IconHome, IconSettings, IconUsers } from '@tabler/icons-react'
+import React from 'react'
+import { IconHome, IconSettings, IconUsers, IconUsersGroup } from '@tabler/icons-react'
 
 export const sidebarData = [
   {
@@ -15,5 +16,10 @@ export const sidebarData = [
     title: 'Persons',
     url: '/persons',
     icon: <IconUsers size={18} />,
+  },
+  {
+    title: 'Groups',
+    url: '/groups',
+    icon: <IconUsersGroup size={18} />,
   },
 ]

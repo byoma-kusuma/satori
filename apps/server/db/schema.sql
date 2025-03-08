@@ -87,6 +87,21 @@ CREATE TABLE public.account (
 
 
 --
+-- Name: group; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public."group" (
+    id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
+    name character varying(100) NOT NULL,
+    description text,
+    "createdAt" timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+    "createdBy" text NOT NULL,
+    "lastUpdatedBy" text NOT NULL
+);
+
+
+--
 -- Name: person; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -107,6 +122,19 @@ CREATE TABLE public.person (
     "createdBy" text NOT NULL,
     "lastUpdatedBy" text NOT NULL,
     CONSTRAINT "person_yearOfBirth_check" CHECK (("yearOfBirth" > 1900))
+);
+
+
+--
+-- Name: person_group; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.person_group (
+    id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
+    "personId" uuid NOT NULL,
+    "groupId" uuid NOT NULL,
+    "joinedAt" timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+    "addedBy" text NOT NULL
 );
 
 
@@ -173,6 +201,30 @@ ALTER TABLE ONLY public.account
 
 
 --
+-- Name: group group_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public."group"
+    ADD CONSTRAINT group_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: person_group person_group_personId_groupId_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.person_group
+    ADD CONSTRAINT "person_group_personId_groupId_key" UNIQUE ("personId", "groupId");
+
+
+--
+-- Name: person_group person_group_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.person_group
+    ADD CONSTRAINT person_group_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: person person_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -229,6 +281,13 @@ ALTER TABLE ONLY public.verification
 
 
 --
+-- Name: idx_group_name; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_group_name ON public."group" USING btree (name);
+
+
+--
 -- Name: idx_person_center; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -247,6 +306,27 @@ CREATE INDEX idx_person_created_by ON public.person USING btree (split_part("cre
 --
 
 CREATE INDEX idx_person_email ON public.person USING btree ("emailId") WHERE ("emailId" IS NOT NULL);
+
+
+--
+-- Name: idx_person_group_added_by; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_person_group_added_by ON public.person_group USING btree (split_part("addedBy", '#'::text, 2));
+
+
+--
+-- Name: idx_person_group_group_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_person_group_group_id ON public.person_group USING btree ("groupId");
+
+
+--
+-- Name: idx_person_group_person_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_person_group_person_id ON public.person_group USING btree ("personId");
 
 
 --
@@ -278,6 +358,13 @@ CREATE INDEX idx_person_updated_by ON public.person USING btree (split_part("las
 
 
 --
+-- Name: group update_group_updated_at; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER update_group_updated_at BEFORE UPDATE ON public."group" FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+
+--
 -- Name: person update_person_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -290,6 +377,22 @@ CREATE TRIGGER update_person_updated_at BEFORE UPDATE ON public.person FOR EACH 
 
 ALTER TABLE ONLY public.account
     ADD CONSTRAINT "account_userId_fkey" FOREIGN KEY ("userId") REFERENCES public."user"(id);
+
+
+--
+-- Name: person_group fk_group; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.person_group
+    ADD CONSTRAINT fk_group FOREIGN KEY ("groupId") REFERENCES public."group"(id) ON DELETE CASCADE;
+
+
+--
+-- Name: person_group fk_person; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.person_group
+    ADD CONSTRAINT fk_person FOREIGN KEY ("personId") REFERENCES public.person(id) ON DELETE CASCADE;
 
 
 --
@@ -310,4 +413,5 @@ ALTER TABLE ONLY public.session
 --
 
 INSERT INTO public.schema_migrations (version) VALUES
-    ('20250218032240');
+    ('20250218032240'),
+    ('20250303000000');
