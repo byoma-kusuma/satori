@@ -25,7 +25,6 @@ import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { User } from '../data/schema'
 import { useUsers } from '../context/users-context'
-import { useCreateUser, useUpdateUser } from '@/api/users'
 
 // Admin user update schema
 const formSchema = z.object({
@@ -44,9 +43,6 @@ export function UsersActionDialog({ currentRow, open, onOpenChange }: Props) {
   const isEdit = !!currentRow
   const { setCurrentRow } = useUsers()
 
-  const createUserMutation = useCreateUser()
-  const updateUserMutation = useUpdateUser()
-
   const form = useForm<UserForm>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -54,33 +50,16 @@ export function UsersActionDialog({ currentRow, open, onOpenChange }: Props) {
     },
   })
 
-  const onSubmit = (vals: UserForm) => {
-    if (isEdit && currentRow) {
-      updateUserMutation.mutate(
-        { id: currentRow.id, userData: vals },
-        {
-          onSuccess: () => {
-            toast({ title: 'User updated successfully' })
-            form.reset()
-            onOpenChange(false)
-            setCurrentRow(null)
-          },
-          onError: (err: unknown) => {
-            toast({ title: 'Update failed', description: String(err) })
-          },
-        }
-      )
-    } else {
-      createUserMutation.mutate(vals, {
-        onSuccess: () => {
-          toast({ title: 'User created successfully' })
-          form.reset()
-          onOpenChange(false)
-        },
-        onError: (err: unknown) => {
-          toast({ title: 'Creation failed', description: String(err) })
-        },
-      })
+  const onSubmit = () => {
+    // Create/update functionality removed
+    toast({ 
+      title: isEdit ? 'User update functionality removed' : 'User creation functionality removed', 
+      description: 'This feature has been disabled'
+    })
+    form.reset()
+    onOpenChange(false)
+    if (isEdit) {
+      setCurrentRow(null)
     }
   }
 
@@ -131,7 +110,6 @@ export function UsersActionDialog({ currentRow, open, onOpenChange }: Props) {
           <Button
             type="submit"
             form="user-form"
-            disabled={updateUserMutation.isPending}
           >
             Save changes
           </Button>
