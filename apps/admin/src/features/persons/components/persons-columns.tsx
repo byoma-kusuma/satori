@@ -1,10 +1,11 @@
 import { ColumnDef } from '@tanstack/react-table'
 import { cn } from '@/lib/utils'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Person } from '../data/schema'
+import { Person, personTypeLabels } from '../data/schema'
 import { DataTableColumnHeader } from './data-table-column-header'
 import { DataTableRowActions } from './data-table-row-actions'
 import { format } from 'date-fns'
+import { Badge } from '@/components/ui/badge'
 
 export const columns: ColumnDef<Person>[] = [
   {
@@ -54,6 +55,27 @@ export const columns: ColumnDef<Person>[] = [
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Last Name" />
     ),
+  },
+  {
+    accessorKey: 'type',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Type" />
+    ),
+    cell: ({ row }) => {
+      const type = row.getValue<'interested' | 'contact' | 'sangha_member'>('type')
+      
+      const badgeVariant = type === 'sangha_member' 
+        ? 'default' 
+        : type === 'contact' 
+          ? 'secondary' 
+          : 'outline'
+          
+      return (
+        <Badge variant={badgeVariant}>
+          {personTypeLabels[type]}
+        </Badge>
+      )
+    },
   },
   {
     accessorKey: 'emailId',
