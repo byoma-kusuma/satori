@@ -4,6 +4,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { User } from '../data/schema'
 import { DataTableColumnHeader } from './data-table-column-header'
 import { DataTableRowActions } from './data-table-row-actions'
+import { format } from 'date-fns'
 
 export const columns: ColumnDef<User>[] = [
   {
@@ -68,7 +69,7 @@ export const columns: ColumnDef<User>[] = [
     ),
     cell: ({ row }) => {
       const date = row.getValue<Date>('createdAt')
-      return date.toLocaleString()
+      return date ? format(new Date(date), 'dd-MM-yyyy') : 'N/A'
     },
   },
   {
@@ -78,7 +79,7 @@ export const columns: ColumnDef<User>[] = [
     ),
     cell: ({ row }) => {
       const date = row.getValue<Date>('updatedAt')
-      return date.toLocaleString()
+      return date ? format(new Date(date), 'dd-MM-yyyy') : 'N/A'
     },
   },
   {

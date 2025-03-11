@@ -60,35 +60,6 @@ export function PersonsActionDialog({ currentRow, open, onOpenChange }: Props) {
       if (firstInput) {
         setTimeout(() => firstInput.focus(), 100)
       }
-      
-      // Setup a focus trap within the form
-      const handleKeyDown = (e: KeyboardEvent) => {
-        if (e.key === 'Tab') {
-          const focusableElements = formRef.current?.querySelectorAll(
-            'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
-          ) as NodeListOf<HTMLElement>
-          
-          if (focusableElements && focusableElements.length) {
-            const firstElement = focusableElements[0]
-            const lastElement = focusableElements[focusableElements.length - 1]
-            
-            // Handle tabbing beyond the last element
-            if (!e.shiftKey && document.activeElement === lastElement) {
-              e.preventDefault()
-              firstElement.focus()
-            }
-            
-            // Handle tabbing beyond the first element
-            if (e.shiftKey && document.activeElement === firstElement) {
-              e.preventDefault()
-              lastElement.focus()
-            }
-          }
-        }
-      }
-      
-      document.addEventListener('keydown', handleKeyDown)
-      return () => document.removeEventListener('keydown', handleKeyDown)
     }
   }, [open])
 
