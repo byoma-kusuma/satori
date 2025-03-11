@@ -76,6 +76,10 @@ export const columns: ColumnDef<Person>[] = [
         </Badge>
       )
     },
+    filterFn: (row, id, value) => {
+      return value.includes(row.getValue(id))
+    },
+    enableColumnFilter: true,
   },
   {
     accessorKey: 'emailId',
@@ -94,6 +98,10 @@ export const columns: ColumnDef<Person>[] = [
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Center" />
     ),
+    filterFn: (row, id, value) => {
+      return value.includes(row.getValue(id))
+    },
+    enableColumnFilter: true,
   },
   {
     accessorKey: 'createdAt',
