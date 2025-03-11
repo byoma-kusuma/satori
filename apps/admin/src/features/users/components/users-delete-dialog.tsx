@@ -8,7 +8,6 @@ import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { User } from '../data/schema'
-import { useDeleteUser } from '@/api/users'
 
 interface Props {
   open: boolean
@@ -18,20 +17,16 @@ interface Props {
 
 export function UsersDeleteDialog({ open, onOpenChange, currentRow }: Props) {
   const [value, setValue] = useState('')
-  const deleteUserMutation = useDeleteUser()
 
   const handleDelete = () => {
     if (value.trim() !== currentRow.name) return
     
-    deleteUserMutation.mutate(currentRow.id, {
-      onSuccess: () => {
-        toast({ title: 'User deleted successfully' })
-        onOpenChange(false)
-      },
-      onError: (err: unknown) => {
-        toast({ title: 'Error deleting user', description: String(err) })
-      },
+    // Delete functionality removed
+    toast({ 
+      title: 'User deletion functionality removed', 
+      description: 'This feature has been disabled'
     })
+    onOpenChange(false)
   }
 
   return (

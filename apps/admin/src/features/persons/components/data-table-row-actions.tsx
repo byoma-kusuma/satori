@@ -10,6 +10,7 @@ import {
   DropdownMenuShortcut,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { useNavigate } from '@tanstack/react-router'
 import { usePersons } from '../context/persons-context'
 import { Person } from '../data/schema'
 
@@ -18,7 +19,9 @@ interface DataTableRowActionsProps {
 }
 
 export function DataTableRowActions({ row }: DataTableRowActionsProps) {
+  const navigate = useNavigate()
   const { setOpen, setCurrentRow } = usePersons()
+  
   return (
     <>
       <DropdownMenu modal={false}>
@@ -34,8 +37,7 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
         <DropdownMenuContent align='end' className='w-[160px]'>
           <DropdownMenuItem
             onClick={() => {
-              setCurrentRow(row.original)
-              setOpen('edit')
+              navigate({ to: `/persons/${row.original.id}/edit` })
             }}
           >
             Edit
