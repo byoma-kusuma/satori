@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { personTypes } from '../data/person-types'
 import { DataTableFacetedFilter } from './data-table-faceted-filter'
+import { PersonsActionBar } from './persons-action-bar'
 
 interface DataTableToolbarProps<TData> {
   table: Table<TData>
@@ -15,7 +16,7 @@ export function DataTableToolbar<TData>({
   const isFiltered = table.getState().columnFilters.length > 0
 
   return (
-    <div className="flex items-center justify-between">
+    <div className="flex items-center justify-between gap-x-2">
       <div className="flex flex-1 flex-col-reverse items-start gap-y-2 sm:flex-row sm:items-center sm:space-x-2">
         <Input
           placeholder="Filter by first name..."
@@ -56,6 +57,10 @@ export function DataTableToolbar<TData>({
             <Cross2Icon className="ml-2 h-4 w-4" />
           </Button>
         )}
+      </div>
+
+      <div className="flex-shrink-0">
+        <PersonsActionBar table={table} />
       </div>
     </div>
   )
