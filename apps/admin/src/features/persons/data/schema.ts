@@ -31,6 +31,13 @@ export const personInputSchema = z.object({
   gender: z.enum(['male', 'female', 'other', 'prefer_not_to_say']).optional(),
   refugee: z.boolean(),
   center: z.enum(['Nepal', 'USA', 'Australia', 'UK']),
+  type: z.enum(['interested', 'contact', 'sangha_member']),
 })
 
 export type PersonInput = z.infer<typeof personInputSchema>
+
+export const personTypeLabels = {
+  interested: 'Interested',
+  contact: 'Contact',
+  sangha_member: 'Sangha Member',
+}

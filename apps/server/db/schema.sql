@@ -48,6 +48,17 @@ CREATE TYPE public.gender_type AS ENUM (
 
 
 --
+-- Name: person_type; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.person_type AS ENUM (
+    'interested',
+    'contact',
+    'sangha_member'
+);
+
+
+--
 -- Name: update_updated_at_column(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -121,6 +132,7 @@ CREATE TABLE public.person (
     "updatedAt" timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
     "createdBy" text NOT NULL,
     "lastUpdatedBy" text NOT NULL,
+    type public.person_type DEFAULT 'interested'::public.person_type NOT NULL,
     CONSTRAINT "person_yearOfBirth_check" CHECK (("yearOfBirth" > 1900))
 );
 
@@ -351,6 +363,13 @@ CREATE INDEX idx_person_refugee ON public.person USING btree (refugee);
 
 
 --
+-- Name: idx_person_type; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_person_type ON public.person USING btree (type);
+
+
+--
 -- Name: idx_person_updated_by; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -414,4 +433,5 @@ ALTER TABLE ONLY public.session
 
 INSERT INTO public.schema_migrations (version) VALUES
     ('20250218032240'),
-    ('20250303000000');
+    ('20250303000000'),
+    ('20250311000000');

@@ -13,6 +13,8 @@ export type Generated<T> = T extends ColumnType<infer S, infer I, infer U>
   ? ColumnType<S, I | undefined, U>
   : ColumnType<T, T | undefined, T>;
 
+export type PersonType = "contact" | "interested" | "sangha_member";
+
 export type Timestamp = ColumnType<Date, Date | string, Date | string>;
 
 export interface Account {
@@ -55,6 +57,7 @@ export interface Person {
   phoneNumber: string | null;
   photo: string | null;
   refugee: boolean;
+  type: Generated<PersonType>;
   updatedAt: Generated<Timestamp | null>;
   yearOfBirth: number | null;
 }
