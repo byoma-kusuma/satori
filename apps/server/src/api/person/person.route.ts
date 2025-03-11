@@ -1,11 +1,19 @@
 import { Hono } from "hono";
-import { getAllPersons, getPersonById, createPerson, updatePerson, deletePerson, PersonInput } from "./person.service";
+import { 
+  getAllPersons, 
+  getPersonById, 
+  createPerson, 
+  updatePerson, 
+  deletePerson,
+  getPersonsByType 
+} from "./person.service";
 import { authenticated } from "../../middlewares/session";
 import { auth } from "../../lib/auth";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
 import { HTTPException } from "hono/http-exception";
 import { getPersonGroups } from "../group/group.service";
+import { PersonType } from "./person.types";
 
 const persons = new Hono<{
   Variables: {
@@ -25,6 +33,7 @@ const personInputSchema = z.object({
   photo: z.string().nullable().optional().default(null),
   refugee: z.boolean().default(false),
   yearOfBirth: z.number().int().min(1900).nullable().optional().default(null),
+  type: z.enum(["interested", "contact", "sangha_member"]).default("interested"),
 });
 
 const personUpdateSchema = personInputSchema.partial();
@@ -60,6 +69,13 @@ persons.onError((err, c) => {
 export const personsRoutes = persons
   .use(authenticated)
   .get("/", async (c) => {
+    const type = c.req.query('type') as PersonType | undefined;
+    
+    if (type && ['interested', 'contact', 'sangha_member'].includes(type)) {
+      const persons = await getPersonsByType(type);
+      return c.json(persons);
+    }
+    
     const persons = await getAllPersons();
     return c.json(persons);
   })

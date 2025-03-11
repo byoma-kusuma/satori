@@ -95,3 +95,53 @@ Replace the
 docker-compose down -v
 ```
 Then start from the database parts again.
+
+## Person Type Migration
+
+A new migration has been added to add a required `type` field to the person table. This field is of type `enum` with possible values:
+- `interested`
+- `contact` 
+- `sangha_member`
+
+To apply this migration, run:
+
+```bash
+# Make sure you're in the server directory
+cd apps/server
+
+# Make sure the database container is running
+docker-compose up -d
+
+# Apply the migration
+npx dbmate up
+```
+
+All existing person records will have their type set to `interested` by default.
+
+### API Changes
+
+The Person API now supports:
+
+1. Filtering persons by type:
+   - `GET /api/person?type=interested`
+   - `GET /api/person?type=contact`
+   - `GET /api/person?type=sangha_member`
+
+2. Creating persons with a specified type:
+   ```json
+   {
+     "firstName": "John",
+     "lastName": "Doe",
+     "address": "123 Main St",
+     "type": "contact" 
+   }
+   ```
+
+3. Updating a person's type:
+   ```json
+   {
+     "type": "sangha_member"
+   }
+   ```
+
+If not specified during creation, the default type is `interested`.

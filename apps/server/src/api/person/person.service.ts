@@ -1,7 +1,5 @@
 import { db } from '../../database';
-import { Person } from '../../types';
-
-export type PersonInput = Omit<Person, 'id' | 'createdAt' | 'updatedAt' | 'createdBy' | 'lastUpdatedBy'>;
+import { PersonInput, PersonType } from './person.types';
 
 export async function getAllPersons() {
   return db
@@ -47,4 +45,13 @@ export async function deletePerson(id: string) {
     .deleteFrom('person')
     .where('id', '=', id)
     .executeTakeFirstOrThrow();
+}
+
+// New functions to filter persons by type
+export async function getPersonsByType(type: PersonType) {
+  return db
+    .selectFrom('person')
+    .selectAll()
+    .where('type', '=', type)
+    .execute();
 }
