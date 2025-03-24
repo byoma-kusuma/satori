@@ -13,7 +13,7 @@ import { PersonsTable } from './components/persons-table'
 import PersonsProvider from './context/persons-context'
 
 function PersonsList() {
-  const { data: personList } = useSuspenseQuery(getPersonsQueryOptions)
+  const { data: personList } = useSuspenseQuery(getPersonsQueryOptions())
 
   return (
     <>
