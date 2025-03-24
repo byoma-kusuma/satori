@@ -5,10 +5,14 @@
     "build": "turbo build",
     "dev": "turbo dev",
     "lint": "turbo lint",
+    "auth:migrate": "npx @better-auth/cli migrate",
+    "codegen": "kysely-codegen --out-file=./src/types.ts",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
-    "dbmate": "dbmate"
+    "dbmate": "cd apps/server && DATABASE_URL=$(grep DATABASE_URL .env | cut -d '=' -f2-) && cd ../.. && dbmate",
+    "migrate": "pnpm run dbmate up && pnpm run codegen"
   },
   "devDependencies": {
+    "dbmate": "^1.16.1",
     "prettier": "^3.4.2",
     "turbo": "^2.4.0",
     "typescript": "5.7.3"

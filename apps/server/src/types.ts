@@ -7,11 +7,25 @@ import type { ColumnType } from "kysely";
 
 export type CenterLocation = "Australia" | "Nepal" | "UK" | "USA";
 
+export type EventType = "BODHIPUSPANJALI" | "REFUGE";
+
 export type GenderType = "female" | "male" | "other" | "prefer_not_to_say";
 
 export type Generated<T> = T extends ColumnType<infer S, infer I, infer U>
   ? ColumnType<S, I | undefined, U>
   : ColumnType<T, T | undefined, T>;
+
+export type Json = JsonValue;
+
+export type JsonArray = JsonValue[];
+
+export type JsonObject = {
+  [x: string]: JsonValue | undefined;
+};
+
+export type JsonPrimitive = boolean | number | string | null;
+
+export type JsonValue = JsonArray | JsonObject | JsonPrimitive;
 
 export type PersonType = "contact" | "interested" | "sangha_member";
 
@@ -31,6 +45,20 @@ export interface Account {
   scope: string | null;
   updatedAt: Timestamp;
   userId: string;
+}
+
+export interface Event {
+  createdAt: Generated<Timestamp | null>;
+  createdBy: string;
+  description: string | null;
+  endDate: Timestamp;
+  id: Generated<string>;
+  lastUpdatedBy: string;
+  metadata: Generated<Json | null>;
+  name: string;
+  startDate: Timestamp;
+  type: EventType;
+  updatedAt: Generated<Timestamp | null>;
 }
 
 export interface Group {
@@ -106,6 +134,7 @@ export interface Verification {
 
 export interface DB {
   account: Account;
+  event: Event;
   group: Group;
   person: Person;
   person_group: PersonGroup;

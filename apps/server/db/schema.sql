@@ -36,6 +36,16 @@ CREATE TYPE public.center_location AS ENUM (
 
 
 --
+-- Name: event_type; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.event_type AS ENUM (
+    'REFUGE',
+    'BODHIPUSPANJALI'
+);
+
+
+--
 -- Name: gender_type; Type: TYPE; Schema: public; Owner: -
 --
 
@@ -94,6 +104,25 @@ CREATE TABLE public.account (
     password text,
     "createdAt" timestamp without time zone NOT NULL,
     "updatedAt" timestamp without time zone NOT NULL
+);
+
+
+--
+-- Name: event; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.event (
+    id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
+    name character varying(255) NOT NULL,
+    description text,
+    "startDate" timestamp with time zone NOT NULL,
+    "endDate" timestamp with time zone NOT NULL,
+    "createdAt" timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+    "createdBy" text NOT NULL,
+    "lastUpdatedBy" text NOT NULL,
+    type public.event_type NOT NULL,
+    metadata jsonb DEFAULT '{}'::jsonb
 );
 
 
@@ -213,6 +242,14 @@ ALTER TABLE ONLY public.account
 
 
 --
+-- Name: event event_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.event
+    ADD CONSTRAINT event_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: group group_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -290,6 +327,41 @@ ALTER TABLE ONLY public."user"
 
 ALTER TABLE ONLY public.verification
     ADD CONSTRAINT verification_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: idx_event_createdby; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_event_createdby ON public.event USING btree (split_part("createdBy", '#'::text, 2));
+
+
+--
+-- Name: idx_event_dates; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_event_dates ON public.event USING btree ("startDate", "endDate");
+
+
+--
+-- Name: idx_event_name; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_event_name ON public.event USING btree (name);
+
+
+--
+-- Name: idx_event_type; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_event_type ON public.event USING btree (type);
+
+
+--
+-- Name: idx_event_updatedby; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_event_updatedby ON public.event USING btree (split_part("lastUpdatedBy", '#'::text, 2));
 
 
 --
@@ -377,6 +449,13 @@ CREATE INDEX idx_person_updated_by ON public.person USING btree (split_part("las
 
 
 --
+-- Name: event update_event_updatedat; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER update_event_updatedat BEFORE UPDATE ON public.event FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+
+--
 -- Name: group update_group_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -434,4 +513,5 @@ ALTER TABLE ONLY public.session
 INSERT INTO public.schema_migrations (version) VALUES
     ('20250218032240'),
     ('20250303000000'),
-    ('20250311000000');
+    ('20250311000000'),
+    ('20250317213500');
