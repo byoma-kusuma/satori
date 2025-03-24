@@ -4,7 +4,7 @@ import useDialogState from '@/hooks/use-dialog-state'
 import { Event } from '../data/schema'
 
 // Dialog types for the events feature
-type EventsDialogType = 'delete' | 'edit' | 'create' | 'participants' | 'addParticipant' | 'editParticipant'
+type EventsDialogType = 'delete' | 'edit' | 'create' | 'participants' | 'addParticipant' | 'editParticipant' | 'viewEvent'
 
 // Interface for loading states
 interface LoadingState {
