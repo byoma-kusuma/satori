@@ -14,6 +14,45 @@ import AppearanceEffect from '@/components/AppearanceEffect';
 // Generated Routes
 import { routeTree } from './routeTree.gen';
 
+
+
+
+/* 
+  EVent table
+  > id
+  > name
+  > description
+  > start_date
+  > end_date
+  > created_at
+  > updated_at
+  > type (ENUM, "REFUGE", "BODHIPUSPANJALI")
+  > metadata (JSONB, RefugeData, BodhipushpanjaliData) 
+   example of metadata: Refugedata = Array<{
+    personId,
+    firstName,
+    lastName,
+    refugeName,
+    completed,
+   }>
+    example of metaData: BodhipushpanjaliData = Array<{
+      personId,
+      firstName,
+      lastName,
+      hasTakenRefuge,
+      referralMedium
+    }>
+
+  PersonEvents
+  > id
+  > person_id
+  > event_id
+  > created_at
+  > updated_at
+  > type (eg "refuge")
+   
+*/
+
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
