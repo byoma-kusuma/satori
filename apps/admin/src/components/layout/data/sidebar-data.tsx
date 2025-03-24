@@ -1,5 +1,5 @@
 import React from 'react'
-import { IconHome, IconSettings, IconUsers, IconUsersGroup } from '@tabler/icons-react'
+import { IconHome, IconSettings, IconUsers, IconUsersGroup, IconCalendarEvent } from '@tabler/icons-react'
 
 export const sidebarData = [
   {
@@ -21,5 +21,10 @@ export const sidebarData = [
     title: 'Groups',
     url: '/groups',
     icon: <IconUsersGroup size={18} />,
+  },
+  {
+    title: 'Events',
+    url: '/events',
+    icon: <IconCalendarEvent size={18} />,
   },
 ]

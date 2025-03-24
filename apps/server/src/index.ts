@@ -5,6 +5,7 @@ import { getEmailVerifiedTemplate } from "./templates/email-verified";
 import { usersRoutes } from "./api/user/user.route";
 import { personsRoutes } from "./api/person/person.route";
 import { groupsRoutes } from "./api/group/group.route";
+import { eventsRoutes } from "./api/event/event.route";
 
 const app = new Hono();
 
@@ -32,5 +33,6 @@ app.get("/user_verified", (c) => {
 app.route("/api/user", usersRoutes);
 app.route("/api/person", personsRoutes);
 app.route("/api/group", groupsRoutes);
+app.route("/api/event", eventsRoutes);
 
 export default app;

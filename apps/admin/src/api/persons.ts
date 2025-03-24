@@ -4,20 +4,46 @@ import { PersonInput } from '../features/persons/data/schema'
 // API base URL
 const API_BASE_URL = 'http://localhost:3000/api/person'
 
-// Common fetch function with credentials
+import { authClient } from '@/auth-client'
+
+// Common fetch function with credentials and error handling
 const fetchWithCredentials = async (url: string, options?: RequestInit) => {
-  const response = await fetch(url, {
-    ...options,
-    credentials: 'include',
-    headers: {
-      ...options?.headers,
-      'Content-Type': 'application/json',
-    },
-  })
-  if (!response.ok) {
-    throw new Error(`API error: ${response.status} ${response.statusText}`)
+  try {
+    // Get the auth token if available
+    const session = await authClient.getSession()
+    const authHeader = session ? { Authorization: `Bearer ${session.token}` } : {}
+    
+    const response = await fetch(url, {
+      ...options,
+      credentials: 'include',
+      headers: {
+        ...options?.headers,
+        ...authHeader,
+        'Content-Type': 'application/json',
+      },
+    })
+    
+    if (!response.ok) {
+      // Handle common error cases
+      if (response.status === 401) {
+        await authClient.logout() // Force logout on auth failure
+        window.location.href = '/sign-in' // Redirect to login
+        throw new Error('Authentication failed. Please log in again.')
+      }
+      
+      // Try to get detailed error from response
+      const errorData = await response.json().catch(() => null)
+      throw new Error(
+        errorData?.message || 
+        `API error: ${response.status} ${response.statusText}`
+      )
+    }
+    
+    return response.json()
+  } catch (error) {
+    console.error('API request failed:', url, error)
+    throw error
   }
-  return response.json()
 }
 
 // API functions
@@ -50,7 +76,7 @@ export const deletePerson = async (id: string) => {
 }
 
 // React Query options
-export const getPersonsQueryOptions = queryOptions({
+export const getPersonsQueryOptions = () => queryOptions({
   queryKey: ['persons'],
   queryFn: getPersons,
 })

@@ -1,36 +1,54 @@
 import { useState, useEffect } from 'react'
+import { authClient } from '@/auth-client'
 
-// Define a simple user type
+// Define the user type
 export interface User {
   id: string
   name: string
   email: string
-  role: string
+  role?: string
 }
 
-// In a real application, this would fetch the user from a token or server
 export const useAuth = () => {
   const [user, setUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    // Simulate fetching user data
-    // In a real app, you would validate tokens or make API calls here
-    setTimeout(() => {
-      setUser({
-        id: 'admin-user',
-        name: 'Admin User',
-        email: 'admin@example.com',
-        role: 'admin'
-      })
-      setIsLoading(false)
-    }, 500)
+    // Get the current user from the auth client
+    const fetchUser = async () => {
+      try {
+        const userData = await authClient.getUser()
+        if (userData) {
+          setUser({
+            id: userData.id,
+            name: userData.name || '',
+            email: userData.email,
+            role: 'admin' // You can implement role-based auth later
+          })
+        }
+      } catch (error) {
+        console.error('Failed to fetch user:', error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchUser()
   }, [])
+
+  const logout = async () => {
+    try {
+      await authClient.logout()
+      setUser(null)
+    } catch (error) {
+      console.error('Logout failed:', error)
+    }
+  }
 
   return {
     user,
     isLoading,
     isAuthenticated: !!user,
-    logout: () => setUser(null)
+    logout
   }
-} 
+}
