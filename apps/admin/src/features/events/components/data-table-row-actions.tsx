@@ -1,5 +1,6 @@
 import { DotsHorizontalIcon } from '@radix-ui/react-icons'
 import { Row } from '@tanstack/react-table'
+import { Link } from '@tanstack/react-router'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -39,13 +40,10 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
         >
           Edit
         </DropdownMenuItem>
-        <DropdownMenuItem
-          onClick={() => {
-            setCurrentRow(row.original)
-            setOpen('participants')
-          }}
-        >
-          Manage Participants
+        <DropdownMenuItem asChild>
+          <Link to="/events/$eventId/view" params={{ eventId: row.original.id }}>
+            View Event
+          </Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem
