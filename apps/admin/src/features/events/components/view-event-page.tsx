@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useParams, Link } from '@tanstack/react-router'
 import { format } from 'date-fns'
 import { ArrowLeft, Search as SearchIcon } from 'lucide-react'
@@ -7,19 +7,7 @@ import { ArrowLeft, Search as SearchIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from '@/components/ui/command'
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover'
+import CreatableSelect from 'react-select/creatable'
 import { 
   Card,
   CardContent,
@@ -42,23 +30,57 @@ import { Main } from '@/components/layout/main'
 import { Search } from '@/components/search'
 import { ProfileDropdown } from '@/components/profile-dropdown'
 import { ThemeSwitch } from '@/components/theme-switch'
+import { useToast } from '@/hooks/use-toast'
+import { cn } from '@/lib/utils'
 
 import { eventTypeLabels } from '../data/schema'
-import { getEventQueryOptions } from '@/api/events'
-import { getPersonsQueryOptions } from '@/api/persons'
+import { getEventQueryOptions, getEventParticipantsQueryOptions, addParticipantToEvent, removeParticipantFromEvent, updateParticipantData } from '@/api/events'
+import { getPersonsQueryOptions, useCreatePerson } from '@/api/persons'
+import { CreatePersonDialog } from './create-person-dialog'
+import { ViewRefugeParticipants } from './view-refuge-participants'
+import { ViewBodhipushpanjaliParticipants } from './view-bodhipushpanjali-participants'
 
 export default function ViewEventPage() {
   const { eventId } = useParams({ from: '/_authenticated/events/$eventId/view' })
   const [selectedPersonId, setSelectedPersonId] = useState('')
-  const [participants, setParticipants] = useState<Array<{ id: string, name: string }>>([])
+  const [participants, setParticipants] = useState<Array<{ id: string, name: string, firstName?: string, lastName?: string }>>([])
   const [searchQuery, setSearchQuery] = useState('')
   const [filteredParticipants, setFilteredParticipants] = useState<Array<{ id: string, name: string }>>([])
+  const [showCreateDialog, setShowCreateDialog] = useState(false)
+  const [newPersonName, setNewPersonName] = useState('')
+  const [isSaving, setIsSaving] = useState(false)
+  const { toast } = useToast()
+  const queryClient = useQueryClient()
   
   // Fetch event data
   const { data: event, isLoading: isLoadingEvent } = useQuery({
     ...getEventQueryOptions(eventId),
     enabled: !!eventId
   })
+  
+  // Fetch existing participants
+  const { data: existingParticipants } = useQuery({
+    ...getEventParticipantsQueryOptions(eventId),
+    enabled: !!eventId
+  })
+  
+  // Use existing participants to initialize the local state
+  useEffect(() => {
+    if (existingParticipants && Array.isArray(existingParticipants) && existingParticipants.length > 0) {
+      // Convert to our local format, preserving all properties
+      const formattedParticipants = existingParticipants.map((p: any) => ({
+        id: p.personId,
+        name: `${p.firstName} ${p.lastName}`,
+        firstName: p.firstName,
+        lastName: p.lastName,
+        refugeName: p.refugeName,
+        referralMedium: p.referralMedium
+      }));
+      
+      setParticipants(formattedParticipants);
+      setFilteredParticipants(formattedParticipants);
+    }
+  }, [existingParticipants]);
   
   // Fetch persons data for the select dropdown
   const { data: persons = [] } = useQuery(getPersonsQueryOptions())
@@ -76,30 +98,246 @@ export default function ViewEventPage() {
     setFilteredParticipants(filtered)
   }, [searchQuery, participants])
 
-  const handleAddPerson = () => {
-    if (!selectedPersonId) return
+  const handleAddPerson = async () => {
+    if (!selectedPersonId || !eventId || !event) return
     
     const selectedPerson = persons.find(person => person.id === selectedPersonId)
     if (!selectedPerson) return
     
     // Check if person is already added
-    if (participants.some(p => p.id === selectedPersonId)) return
+    if (participants.some(p => p.id === selectedPersonId)) {
+      toast({
+        title: 'Already added',
+        description: 'This person is already a participant',
+        variant: 'default',
+      })
+      setSelectedPersonId('')
+      return
+    }
     
-    // Add person to participants list
-    setParticipants([
-      ...participants, 
-      { 
-        id: selectedPerson.id, 
-        name: `${selectedPerson.firstName} ${selectedPerson.lastName}` 
-      }
-    ])
+    // Create new participant object with appropriate fields based on event type
+    const newParticipant: any = { 
+      id: selectedPerson.id, 
+      name: `${selectedPerson.firstName} ${selectedPerson.lastName}`,
+      firstName: selectedPerson.firstName,
+      lastName: selectedPerson.lastName
+    };
+    
+    // Add type-specific fields
+    if (event.type === 'REFUGE') {
+      newParticipant.refugeName = '';
+    } else if (event.type === 'BODHIPUSHPANJALI') {
+      newParticipant.referralMedium = '';
+    }
+    
+    // Prepare type-specific additional data
+    const additionalData: Record<string, any> = {
+      firstName: selectedPerson.firstName,
+      lastName: selectedPerson.lastName
+    }
+    
+    // Add type-specific fields
+    if (event.type === 'REFUGE') {
+      additionalData.refugeName = ''
+    } else if (event.type === 'BODHIPUSPANJALI') {
+      additionalData.referralMedium = ''
+    }
+    
+    // Optimistically update UI
+    setParticipants(prevParticipants => [...prevParticipants, newParticipant])
     
     // Reset selection
     setSelectedPersonId('')
+    
+    try {
+      // Actually add participant to the event through API
+      await addParticipantToEvent(eventId, selectedPerson.id, additionalData)
+      
+      // Invalidate queries to ensure data consistency
+      queryClient.invalidateQueries({ queryKey: ['event', eventId] })
+      queryClient.invalidateQueries({ queryKey: ['event', eventId, 'participants'] })
+      
+      toast({
+        title: 'Success',
+        description: `${selectedPerson.firstName} ${selectedPerson.lastName} added as participant`,
+      })
+    } catch (error) {
+      console.error('Failed to add participant:', error)
+      
+      // Revert optimistic update if API call fails
+      setParticipants(prevParticipants => 
+        prevParticipants.filter(p => p.id !== selectedPerson.id)
+      )
+      
+      toast({
+        title: 'Error',
+        description: error instanceof Error 
+          ? error.message 
+          : 'Failed to add participant. Please try again.',
+        variant: 'destructive',
+      })
+    }
   }
 
-  const handleRemovePerson = (id: string) => {
-    setParticipants(participants.filter(p => p.id !== id))
+  const handleRemovePerson = async (id: string) => {
+    if (!eventId) return
+
+    if (!confirm('Are you sure you want to remove this participant?')) {
+      return
+    }
+    
+    // Store the participant to restore if needed
+    const removedParticipant = participants.find(p => p.id === id)
+    
+    // Optimistically update UI
+    setParticipants(prevParticipants => prevParticipants.filter(p => p.id !== id))
+    setFilteredParticipants(prevParticipants => prevParticipants.filter(p => p.id !== id))
+    
+    try {
+      // Actually remove participant from the event through API
+      await removeParticipantFromEvent(eventId, id)
+      
+      // Invalidate queries to ensure data consistency
+      queryClient.invalidateQueries({ queryKey: ['event', eventId] })
+      queryClient.invalidateQueries({ queryKey: ['event', eventId, 'participants'] })
+      
+      toast({
+        title: 'Success',
+        description: 'Participant removed successfully',
+      })
+    } catch (error) {
+      console.error('Failed to remove participant:', error)
+      
+      // Revert optimistic update if API call fails
+      if (removedParticipant) {
+        setParticipants(prevParticipants => [...prevParticipants, removedParticipant])
+      }
+      
+      toast({
+        title: 'Error',
+        description: error instanceof Error 
+          ? error.message 
+          : 'Failed to remove participant. Please try again.',
+        variant: 'destructive',
+      })
+    }
+  }
+  
+  const handleUpdateParticipant = async (id: string, updateData: any) => {
+    if (!eventId) return
+    
+    // Find the participant to update
+    const participantToUpdate = participants.find(p => p.id === id)
+    if (!participantToUpdate) return
+    
+    // Create an optimistic update
+    const updatedParticipant = {
+      ...participantToUpdate,
+      ...updateData
+    }
+    
+    // Optimistically update UI
+    setParticipants(prevParticipants => 
+      prevParticipants.map(p => p.id === id ? updatedParticipant : p)
+    )
+    setFilteredParticipants(prevParticipants => 
+      prevParticipants.map(p => p.id === id ? updatedParticipant : p)
+    )
+    
+    try {
+      // Actually update participant in the database
+      await updateParticipantData(eventId, id, updateData)
+      
+      // Invalidate queries to ensure data consistency
+      queryClient.invalidateQueries({ queryKey: ['event', eventId] })
+      queryClient.invalidateQueries({ queryKey: ['event', eventId, 'participants'] })
+      
+      toast({
+        title: 'Success',
+        description: 'Participant updated successfully',
+      })
+    } catch (error) {
+      console.error('Failed to update participant:', error)
+      
+      // Revert optimistic update if API call fails
+      setParticipants(prevParticipants => 
+        prevParticipants.map(p => p.id === id ? participantToUpdate : p)
+      )
+      setFilteredParticipants(prevParticipants => 
+        prevParticipants.map(p => p.id === id ? participantToUpdate : p)
+      )
+      
+      toast({
+        title: 'Error',
+        description: error instanceof Error 
+          ? error.message 
+          : 'Failed to update participant. Please try again.',
+        variant: 'destructive',
+      })
+    }
+  }
+  
+  // Handle the creation of a new person
+  const handlePersonCreated = async (createdPerson: { id: string; firstName: string; lastName: string }) => {
+    if (!eventId || !event) return
+    
+    // Create new participant object with appropriate fields based on event type
+    const newParticipant: any = {
+      id: createdPerson.id,
+      name: `${createdPerson.firstName} ${createdPerson.lastName}`,
+      firstName: createdPerson.firstName,
+      lastName: createdPerson.lastName
+    };
+    
+    // Add type-specific fields
+    if (event.type === 'REFUGE') {
+      newParticipant.refugeName = '';
+    } else if (event.type === 'BODHIPUSHPANJALI') {
+      newParticipant.referralMedium = '';
+    }
+    
+    // Prepare type-specific additional data
+    const additionalData: Record<string, any> = {
+      firstName: createdPerson.firstName,
+      lastName: createdPerson.lastName
+    }
+    
+    // Add type-specific fields
+    if (event.type === 'REFUGE') {
+      additionalData.refugeName = ''
+    } else if (event.type === 'BODHIPUSPANJALI') {
+      additionalData.referralMedium = ''
+    }
+    
+    // Optimistically update UI
+    setParticipants(prevParticipants => [...prevParticipants, newParticipant])
+    
+    try {
+      // Actually add participant to the event through API
+      await addParticipantToEvent(eventId, createdPerson.id, additionalData)
+      
+      // Invalidate queries to ensure data consistency
+      queryClient.invalidateQueries({ queryKey: ['event', eventId] })
+      queryClient.invalidateQueries({ queryKey: ['event', eventId, 'participants'] })
+      
+      toast({
+        title: 'Person created successfully',
+        description: `${createdPerson.firstName} ${createdPerson.lastName} has been added to the event.`,
+      })
+    } catch (error) {
+      console.error('Failed to add newly created person as participant:', error)
+      
+      // Revert optimistic update if API call fails
+      setParticipants(prevParticipants => 
+        prevParticipants.filter(p => p.id !== createdPerson.id)
+      )
+      
+      toast({
+        title: 'Error',
+        description: 'Person was created but could not be added as participant. Please try adding them manually.',
+        variant: 'destructive',
+      })
+    }
   }
   
   // Check if there are any available persons to add
@@ -200,62 +438,46 @@ export default function ViewEventPage() {
           <div className="flex gap-2 items-end">
             <div style={{ width: '300px' }}>
               <Label htmlFor="person-autocomplete" className="text-xs mb-1 block">Add Participant</Label>
-              {hasAvailablePersons ? (
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      id="person-autocomplete"
-                      className="w-full h-9 justify-between font-normal"
-                    >
-                      {selectedPersonId ? 
-                        persons.find(p => p.id === selectedPersonId)?.firstName + ' ' + 
-                        persons.find(p => p.id === selectedPersonId)?.lastName 
-                        : 
-                        "Search for a person..."
-                      }
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-full p-0" align="start">
-                    <Command>
-                      <CommandInput 
-                        placeholder="Search people..." 
-                        className="h-9"
-                      />
-                      <CommandList>
-                        <CommandEmpty>No person found.</CommandEmpty>
-                        <CommandGroup>
-                          {persons
-                            .filter(person => !participants.some(p => p.id === person.id))
-                            .map(person => (
-                              <CommandItem
-                                key={person.id}
-                                value={`${person.firstName} ${person.lastName}`}
-                                onSelect={() => {
-                                  setSelectedPersonId(person.id);
-                                }}
-                              >
-                                {person.firstName} {person.lastName}
-                              </CommandItem>
-                            ))}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
-              ) : (
-                <div className="text-sm text-muted-foreground border rounded-md p-1.5 h-9 flex items-center">
-                  All persons have been added
-                </div>
-              )}
+              <CreatableSelect
+                id="person-autocomplete"
+                isClearable
+                options={persons
+                  .filter(person => !participants.some(p => p.id === person.id))
+                  .map(person => ({
+                    value: person.id,
+                    label: `${person.firstName} ${person.lastName}`
+                  }))}
+                value={selectedPersonId ? {
+                  value: selectedPersonId,
+                  label: persons.find(p => p.id === selectedPersonId)
+                    ? `${persons.find(p => p.id === selectedPersonId)?.firstName} ${persons.find(p => p.id === selectedPersonId)?.lastName}`
+                    : ""
+                } : null}
+                onChange={(newValue) => {
+                  setSelectedPersonId(newValue?.value || "")
+                }}
+                onCreateOption={(inputValue) => {
+                  setNewPersonName(inputValue)
+                  setShowCreateDialog(true)
+                }}
+                placeholder="Select or create a person..."
+                formatCreateLabel={(inputValue) => `Create "${inputValue}"`}
+                classNames={{
+                  control: (state) => "px-1 py-1 border rounded-md bg-background h-9",
+                  menu: () => "bg-background border rounded-md mt-1",
+                  option: (state) => 
+                    state.isFocused 
+                      ? "bg-primary/10 cursor-pointer"
+                      : "cursor-pointer hover:bg-primary/5",
+                }}
+              />
             </div>
             <Button 
               onClick={handleAddPerson} 
-              disabled={!selectedPersonId || !hasAvailablePersons}
+              disabled={!selectedPersonId || isSaving}
               size="sm"
             >
-              Add
+              {isSaving ? 'Adding...' : 'Add'}
             </Button>
           </div>
           
@@ -275,41 +497,59 @@ export default function ViewEventPage() {
             </div>
             
             {participants.length > 0 ? (
-              <div className="border rounded-md overflow-hidden">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead className="w-[80px] text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredParticipants.length > 0 ? (
-                      filteredParticipants.map(participant => (
-                        <TableRow key={participant.id}>
-                          <TableCell className="py-1.5">{participant.name}</TableCell>
-                          <TableCell className="text-right py-1.5">
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              onClick={() => handleRemovePerson(participant.id)}
-                              className="h-7 px-2"
-                            >
-                              Remove
-                            </Button>
-                          </TableCell>
+              <>
+                {event?.type === 'REFUGE' ? (
+                  <ViewRefugeParticipants
+                    participants={participants}
+                    filteredParticipants={filteredParticipants}
+                    onRemove={handleRemovePerson}
+                    onUpdate={handleUpdateParticipant}
+                  />
+                ) : event?.type === 'BODHIPUSPANJALI' ? (
+                  <ViewBodhipushpanjaliParticipants
+                    participants={participants}
+                    filteredParticipants={filteredParticipants}
+                    onRemove={handleRemovePerson}
+                    onUpdate={handleUpdateParticipant}
+                  />
+                ) : (
+                  <div className="border rounded-md overflow-hidden">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Name</TableHead>
+                          <TableHead className="w-[80px] text-right">Actions</TableHead>
                         </TableRow>
-                      ))
-                    ) : (
-                      <TableRow>
-                        <TableCell colSpan={2} className="text-center py-3 text-sm text-muted-foreground">
-                          No matching participants found
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredParticipants.length > 0 ? (
+                          filteredParticipants.map(participant => (
+                            <TableRow key={participant.id}>
+                              <TableCell className="py-1.5">{participant.name}</TableCell>
+                              <TableCell className="text-right py-1.5">
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  onClick={() => handleRemovePerson(participant.id)}
+                                  className="h-7 px-2"
+                                >
+                                  Remove
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        ) : (
+                          <TableRow>
+                            <TableCell colSpan={2} className="text-center py-3 text-sm text-muted-foreground">
+                              No matching participants found
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </>
             ) : (
               <div className="text-sm text-muted-foreground p-3 border rounded-md text-center">
                 No participants added
@@ -317,14 +557,18 @@ export default function ViewEventPage() {
             )}
           </div>
         </CardContent>
-        <CardFooter className="py-2">
-          <Button size="sm" className="ml-auto">
-            Save Changes
-          </Button>
-        </CardFooter>
+        {/* Footer removed as we're saving immediately */}
       </Card>
         </div>
       </Main>
+      
+      {/* Create Person Dialog */}
+      <CreatePersonDialog 
+        open={showCreateDialog}
+        onClose={() => setShowCreateDialog(false)}
+        onSuccess={handlePersonCreated}
+        initialName={newPersonName}
+      />
     </>
   )
 }

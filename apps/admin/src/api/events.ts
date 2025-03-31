@@ -164,9 +164,18 @@ export const addParticipantToEvent = async (
     throw new Error('Event ID and person ID are required')
   }
   
+  console.log('Adding participant to event:', {
+    eventId,
+    personId,
+    additionalData
+  });
+  
   return fetchWithCredentials(`${API_BASE_URL}/${eventId}/participants`, {
     method: 'POST',
-    body: JSON.stringify({ personId, additionalData }),
+    body: JSON.stringify({ 
+      personId, 
+      additionalData: additionalData || {} 
+    }),
   })
 }
 
@@ -280,11 +289,18 @@ export const useAddParticipant = () => {
       eventId: string; 
       personId: string; 
       additionalData?: Record<string, any> 
-    }) => addParticipantToEvent(eventId, personId, additionalData),
+    }) => {
+      console.log('Calling addParticipantToEvent with:', { eventId, personId, additionalData });
+      return addParticipantToEvent(eventId, personId, additionalData);
+    },
     onSuccess: (_, { eventId }) => {
+      console.log('Successfully added participant, invalidating queries');
       queryClient.invalidateQueries({ queryKey: ['event', eventId] })
       queryClient.invalidateQueries({ queryKey: ['event', eventId, 'participants'] })
     },
+    onError: (error, variables) => {
+      console.error('Error adding participant:', error, variables);
+    }
   })
 }
 
