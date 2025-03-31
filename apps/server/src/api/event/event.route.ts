@@ -46,7 +46,7 @@ const paramsSchema = z.object({
 
 const addParticipantSchema = z.object({
   personId: z.string().uuid("Invalid person ID"),
-  additionalData: z.record(z.any()).optional(),
+  additionalData: z.record(z.any()).optional().default({}),
 });
 
 const updateParticipantSchema = z.object({
@@ -134,13 +134,24 @@ export const eventsRoutes = events
     const user = c.get("user");
     if (!user) throw new Error("User not found");
     
-    const result = await addParticipantToEvent({ 
-      eventId: id, 
+    console.log("Adding participant to event:", {
+      eventId: id,
       personId,
       additionalData
-    }, user.id);
+    });
     
-    return c.json(result, 201);
+    try {
+      const result = await addParticipantToEvent({ 
+        eventId: id, 
+        personId,
+        additionalData: additionalData || {}
+      }, user.id);
+      
+      return c.json(result, 201);
+    } catch (error) {
+      console.error("Error adding participant:", error);
+      throw error;
+    }
   })
   // Update a participant's data
   .put("/:id/participants/:personId", zValidator("param", z.object({
