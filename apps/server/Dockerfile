@@ -1,16 +1,19 @@
-FROM oven/bun:1.0 as base
+FROM node:18-alpine as base
+
+# Install pnpm
+RUN npm install -g pnpm
 
 WORKDIR /app
 
 # Install dependencies
-COPY package.json bun.lock* ./
-RUN bun install --frozen-lockfile
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile
 
 # Copy source files
 COPY . .
 
 # Build the application
-RUN bun run auth:migrate
+RUN pnpm run auth:migrate
 
 # Set production environment
 ENV NODE_ENV=production
@@ -20,4 +23,4 @@ ENV PORT=3000
 EXPOSE 3000
 
 # Start the application
-CMD ["bun", "run", "start"]
+CMD ["pnpm", "run", "start"]
