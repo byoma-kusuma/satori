@@ -2,6 +2,7 @@
   "name": "server",
   "scripts": {
     "dev": "bun run --hot src/index.ts",
+    "build": "tsc",
     "start": "bun run src/index.ts",
     "auth:migrate": "npx @better-auth/cli migrate",
     "codegen": "kysely-codegen --out-file=./src/types.ts",
