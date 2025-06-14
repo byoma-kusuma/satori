@@ -36,8 +36,8 @@ export function AppearanceForm() {
   const [theme, setTheme] = useAtom(themeAtom);
 
   const defaultValues: Partial<AppearanceFormValues> = {
-    theme,
-    font,
+    theme: theme as 'light' | 'dark',
+    font: font as 'poppins' | 'inter',
   };
 
   const form = useForm<AppearanceFormValues>({

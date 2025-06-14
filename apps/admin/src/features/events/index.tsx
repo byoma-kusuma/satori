@@ -27,7 +27,7 @@ function EventsList() {
     refetch
   } = useSuspenseQuery({
     ...getEventsQueryOptions(),
-    onError: (err) => {
+    onError: (err: any) => {
       setError(err instanceof Error ? err : new Error('Failed to load events'))
     }
   })

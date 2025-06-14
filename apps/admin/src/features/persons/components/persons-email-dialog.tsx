@@ -65,7 +65,7 @@ export function PersonsEmailDialog({
     form.setValue('to', emailAddresses)
   }, [selectedPersons, emailAddresses, form])
 
-  const onSubmit = async (data: EmailFormValues) => {
+  const onSubmit = async (_data: EmailFormValues) => {
     setIsSending(true)
     
     try {

@@ -1,6 +1,6 @@
 import { Suspense } from 'react'
 import { useSuspenseQuery } from '@tanstack/react-query'
-import { getUsers, getUsersQueryOptions } from '@/api/users'
+import { getUsersQueryOptions } from '@/api/users'
 import { Header } from '@/components/layout/header'
 import { Main } from '@/components/layout/main'
 import { ProfileDropdown } from '@/components/profile-dropdown'

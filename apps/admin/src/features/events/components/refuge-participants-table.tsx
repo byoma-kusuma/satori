@@ -12,8 +12,6 @@ import {
 } from '@/components/ui/table'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Checkbox } from '@/components/ui/checkbox'
 import { CheckIcon, Cross1Icon, Pencil1Icon, TrashIcon } from '@radix-ui/react-icons'
 
 interface RefugeParticipant {

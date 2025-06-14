@@ -1,7 +1,8 @@
-import { createAuthClient } from "better-auth/client";
+import { createAuthClient } from 'better-auth/client'
+
+import { API_BASE_URL } from './api/base-url'
 
 // Create the auth client with the appropriate endpoint.
-// Adjust the endpoint URL if necessary.
 export const authClient = createAuthClient({
-  baseURL: "http://localhost:3000",
-});
+  baseURL: API_BASE_URL,
+})

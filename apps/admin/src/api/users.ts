@@ -1,4 +1,6 @@
 import { UserType } from 'server/src/api/user/user.route';
+
+
 import { hc } from 'hono/client';
 import { queryOptions } from '@tanstack/react-query';
 // Create a fetch function with credentials included

@@ -54,7 +54,7 @@ interface Props {
 }
 
 export function PersonGroupsDialog({ person, open, onOpenChange }: Props) {
-  const { setOpen } = usePersons()
+  // const { setOpen } = usePersons()
   const { data: personGroups } = useSuspenseQuery(
     getPersonGroupsQueryOptions(person.id)
   )

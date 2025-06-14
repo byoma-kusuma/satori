@@ -3,7 +3,8 @@ import { authClient } from '@/auth-client'
 import { EventInput } from '../features/events/data/schema'
 
 // API base URL - ensure it matches the server route
-const API_BASE_URL = 'http://localhost:3000/api/event'
+import { API_BASE_URL } from './base-url'
+const EVENT_API_URL = `${API_BASE_URL}/api/event`
 
 // Common fetch function with credentials and error handling
 const fetchWithCredentials = async (url: string, options?: RequestInit) => {
@@ -17,14 +18,21 @@ const fetchWithCredentials = async (url: string, options?: RequestInit) => {
       options?.body ? JSON.parse(options.body as string) : null
     )
     
+    // Create headers object properly
+    const headers = new Headers(options?.headers);
+    
+    // Add auth header if available
+    if (session) {
+      headers.set('Authorization', `Bearer ${session.token}`);
+    }
+    
+    // Ensure content type is set
+    headers.set('Content-Type', 'application/json');
+    
     const response = await fetch(url, {
       ...options,
       credentials: 'include',
-      headers: {
-        ...options?.headers,
-        ...authHeader,
-        'Content-Type': 'application/json',
-      },
+      headers,
     })
     
     if (!response.ok) {
@@ -80,19 +88,19 @@ const fetchWithCredentials = async (url: string, options?: RequestInit) => {
 
 // API functions
 export const getEvents = async () => {
-  return fetchWithCredentials(`${API_BASE_URL}`)
+  return fetchWithCredentials(`${EVENT_API_URL}`)
 }
 
 export const getEventsByType = async (type: string) => {
-  return fetchWithCredentials(`${API_BASE_URL}?type=${type}`)
+  return fetchWithCredentials(`${EVENT_API_URL}?type=${type}`)
 }
 
 export const getEvent = async (id: string) => {
-  return fetchWithCredentials(`${API_BASE_URL}/${id}`)
+  return fetchWithCredentials(`${EVENT_API_URL}/${id}`)
 }
 
 export const createEvent = async (eventData: EventInput) => {
-  return fetchWithCredentials(`${API_BASE_URL}`, {
+  return fetchWithCredentials(`${EVENT_API_URL}`, {
     method: 'POST',
     body: JSON.stringify(eventData),
   })
@@ -108,19 +116,19 @@ export const updateEvent = async (id: string, updateData: Partial<EventInput>) =
   const sanitizedData = { ...updateData }
   
   // Ensure dates are proper strings if present
-  if (sanitizedData.start_date) {
+  if (sanitizedData.startDate) {
     try {
       // Ensure it's a valid date string
-      sanitizedData.start_date = new Date(sanitizedData.start_date).toISOString()
+      sanitizedData.startDate = new Date(sanitizedData.startDate).toISOString()
     } catch (e) {
       throw new Error('Invalid start date format')
     }
   }
   
-  if (sanitizedData.end_date) {
+  if (sanitizedData.endDate) {
     try {
       // Ensure it's a valid date string
-      sanitizedData.end_date = new Date(sanitizedData.end_date).toISOString()
+      sanitizedData.endDate = new Date(sanitizedData.endDate).toISOString()
     } catch (e) {
       throw new Error('Invalid end date format')
     }
@@ -133,14 +141,14 @@ export const updateEvent = async (id: string, updateData: Partial<EventInput>) =
   
   console.log('Updating event with data:', JSON.stringify(sanitizedData, null, 2))
   
-  return fetchWithCredentials(`${API_BASE_URL}/${id}`, {
+  return fetchWithCredentials(`${EVENT_API_URL}/${id}`, {
     method: 'PUT',
     body: JSON.stringify(sanitizedData),
   })
 }
 
 export const deleteEvent = async (id: string) => {
-  return fetchWithCredentials(`${API_BASE_URL}/${id}`, {
+  return fetchWithCredentials(`${EVENT_API_URL}/${id}`, {
     method: 'DELETE',
   })
 }
@@ -151,7 +159,7 @@ export const getEventParticipants = async (eventId: string) => {
   if (!eventId) {
     return [] // Return empty array if no eventId provided
   }
-  return fetchWithCredentials(`${API_BASE_URL}/${eventId}/participants`)
+  return fetchWithCredentials(`${EVENT_API_URL}/${eventId}/participants`)
 }
 
 export const addParticipantToEvent = async (
@@ -170,7 +178,7 @@ export const addParticipantToEvent = async (
     additionalData
   });
   
-  return fetchWithCredentials(`${API_BASE_URL}/${eventId}/participants`, {
+  return fetchWithCredentials(`${EVENT_API_URL}/${eventId}/participants`, {
     method: 'POST',
     body: JSON.stringify({ 
       personId, 
@@ -189,7 +197,7 @@ export const updateParticipantData = async (
     throw new Error('Event ID and person ID are required')
   }
   
-  return fetchWithCredentials(`${API_BASE_URL}/${eventId}/participants/${personId}`, {
+  return fetchWithCredentials(`${EVENT_API_URL}/${eventId}/participants/${personId}`, {
     method: 'PUT',
     body: JSON.stringify({ data }),
   })
@@ -201,7 +209,7 @@ export const removeParticipantFromEvent = async (eventId: string, personId: stri
     throw new Error('Event ID and person ID are required')
   }
   
-  return fetchWithCredentials(`${API_BASE_URL}/${eventId}/participants/${personId}`, {
+  return fetchWithCredentials(`${EVENT_API_URL}/${eventId}/participants/${personId}`, {
     method: 'DELETE',
   })
 }
