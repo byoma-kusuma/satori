@@ -1,30 +1,30 @@
-FROM oven/bun:1 AS base
+FROM oven/bun:alpine
 
-# Install Python and build tools for native dependencies
-RUN apt-get update && apt-get install -y \
-    python3 \
-    python3-pip \
-    build-essential \
-    && rm -rf /var/lib/apt/lists/*
+# Install dependencies for building native modules
+RUN apk add --no-cache python3 make g++
 
 WORKDIR /app
 
-# Install dependencies
-COPY package.json bun.lockb* ./
-RUN bun install
+# Copy package files
+COPY package.json ./
+COPY bun.lockb* ./
 
-# Copy source files
+# Install dependencies
+RUN bun install --frozen-lockfile
+
+# Copy source code
 COPY . .
 
-# Run migrations (skip if no database connection)
-RUN bun run auth:migrate || echo "Migration skipped - no database connection"
+# Define build arguments with defaults
+ARG NODE_ENV=production
+ARG PORT=3000
 
-# Set production environment
-ENV NODE_ENV=production
-ENV PORT=3000
+# Set environment variables
+ENV NODE_ENV=${NODE_ENV}
+ENV PORT=${PORT}
 
 # Expose port
-EXPOSE 3000
+EXPOSE ${PORT}
 
-# Start the application
+# Start application
 CMD ["bun", "run", "start"]

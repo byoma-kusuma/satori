@@ -1,32 +1,38 @@
 version: '3.8'
 
 services:
+  migrate:
+    build:
+      context: ./apps/server
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=${NODE_ENV:-production}
+      - DATABASE_URL=${DATABASE_URL}
+    depends_on:
+      - db
+    networks:
+      - app_network
+    command: ["bun", "run", "migrate:all"]
+    restart: "no"
+
   app:
     build:
       context: ./apps/server
       dockerfile: Dockerfile
     restart: always
     ports:
-      - "3000:3000"
+      - "${APP_HOST_PORT:-3000}:${APP_CONTAINER_PORT:-3000}"
     env_file:
       - .env
     environment:
-      - NODE_ENV=production
-      - DATABASE_URL=postgresql://postgres:${DB_PASS}@db:5432/${DB_NAME}
-      - ORIGIN=${FRONTEND_URL}
-      - BETTER_AUTH_URL=${BETTER_AUTH_URL}
-      - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}
-      - AUTH_HOST=${AUTH_HOST}
-      - AUTH_PORT=${AUTH_PORT}
-      - GMAIL_USER=${GMAIL_USER}
-      - GMAIL_PASS=${GMAIL_PASS}
-      - EMAIL_FROM=${EMAIL_FROM}
-      - EMAIL_SERVER=${EMAIL_SERVER}
-      - EMAIL_PORT=${EMAIL_PORT}
-      - EMAIL_USER=${EMAIL_USER}
-      - EMAIL_PASSWORD=${EMAIL_PASSWORD}
+      - NODE_ENV=${NODE_ENV:-production}
+      - DATABASE_URL=${DATABASE_URL}
+      - ORIGIN=${ORIGIN}
     depends_on:
-      - db
+      migrate:
+        condition: service_completed_successfully
     networks:
       - app_network
 
@@ -40,7 +46,7 @@ services:
       - POSTGRES_PASSWORD=${DB_PASS}
       - POSTGRES_DB=${DB_NAME}
     ports:
-      - "5432:5432"
+      - "${DB_HOST_PORT:-5432}:${DB_CONTAINER_PORT:-5432}"
     networks:
       - app_network
 
@@ -48,8 +54,8 @@ services:
     image: nginx:alpine
     restart: always
     ports:
-      - "80:80"
-      - "443:443"
+      - "${NGINX_HTTP_HOST_PORT:-80}:${NGINX_HTTP_CONTAINER_PORT:-80}"
+      - "${NGINX_HTTPS_HOST_PORT:-443}:${NGINX_HTTPS_CONTAINER_PORT:-443}"
     volumes:
       - ./nginx:/etc/nginx/conf.d
       - ./certbot/conf:/etc/letsencrypt

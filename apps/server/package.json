@@ -4,11 +4,12 @@
     "dev": "bun run --hot src/index.ts",
     "build": "tsc",
     "start": "bun run src/index.ts",
-    "auth:migrate": "npx @better-auth/cli migrate",
+    "auth:migrate": "echo 'y' | npx @better-auth/cli migrate",
     "codegen": "kysely-codegen --out-file=./src/types.ts",
     "dbmate": "dbmate",
-    "migrate": "pnpm run dbmate up && pnpm run codegen",
-    "seed-user": "pnpm run bun ./db/seeds/user.ts"
+    "migrate": "bun run dbmate up && bun run codegen",
+    "seed-user": "bun ./db/seeds/user.ts",
+    "migrate:all": "bun run auth:migrate && bun run migrate"
   },
   "exports": {
     "./person": "./src/api/person/person.route.ts",
