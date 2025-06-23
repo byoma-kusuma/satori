@@ -11,9 +11,11 @@ const app = new Hono();
 
 // CORS middleware configuration
 app.use(
-  '/api/*',
+  '*',
   cors({
-    origin: process.env.ORIGIN ? process.env.ORIGIN.split(',').map(o => o.trim()) : '*',
+    origin: process.env.NODE_ENV === 'development'
+      ? [`http://localhost:${process.env.FRONTEND_PORT}`]
+      : (process.env.ORIGIN ? process.env.ORIGIN.split(',').map(o => o.trim()) : [`http://localhost:${process.env.FRONTEND_PORT}`]),
     allowHeaders: ['Content-Type', 'Authorization'],
     allowMethods: ['POST', 'GET', 'PUT', 'DELETE', 'OPTIONS'],
     exposeHeaders: ['Content-Length'],
@@ -26,8 +28,8 @@ app.post("/api/auth/*", (c) => auth.handler(c.req.raw));
 
 // Email verification success page
 app.get("/user_verified", (c) => {
-	const html = getEmailVerifiedTemplate(process.env.ORIGIN!);
-	return c.html(html);
+  const html = getEmailVerifiedTemplate(process.env.ORIGIN!);
+  return c.html(html);
 });
 
 app.route("/api/user", usersRoutes);

@@ -45,8 +45,7 @@ services:
       - EMAIL_USER=${EMAIL_USER}
       - EMAIL_PASSWORD=${EMAIL_PASSWORD}
     depends_on:
-      migrate:
-        condition: service_completed_successfully
+      - db
     networks:
       - app_network
     volumes:
@@ -60,9 +59,9 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=${DB_PASS}
-      - POSTGRES_DB=${DB_NAME}
+      - POSTGRES_USER=${DB_USER:-postgres}
+      - POSTGRES_PASSWORD=${DB_PASS:-postgres}
+      - POSTGRES_DB=${DB_NAME:-postgres}
     ports:
       - "${DB_HOST_PORT:-5432}:${DB_CONTAINER_PORT:-5432}"
     networks:

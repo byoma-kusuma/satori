@@ -4,6 +4,7 @@
     "dev": "bun run --hot src/index.ts",
     "build": "tsc",
     "start": "bun run src/index.ts",
+    "compile": "bun build --compile src/index.ts",
     "auth:migrate": "echo 'y' | npx @better-auth/cli migrate",
     "codegen": "kysely-codegen --out-file=./src/types.ts",
     "dbmate": "dbmate",
@@ -16,6 +17,7 @@
     "./user": "./src/api/user/user.route.ts"
   },
   "dependencies": {
+    "@azure/communication-email": "^1.0.0",
     "@hono/zod-validator": "^0.4.3",
     "@types/uuid": "^10.0.0",
     "bcrypt": "^6.0.0",

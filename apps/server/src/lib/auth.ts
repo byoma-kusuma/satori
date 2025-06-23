@@ -6,7 +6,9 @@ export const auth = betterAuth({
   logger: {
     level: "debug",
   },
-  trustedOrigins: process.env.ORIGIN ? process.env.ORIGIN.split(",").map((o) => o.trim()) : [],
+  trustedOrigins: process.env.ORIGIN
+    ? process.env.ORIGIN.split(",").map((o) => o.trim())
+    : [],
   database: new Pool({
     connectionString: process.env.DATABASE_URL,
   }),
@@ -31,5 +33,5 @@ export const auth = betterAuth({
       });
     },
     autoSignInAfterVerification: true,
-  },
+  }
 });
