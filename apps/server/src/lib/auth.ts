@@ -1,6 +1,7 @@
 import { betterAuth } from "better-auth";
 import { Pool } from "pg";
 import { sendEmail } from "./email";
+import { validateEmailForSignup } from "./email-validation";
 
 export const auth = betterAuth({
   logger: {
@@ -15,6 +16,10 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
     requireEmailVerification: true,
+    signUpRateLimit: {
+      attempts: 3,
+      window: 60,
+    },
     sendResetPassword: async ({ user, url, token }, request) => {
       await sendEmail({
         to: user.email,
@@ -26,6 +31,10 @@ export const auth = betterAuth({
   emailVerification: {
     sendOnSignUp: true,
     sendVerificationEmail: async ({ user, url, token }, request) => {
+      // Validate email before sending verification
+      console.log(`[EMAIL_VALIDATION] Validating email before verification: ${user.email}`);
+      validateEmailForSignup(user.email);
+      
       await sendEmail({
         to: user.email,
         subject: "Verify your email address",
@@ -33,5 +42,16 @@ export const auth = betterAuth({
       });
     },
     autoSignInAfterVerification: true,
+  },
+  hooks: {
+    user: {
+      create: {
+        before: async (user) => {
+          console.log(`[EMAIL_VALIDATION] Before user creation: ${user.email}`);
+          validateEmailForSignup(user.email);
+          return user;
+        },
+      },
+    },
   }
 });
