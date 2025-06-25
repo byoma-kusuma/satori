@@ -10,8 +10,9 @@
     "dbmate": "dbmate",
     "migrate": "bun run dbmate up && bun run codegen",
     "seed-user": "bun ./db/seeds/user.ts",
-    "migrate:all": "bun run migrate:with-auth",
-    "migrate:with-auth": "bun run auth:migrate && bun run migrate"
+    "migrate:all": "bun run migrate",
+    "migrate:with-auth": "bun run auth:migrate && bun run migrate",
+    "migrate:prod": "bun run migrate"
   },
   "exports": {
     "./person": "./src/api/person/person.route.ts",
