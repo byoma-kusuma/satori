@@ -2,17 +2,13 @@
   "name": "server",
   "scripts": {
     "dev": "bun run --hot src/index.ts",
-    "build": "tsc",
     "start": "bun run src/index.ts",
-    "compile": "bun build --compile src/index.ts",
+    "build": "tsc",
+    "migrate:dev": "dbmate up && bun run auth:migrate && bun run codegen",
+    "migrate:prod": "dbmate up && bun run auth:migrate",
     "auth:migrate": "echo 'y' | npx @better-auth/cli migrate",
     "codegen": "kysely-codegen --out-file=./src/types.ts",
-    "dbmate": "dbmate",
-    "migrate": "bun run dbmate up && bun run codegen",
-    "seed-user": "bun ./db/seeds/user.ts",
-    "migrate:all": "bun run migrate",
-    "migrate:with-auth": "bun run auth:migrate && bun run migrate",
-    "migrate:prod": "bun run migrate"
+    "seed": "bun ./db/seeds/user.ts"
   },
   "exports": {
     "./person": "./src/api/person/person.route.ts",

@@ -9,9 +9,14 @@ services:
       - .env
     environment:
       - NODE_ENV=${NODE_ENV:-production}
-      - DATABASE_URL=${DATABASE_URL}
+      - DATABASE_URL=postgres://${DB_USER:-postgres}:${DB_PASS:-postgres}@db:${DB_PORT:-5432}/${DB_NAME:-postgres}?sslmode=${DB_SSL_MODE:-disable}
     command: ["bun", "run", "migrate:prod"]
     restart: "no"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - satori-app-network
 
   app:
     build:
@@ -24,7 +29,7 @@ services:
       - .env
     environment:
       - NODE_ENV=${NODE_ENV:-production}
-      - DATABASE_URL=${DATABASE_URL}
+      - DATABASE_URL=postgres://${DB_USER:-postgres}:${DB_PASS:-postgres}@db:${DB_PORT:-5432}/${DB_NAME:-postgres}?sslmode=${DB_SSL_MODE:-disable}
       - ORIGIN=${ORIGIN}
       - BETTER_AUTH_URL=${BETTER_AUTH_URL}
       - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}
@@ -45,4 +50,32 @@ services:
     depends_on:
       migrate:
         condition: service_completed_successfully
+    networks:
+      - satori-app-network
+
+  db:
+    image: postgres:17-alpine
+    restart: always
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=${DB_USER:-postgres}
+      - POSTGRES_PASSWORD=${DB_PASS:-postgres}
+      - POSTGRES_DB=${DB_NAME:-postgres}
+    ports:
+      - "${DB_HOST_PORT:-5432}:${DB_PORT:-5432}"
+    networks:
+      - satori-app-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-postgres}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+networks:
+  satori-app-network:
+    name: ${DOCKER_NETWORK:-satori-app-network}
+
+volumes:
+  postgres_data:
 

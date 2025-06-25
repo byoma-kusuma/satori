@@ -13,11 +13,11 @@ services:
     depends_on:
       - db
     networks:
-      - ${DOCKER_NETWORK:-app_network}
+      - ${DOCKER_NETWORK:-satori-app-network}
     volumes:
       - .:/app
       - /app/node_modules
-    command: ["bun", "run", "migrate:all"]
+    command: ["bun", "run", "migrate:dev"]
     restart: "no"
 
   app:
@@ -52,14 +52,14 @@ services:
     depends_on:
       - db
     networks:
-      - app_network
+      - satori-app-network
     volumes:
       - .:/app
       - /app/node_modules
     command: ["bun", "run", "dev"]
 
   db:
-    image: postgres:16-alpine
+    image: postgres:17-alpine
     restart: always
     volumes:
       - postgres_data:/var/lib/postgresql/data
@@ -70,7 +70,7 @@ services:
     ports:
       - "${DB_HOST_PORT:-5432}:${DB_CONTAINER_PORT:-5432}"
     networks:
-      - ${DOCKER_NETWORK:-app_network}
+      - ${DOCKER_NETWORK:-satori-app-network}
 
   pgadmin:
     image: dpage/pgadmin4
@@ -83,11 +83,11 @@ services:
     depends_on:
       - db
     networks:
-      - ${DOCKER_NETWORK:-app_network}
+      - ${DOCKER_NETWORK:-satori-app-network}
 
 networks:
-  app_network:
-    name: ${DOCKER_NETWORK:-app_network}
+  satori-app-network:
+    name: ${DOCKER_NETWORK:-satori-app-network}
 
 volumes:
   postgres_data:

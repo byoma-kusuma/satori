@@ -18,8 +18,8 @@ COPY . .
 # Production stage
 FROM oven/bun:alpine AS production
 
-# Install only runtime dependencies
-RUN apk add --no-cache python3
+# Install runtime dependencies and build tools needed for Better Auth CLI
+RUN apk add --no-cache python3 make g++
 
 WORKDIR /app
 
