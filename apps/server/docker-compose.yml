@@ -52,7 +52,7 @@ services:
     depends_on:
       - db
     networks:
-      - ${DOCKER_NETWORK:-app_network}
+      - app_network
     volumes:
       - .:/app
       - /app/node_modules
@@ -86,7 +86,8 @@ services:
       - ${DOCKER_NETWORK:-app_network}
 
 networks:
-  ${DOCKER_NETWORK:-app_network}:
+  app_network:
+    name: ${DOCKER_NETWORK:-app_network}
 
 volumes:
   postgres_data:

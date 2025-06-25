@@ -52,4 +52,5 @@ services:
 
 
 networks:
-  ${DOCKER_NETWORK:-app_network}:
+  app_network:
+    name: ${DOCKER_NETWORK:-app_network}
