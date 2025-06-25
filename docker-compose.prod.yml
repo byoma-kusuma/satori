@@ -13,7 +13,7 @@ services:
     depends_on:
       - db
     networks:
-      - app_network
+      - ${DOCKER_NETWORK:-app_network}
     command: ["bun", "run", "migrate:all"]
     restart: "no"
 
@@ -50,7 +50,7 @@ services:
       migrate:
         condition: service_completed_successfully
     networks:
-      - app_network
+      - ${DOCKER_NETWORK:-app_network}
 
 
   db:
@@ -65,7 +65,7 @@ services:
     ports:
       - "${DB_HOST_PORT:-5432}:${DB_CONTAINER_PORT:-5432}"
     networks:
-      - app_network
+      - ${DOCKER_NETWORK:-app_network}
 
   nginx:
     image: nginx:alpine
@@ -80,7 +80,7 @@ services:
     depends_on:
       - app
     networks:
-      - app_network
+      - ${DOCKER_NETWORK:-app_network}
 
   certbot:
     image: certbot/certbot
@@ -90,7 +90,7 @@ services:
     entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
 
 networks:
-  app_network:
+  ${DOCKER_NETWORK:-app_network}:
 
 volumes:
   postgres_data:
