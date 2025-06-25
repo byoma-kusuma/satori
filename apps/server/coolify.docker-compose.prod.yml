@@ -10,7 +10,7 @@ services:
     environment:
       - NODE_ENV=${NODE_ENV:-production}
       - DATABASE_URL=${DATABASE_URL}
-    command: ["bun", "run", "migrate:all"]
+    command: ["bun", "run", "migrate:prod"]
     restart: "no"
 
   app:
