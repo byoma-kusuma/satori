@@ -26,12 +26,8 @@ WORKDIR /app
 # Copy package files
 COPY package.json bun.lock* ./
 
-# Install only production dependencies, skip postinstall scripts
-RUN bun install --frozen-lockfile --production --ignore-scripts
-
-# Copy pre-built node_modules from builder (includes compiled binaries)
-COPY --from=builder /app/node_modules/better-sqlite3 ./node_modules/better-sqlite3/
-COPY --from=builder /app/node_modules/.bin ./node_modules/.bin/
+# Copy all pre-built node_modules from builder (avoids recompilation)
+COPY --from=builder /app/node_modules ./node_modules
 
 # Copy source code
 COPY . .
