@@ -10,9 +10,6 @@ services:
     environment:
       - NODE_ENV=${NODE_ENV:-production}
       - DATABASE_URL=${DATABASE_URL}
-    networks:
-      app_network:
-        name: ${DOCKER_NETWORK:-app_network}
     command: ["bun", "run", "migrate:all"]
     restart: "no"
 
@@ -48,11 +45,4 @@ services:
     depends_on:
       migrate:
         condition: service_completed_successfully
-    networks:
-      app_network:
-        name: ${DOCKER_NETWORK:-app_network}
 
-
-networks:
-  app_network:
-    name: ${DOCKER_NETWORK:-app_network}
