@@ -3,13 +3,17 @@ import { UserType } from 'server/src/api/user/user.route';
 
 import { hc } from 'hono/client';
 import { queryOptions } from '@tanstack/react-query';
+
+import { API_BASE_URL } from './base-url'
+const USER_API_URL = `${API_BASE_URL}/api/user`
+
 // Create a fetch function with credentials included
 const fetchWithCredentials = (input: RequestInfo | URL, init?: RequestInit) => {
   return fetch(input, { ...init, credentials: 'include' });
 };
 
 // Initialize the Hono client with the custom fetch function
-const client = hc<UserType>('http://localhost:3000/api/user', {
+const client = hc<UserType>(USER_API_URL, {
   fetch: fetchWithCredentials,
 });
 
