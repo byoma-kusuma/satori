@@ -7,21 +7,22 @@ import {
   IconUsers,
   IconUsersGroup,
 } from '@tabler/icons-react'
-import { AudioWaveform, Command, GalleryVerticalEnd } from 'lucide-react'
+import { AudioWaveform, GalleryVerticalEnd } from 'lucide-react'
 import { type SidebarData } from '../types'
 import { type User } from '@/hooks/use-auth'
+import { ByomaKusumaIcon } from '@/components/byoma-kusuma-icon'
 
 const baseSidebarData = {
   user: {
-    name: 'Byoma Kusuma',
-    email: 'satnaingdev@gmail.com',
+    name: 'ByomaKusuma',
+    email: 'placeholder@byomakusuma.com',
     avatar: '/avatars/byoma-kusuma.jpg',
   },
   teams: [
     {
-      name: 'Byoma Kusuma',
-      logo: Command,
-      plan: 'Byoma Kusuma UI',
+      name: 'ByomaKusuma',
+      logo: ByomaKusumaIcon,
+      plan: 'ByomaKusuma UI',
     },
     {
       name: 'Acme Inc',

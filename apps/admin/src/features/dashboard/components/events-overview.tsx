@@ -73,7 +73,7 @@ export function EventsOverview() {
           dataKey='events'
           fill='currentColor'
           radius={[4, 4, 0, 0]}
-          className='fill-secondary'
+          className='fill-primary'
         />
       </BarChart>
     </ResponsiveContainer>
