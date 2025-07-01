@@ -14,6 +14,7 @@ import {
 import { authClient } from '@/auth-client'
 import { useNavigate } from '@tanstack/react-router'
 import { useAuth } from '@/hooks/use-auth'
+import { getInitials } from '@/lib/utils'
 
 export function ProfileDropdown() {
   const navigate = useNavigate()
@@ -24,7 +25,7 @@ export function ProfileDropdown() {
         <Button variant='ghost' className='relative h-8 w-8 rounded-full'>
           <Avatar className='h-8 w-8'>
             <AvatarImage src='/avatars/01.png' alt='@byomakusuma' />
-            <AvatarFallback>SN</AvatarFallback>
+            <AvatarFallback>{getInitials(user?.name || '')}</AvatarFallback>
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
