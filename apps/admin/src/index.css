@@ -4,7 +4,7 @@
 
 @layer base {
 :root {
-  --background: 38 36% 96%;
+  --background: 0 0% 100%;
   --foreground: 9 28% 19%;
   --card: 38 36% 96%;
   --card-foreground: 9 28% 19%;
@@ -29,13 +29,13 @@
   --chart-4: 124 55% 24%;
   --chart-5: 126 51% 8%;
   --radius: 0.5rem;
-  --sidebar: 34 35% 91%;
-  --sidebar-foreground: 9 28% 19%;
+  --sidebar: 0 0% 100%;
+  --sidebar-foreground: 0 0% 9%;
   --sidebar-primary: 123 46% 34%;
   --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 122 37% 84%;
-  --sidebar-accent-foreground: 124 55% 24%;
-  --sidebar-border: 34 27% 83%;
+  --sidebar-accent: 0 0% 96%;
+  --sidebar-accent-foreground: 0 0% 9%;
+  --sidebar-border: 0 0% 90%;
   --sidebar-ring: 123 46% 34%;
 }
 
@@ -123,6 +123,23 @@
 
   .faded-bottom {
     @apply after:pointer-events-none after:absolute after:bottom-0 after:left-0 after:hidden after:h-32 after:w-full after:bg-[linear-gradient(180deg,_transparent_10%,_hsl(var(--background))_70%)] after:md:block;
+  }
+
+  /* Force white sidebar backgrounds in light mode only */
+  :root:not(.dark) [data-sidebar="sidebar"] {
+    background-color: white !important;
+  }
+  
+  :root:not(.dark) [data-sidebar="header"] {
+    background-color: white !important;
+  }
+  
+  :root:not(.dark) [data-sidebar="footer"] {
+    background-color: white !important;
+  }
+  
+  :root:not(.dark) [data-sidebar="content"] {
+    background-color: white !important;
   }
 }
 
