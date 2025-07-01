@@ -13,9 +13,11 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { authClient } from '@/auth-client'
 import { useNavigate } from '@tanstack/react-router'
+import { useAuth } from '@/hooks/use-auth'
 
 export function ProfileDropdown() {
   const navigate = useNavigate()
+  const { user, isLoading } = useAuth()
   return (
     <DropdownMenu modal={false}>
       <DropdownMenuTrigger asChild>
@@ -29,9 +31,11 @@ export function ProfileDropdown() {
       <DropdownMenuContent className='w-56' align='end' forceMount>
         <DropdownMenuLabel className='font-normal'>
           <div className='flex flex-col space-y-1'>
-            <p className='text-sm font-medium leading-none'>satnaing</p>
+            <p className='text-sm font-medium leading-none'>
+              {isLoading ? 'Loading...' : user?.name || 'Not signed in'}
+            </p>
             <p className='text-xs leading-none text-muted-foreground'>
-              satnaingdev@gmail.com
+              {isLoading ? 'Loading...' : user?.email || 'No email available'}
             </p>
           </div>
         </DropdownMenuLabel>

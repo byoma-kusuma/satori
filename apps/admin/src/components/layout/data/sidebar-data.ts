@@ -23,8 +23,9 @@ import {
 } from '@tabler/icons-react'
 import { AudioWaveform, Command, GalleryVerticalEnd } from 'lucide-react'
 import { type SidebarData } from '../types'
+import { type User } from '@/hooks/use-auth'
 
-export const sidebarData: SidebarData = {
+const baseSidebarData = {
   user: {
     name: 'Byoma Kusuma',
     email: 'satnaingdev@gmail.com',
@@ -199,3 +200,14 @@ export const sidebarData: SidebarData = {
     },
   ],
 }
+
+export const getSidebarData = (user: User | null): SidebarData => ({
+  ...baseSidebarData,
+  user: user ? {
+    name: user.name,
+    email: user.email,
+    avatar: baseSidebarData.user.avatar
+  } : baseSidebarData.user
+} as SidebarData)
+
+export const sidebarData: SidebarData = baseSidebarData as SidebarData
