@@ -23,8 +23,8 @@ export function TeamSwitcher({
           size='lg'
           className='cursor-default'
         >
-          <div className='flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground'>
-            <activeTeam.logo className='size-4' />
+          <div className='flex aspect-square size-8 items-center justify-center rounded-lg'>
+            <activeTeam.logo className='w-7 h-auto' />
           </div>
           <div className='grid flex-1 text-left text-sm leading-tight'>
             <span className='truncate font-semibold'>
