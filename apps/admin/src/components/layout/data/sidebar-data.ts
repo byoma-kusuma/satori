@@ -1,13 +1,9 @@
 import {
-  IconBrowserCheck,
   IconCalendar,
   IconHelp,
   IconLayoutDashboard,
-  IconNotification,
   IconPalette,
   IconSettings,
-  IconTool,
-  IconUserCog,
   IconUsers,
   IconUsersGroup,
 } from '@tabler/icons-react'
@@ -25,7 +21,7 @@ const baseSidebarData = {
     {
       name: 'Byoma Kusuma',
       logo: Command,
-      plan: 'Vite + Byoma Kusuma UI',
+      plan: 'Byoma Kusuma UI',
     },
     {
       name: 'Acme Inc',
@@ -77,29 +73,9 @@ const baseSidebarData = {
           icon: IconSettings,
           items: [
             {
-              title: 'Profile',
-              url: '/settings',
-              icon: IconUserCog,
-            },
-            {
-              title: 'Account',
-              url: '/settings/account',
-              icon: IconTool,
-            },
-            {
               title: 'Appearance',
               url: '/settings/appearance',
               icon: IconPalette,
-            },
-            {
-              title: 'Notifications',
-              url: '/settings/notifications',
-              icon: IconNotification,
-            },
-            {
-              title: 'Display',
-              url: '/settings/display',
-              icon: IconBrowserCheck,
             },
           ],
         },
