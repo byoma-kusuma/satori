@@ -24,6 +24,7 @@ import {
 } from '@/components/ui/table'
 import { DataTablePagination } from './data-table-pagination'
 import { DataTableToolbar } from './data-table-toolbar'
+import { useNavigate } from '@tanstack/react-router'
 
 declare module '@tanstack/react-table' {
   interface ColumnMeta<TData extends RowData, TValue> {
@@ -37,6 +38,7 @@ interface DataTableProps {
 }
 
 export function PersonsTable({ columns, data }: DataTableProps) {
+  const navigate = useNavigate()
   const [rowSelection, setRowSelection] = useState({})
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
@@ -95,7 +97,15 @@ export function PersonsTable({ columns, data }: DataTableProps) {
                 <TableRow
                   key={row.id}
                   data-state={row.getIsSelected() && 'selected'}
-                  className='group/row'
+                  className='group/row cursor-pointer hover:bg-muted/50'
+                  onClick={(e) => {
+                    const target = e.target as HTMLElement
+                    const isInteractive = target.closest('button, input[type="checkbox"], [role="button"], [role="menuitem"]')
+                    
+                    if (!isInteractive) {
+                      navigate({ to: `/persons/${row.original.id}/edit` })
+                    }
+                  }}
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell

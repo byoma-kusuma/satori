@@ -2,7 +2,7 @@
 
 import { z } from 'zod'
 import { useForm } from 'react-hook-form'
-import { useRef } from 'react'
+import { useRef, useEffect } from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useNavigate, useParams } from '@tanstack/react-router'
 import { useSuspenseQuery } from '@tanstack/react-query'
@@ -26,7 +26,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
-import { personInputSchema, personTypeLabels } from '../data/schema'
+import { personInputSchema, personTypeLabels, titleLabels } from '../data/schema'
 import { useUpdatePerson, getPersonQueryOptions } from '../data/api'
 import { Header } from '@/components/layout/header'
 import { Main } from '@/components/layout/main'
@@ -63,8 +63,24 @@ function EditPersonForm({ personId }: { personId: string }) {
       refugee: person.refugee,
       center: person.center,
       type: person.type,
+      country: person.country || undefined,
+      nationality: person.nationality || undefined,
+      languagePreference: person.languagePreference || undefined,
+      refugeName: person.refugeName || undefined,
+      yearOfRefuge: person.yearOfRefuge || undefined,
+      title: person.title || undefined,
+      membershipStatus: person.membershipStatus || undefined,
+      hasMembershipCard: person.hasMembershipCard || undefined,
     },
   })
+
+  const personType = form.watch('type')
+  
+  useEffect(() => {
+    if (personType === 'sangha_member') {
+      form.setValue('refugee', true)
+    }
+  }, [personType, form])
 
   const onSubmit = (vals: PersonForm) => {
     updatePersonMutation.mutate({
@@ -140,6 +156,8 @@ function EditPersonForm({ personId }: { personId: string }) {
                         <SelectItem value="interested">{personTypeLabels.interested}</SelectItem>
                         <SelectItem value="contact">{personTypeLabels.contact}</SelectItem>
                         <SelectItem value="sangha_member">{personTypeLabels.sangha_member}</SelectItem>
+                        <SelectItem value="new_inquiry">{personTypeLabels.new_inquiry}</SelectItem>
+                        <SelectItem value="attended_orientation">{personTypeLabels.attended_orientation}</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -278,13 +296,150 @@ function EditPersonForm({ personId }: { personId: string }) {
                     </FormControl>
                     <div className="space-y-1 leading-none">
                       <FormLabel>
-                        Refugee
+                        Has Refuge Taken
                       </FormLabel>
                     </div>
                   </FormItem>
                 )}
               />
+              <FormField
+                control={form.control}
+                name="country"
+                render={({ field }) => (
+                  <FormItem className="space-y-1">
+                    <FormLabel>Country</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter country" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="nationality"
+                render={({ field }) => (
+                  <FormItem className="space-y-1">
+                    <FormLabel>Nationality</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter nationality" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="languagePreference"
+                render={({ field }) => (
+                  <FormItem className="space-y-1">
+                    <FormLabel>Language Preference</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter language preference" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </div>
+            
+            {form.watch('type') === 'sangha_member' && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6 pt-6 border-t">
+                <div className="col-span-2">
+                  <h3 className="text-lg font-semibold mb-4">Sangha Member Information</h3>
+                </div>
+                <FormField
+                  control={form.control}
+                  name="refugeName"
+                  render={({ field }) => (
+                    <FormItem className="space-y-1">
+                      <FormLabel>Refuge Name</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Enter refuge name" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="yearOfRefuge"
+                  render={({ field }) => (
+                    <FormItem className="space-y-1">
+                      <FormLabel>Year of Refuge</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Enter year of refuge"
+                          {...field}
+                          onChange={(e) => {
+                            const value = e.target.value
+                            field.onChange(value ? parseInt(value) : undefined)
+                          }}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="title"
+                  render={({ field }) => (
+                    <FormItem className="space-y-1">
+                      <FormLabel>Title</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value as string | undefined}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select title" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="dharma_dhar">{titleLabels.dharma_dhar}</SelectItem>
+                          <SelectItem value="sahayak_dharmacharya">{titleLabels.sahayak_dharmacharya}</SelectItem>
+                          <SelectItem value="sahayak_samathacharya">{titleLabels.sahayak_samathacharya}</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="membershipStatus"
+                  render={({ field }) => (
+                    <FormItem className="space-y-1">
+                      <FormLabel>Membership Status</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Enter membership status" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="hasMembershipCard"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel>
+                          Do you have a membership card?
+                        </FormLabel>
+                      </div>
+                    </FormItem>
+                  )}
+                />
+              </div>
+            )}
           </form>
         </Form>
       </CardContent>

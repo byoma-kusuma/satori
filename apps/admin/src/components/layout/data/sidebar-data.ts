@@ -40,16 +40,6 @@ const baseSidebarData = {
       title: 'General',
       items: [
         {
-          title: 'Dashboard',
-          url: '/',
-          icon: IconLayoutDashboard,
-        },
-        {
-          title: 'Users',
-          url: '/users',
-          icon: IconUsers,
-        },
-        {
           title: 'Persons',
           url: '/persons',
           icon: IconUsers,
@@ -63,6 +53,11 @@ const baseSidebarData = {
           title: 'Events',
           url: '/events',
           icon: IconCalendar,
+        },
+        {
+          title: 'Users',
+          url: '/users',
+          icon: IconUsers,
         },
       ],
     },

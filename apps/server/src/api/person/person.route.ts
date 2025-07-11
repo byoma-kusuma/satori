@@ -33,7 +33,15 @@ const personInputSchema = z.object({
   photo: z.string().nullable().optional().default(null),
   refugee: z.boolean().default(false),
   yearOfBirth: z.number().int().min(1900).nullable().optional().default(null),
-  type: z.enum(["interested", "contact", "sangha_member"]).default("interested"),
+  type: z.enum(["interested", "contact", "sangha_member", "new_inquiry", "attended_orientation"]).default("interested"),
+  country: z.string().nullable().optional().default(null),
+  nationality: z.string().nullable().optional().default(null),
+  languagePreference: z.string().nullable().optional().default(null),
+  refugeName: z.string().nullable().optional().default(null),
+  yearOfRefuge: z.number().int().min(1900).nullable().optional().default(null),
+  title: z.enum(["dharma_dhar", "sahayak_dharmacharya", "sahayak_samathacharya"]).nullable().optional().default(null),
+  membershipStatus: z.string().nullable().optional().default(null),
+  hasMembershipCard: z.boolean().nullable().optional().default(null),
 });
 
 const personUpdateSchema = personInputSchema.partial();
@@ -71,7 +79,7 @@ export const personsRoutes = persons
   .get("/", async (c) => {
     const type = c.req.query('type') as PersonType | undefined;
     
-    if (type && ['interested', 'contact', 'sangha_member'].includes(type)) {
+    if (type && ['interested', 'contact', 'sangha_member', 'new_inquiry', 'attended_orientation'].includes(type)) {
       const persons = await getPersonsByType(type);
       return c.json(persons);
     }

@@ -104,26 +104,6 @@ export const columns: ColumnDef<Person>[] = [
     enableColumnFilter: true,
   },
   {
-    accessorKey: 'createdAt',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Created" />
-    ),
-    cell: ({ row }) => {
-      const date = row.getValue<Date>('createdAt')
-      return date ? format(new Date(date), 'dd-MM-yyyy') : 'N/A'
-    },
-  },
-  {
-    accessorKey: 'updatedAt',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Updated" />
-    ),
-    cell: ({ row }) => {
-      const date = row.getValue<Date>('updatedAt')
-      return date ? format(new Date(date), 'dd-MM-yyyy') : 'N/A'
-    },
-  },
-  {
     id: 'actions',
     cell: DataTableRowActions,
   },

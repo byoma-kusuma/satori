@@ -3,16 +3,6 @@ import { IconHome, IconSettings, IconUsers, IconUsersGroup, IconCalendarEvent } 
 
 export const sidebarData = [
   {
-    title: 'Dashboard',
-    url: '/',
-    icon: <IconHome size={18} />,
-  },
-  {
-    title: 'Users',
-    url: '/users',
-    icon: <IconUsers size={18} />,
-  },
-  {
     title: 'Persons',
     url: '/persons',
     icon: <IconUsers size={18} />,
@@ -26,5 +16,10 @@ export const sidebarData = [
     title: 'Events',
     url: '/events',
     icon: <IconCalendarEvent size={18} />,
+  },
+  {
+    title: 'Users',
+    url: '/users',
+    icon: <IconUsers size={18} />,
   },
 ]

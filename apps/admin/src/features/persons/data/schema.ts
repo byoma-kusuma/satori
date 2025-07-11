@@ -31,7 +31,15 @@ export const personInputSchema = z.object({
   gender: z.enum(['male', 'female', 'other', 'prefer_not_to_say']).optional(),
   refugee: z.boolean(),
   center: z.enum(['Nepal', 'USA', 'Australia', 'UK']),
-  type: z.enum(['interested', 'contact', 'sangha_member']),
+  type: z.enum(['interested', 'contact', 'sangha_member', 'new_inquiry', 'attended_orientation']),
+  country: z.string().optional(),
+  nationality: z.string().optional(),
+  languagePreference: z.string().optional(),
+  refugeName: z.string().optional(),
+  yearOfRefuge: z.number().int().min(1900).optional(),
+  title: z.enum(['dharma_dhar', 'sahayak_dharmacharya', 'sahayak_samathacharya']).optional(),
+  membershipStatus: z.string().optional(),
+  hasMembershipCard: z.boolean().optional(),
 })
 
 export type PersonInput = z.infer<typeof personInputSchema>
@@ -40,4 +48,12 @@ export const personTypeLabels = {
   interested: 'Interested',
   contact: 'Contact',
   sangha_member: 'Sangha Member',
+  new_inquiry: 'New Inquiry',
+  attended_orientation: 'Attended Orientation',
+}
+
+export const titleLabels = {
+  dharma_dhar: 'Dharma Dhar',
+  sahayak_dharmacharya: 'Sahayak Dharmacharya',  
+  sahayak_samathacharya: 'Sahayak Samathacharya',
 }
