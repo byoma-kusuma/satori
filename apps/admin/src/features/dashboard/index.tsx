@@ -19,8 +19,8 @@ import React from 'react'
 
 export default function Dashboard() {
   React.useEffect(() => {
-    const data = authClient.getSession().then((data) => {
-      console.log(data)
+    authClient.getSession().then(() => {
+      // Session data is used by authClient internally
     })
   }, [])
 

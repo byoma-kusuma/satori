@@ -11,7 +11,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { useNavigate } from '@tanstack/react-router'
-import { usePersons } from '../context/persons-context'
+import { usePersons } from '../hooks/use-persons'
 import { Person } from '../data/schema'
 
 interface DataTableRowActionsProps {

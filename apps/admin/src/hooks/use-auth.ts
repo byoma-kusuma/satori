@@ -27,8 +27,8 @@ export const useAuth = () => {
             role: 'admin' // You can implement role-based auth later
           })
         }
-      } catch (error) {
-        console.error('Failed to fetch session:', error)
+      } catch {
+        // Session fetch failed, user is not authenticated
       } finally {
         setIsLoading(false)
       }
@@ -41,8 +41,8 @@ export const useAuth = () => {
     try {
       await authClient.logout()
       setUser(null)
-    } catch (error) {
-      console.error('Logout failed:', error)
+    } catch {
+      // Logout error is not critical
     }
   }
 

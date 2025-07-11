@@ -9,48 +9,43 @@ import { authClient } from '@/auth-client'
 
 // Common fetch function with credentials and error handling
 const fetchWithCredentials = async (url: string, options?: RequestInit) => {
-  try {
-    // Get the auth token if available
-    const session = await authClient.getSession()
-    
-    // Create headers object properly
-    const headers = new Headers(options?.headers);
-    
-    // Add auth header if available
-    if (session) {
-      headers.set('Authorization', `Bearer ${session.token}`);
-    }
-    
-    // Ensure content type is set
-    headers.set('Content-Type', 'application/json');
-    
-    const response = await fetch(url, {
-      ...options,
-      credentials: 'include',
-      headers,
-    })
-    
-    if (!response.ok) {
-      // Handle common error cases
-      if (response.status === 401) {
-        await authClient.logout() // Force logout on auth failure
-        window.location.href = '/sign-in' // Redirect to login
-        throw new Error('Authentication failed. Please log in again.')
-      }
-      
-      // Try to get detailed error from response
-      const errorData = await response.json().catch(() => null)
-      throw new Error(
-        errorData?.message || 
-        `API error: ${response.status} ${response.statusText}`
-      )
-    }
-    
-    return response.json()
-  } catch (error) {
-    console.error('API request failed:', url, error)
-    throw error
+  // Get the auth token if available
+  const session = await authClient.getSession()
+  
+  // Create headers object properly
+  const headers = new Headers(options?.headers);
+  
+  // Add auth header if available
+  if (session) {
+    headers.set('Authorization', `Bearer ${session.token}`);
   }
+  
+  // Ensure content type is set
+  headers.set('Content-Type', 'application/json');
+  
+  const response = await fetch(url, {
+    ...options,
+    credentials: 'include',
+    headers,
+  })
+  
+  if (!response.ok) {
+    // Handle common error cases
+    if (response.status === 401) {
+      await authClient.logout() // Force logout on auth failure
+      window.location.href = '/sign-in' // Redirect to login
+      throw new Error('Authentication failed. Please log in again.')
+    }
+    
+    // Try to get detailed error from response
+    const errorData = await response.json().catch(() => null)
+    throw new Error(
+      errorData?.message || 
+      `API error: ${response.status} ${response.statusText}`
+    )
+  }
+  
+  return response.json()
 }
 
 // API functions

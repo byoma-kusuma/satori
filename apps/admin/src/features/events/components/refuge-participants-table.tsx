@@ -119,8 +119,7 @@ export function RefugeParticipantsTable({ eventId, participants }: RefugePartici
         title: 'Refuge name updated',
         description: 'The refuge name has been updated successfully.'
       })
-    } catch (error) {
-      console.error('Failed to update refuge name:', error)
+    } catch {
       toast({
         title: 'Error',
         description: 'Failed to update the refuge name. Please try again.',
@@ -150,8 +149,7 @@ export function RefugeParticipantsTable({ eventId, participants }: RefugePartici
         title: 'Participant removed',
         description: 'Participant has been removed from the event.'
       })
-    } catch (error) {
-      console.error('Failed to remove participant:', error)
+    } catch {
       toast({
         title: 'Error',
         description: 'Failed to remove the participant. Please try again.',

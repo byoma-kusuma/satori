@@ -2,7 +2,6 @@ import { useState } from 'react'
 import {
   ColumnDef,
   ColumnFiltersState,
-  RowData,
   SortingState,
   VisibilityState,
   flexRender,
@@ -27,17 +26,17 @@ import { DataTableToolbar } from './data-table-toolbar'
 import { useNavigate } from '@tanstack/react-router'
 
 declare module '@tanstack/react-table' {
-  interface ColumnMeta<TData extends RowData, TValue> {
+  interface ColumnMeta {
     className: string
   }
 }
 
-interface DataTableProps {
-  columns: ColumnDef<any>[]
-  data: any[]
+interface DataTableProps<TData = unknown> {
+  columns: ColumnDef<TData>[]
+  data: TData[]
 }
 
-export function PersonsTable({ columns, data }: DataTableProps) {
+export function PersonsTable<TData>({ columns, data }: DataTableProps<TData>) {
   const navigate = useNavigate()
   const [rowSelection, setRowSelection] = useState({})
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})

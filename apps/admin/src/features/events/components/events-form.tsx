@@ -55,7 +55,6 @@ export function EventsForm({ event, onSuccess }: EventsFormProps) {
   // Update form when event prop changes
   useEffect(() => {
     if (event) {
-      console.log('Resetting form with event data:', event);
       form.reset({
         name: event.name,
         description: event.description || '',
@@ -72,7 +71,6 @@ export function EventsForm({ event, onSuccess }: EventsFormProps) {
 
   // Handle form submission
   const onSubmit = form.handleSubmit(async (data) => {
-    console.log('Form submitted with data:', data);
     
     try {
       if (event) {
@@ -111,7 +109,6 @@ export function EventsForm({ event, onSuccess }: EventsFormProps) {
       
       onSuccess();
     } catch (error) {
-      console.error('Operation failed:', error);
       toast({
         title: 'Error',
         description: error instanceof Error 
@@ -126,7 +123,6 @@ export function EventsForm({ event, onSuccess }: EventsFormProps) {
     <Form {...form}>
       <form 
         onSubmit={(e) => {
-          console.log('Form submitted!');
           onSubmit(e);
         }} 
         className="space-y-6"

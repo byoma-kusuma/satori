@@ -97,7 +97,7 @@ export function EventsTable<TData, TValue>({
                     <TableCell 
                       key={cell.id}
                       className={
-                        (cell.column.columnDef as any).meta?.className
+                        (cell.column.columnDef.meta?.className as string | undefined)
                       }
                     >
                       {flexRender(

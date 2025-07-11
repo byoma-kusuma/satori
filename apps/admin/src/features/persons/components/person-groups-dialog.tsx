@@ -8,7 +8,13 @@ import {
 import { getGroupsQueryOptions } from '@/api/groups'
 import { getUserQueryOptions } from '@/api/users'
 import { Person } from '../data/schema'
-import { usePersons } from '../context/persons-context'
+import { Group } from '../../groups/data/schema'
+
+// Type for group with membership information
+interface GroupWithMembership extends Group {
+  joinedAt?: string | null
+  addedBy: string
+}
 import {
   Dialog,
   DialogContent,
@@ -39,12 +45,8 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 
 // Helper component to display user name instead of ID
 function UserName({ userId }: { userId: string }) {
-  try {
-    const { data: user } = useSuspenseQuery(getUserQueryOptions(userId))
-    return <>{user?.name || userId}</>
-  } catch (error) {
-    return <>{userId}</>
-  }
+  const { data: user } = useSuspenseQuery(getUserQueryOptions(userId))
+  return <>{user?.name || userId}</>
 }
 
 interface Props {
@@ -55,10 +57,10 @@ interface Props {
 
 export function PersonGroupsDialog({ person, open, onOpenChange }: Props) {
   // const { setOpen } = usePersons()
-  const { data: personGroups } = useSuspenseQuery(
+  const { data: personGroups } = useSuspenseQuery<GroupWithMembership[]>(
     getPersonGroupsQueryOptions(person.id)
   )
-  const { data: allGroups } = useSuspenseQuery(getGroupsQueryOptions)
+  const { data: allGroups } = useSuspenseQuery<Group[]>(getGroupsQueryOptions)
   
   const [showAddInterface, setShowAddInterface] = useState(false)
   const [selectedGroup, setSelectedGroup] = useState<string | null>(null)
@@ -70,7 +72,7 @@ export function PersonGroupsDialog({ person, open, onOpenChange }: Props) {
 
   // Filter out groups the person is already a member of
   const eligibleGroups = allGroups?.filter(
-    (group: any) => !personGroups?.some((pg: any) => pg.id === group.id)
+    (group) => !personGroups?.some((pg) => pg.id === group.id)
   )
 
   async function handleAddToGroup() {
@@ -84,8 +86,8 @@ export function PersonGroupsDialog({ person, open, onOpenChange }: Props) {
       })
       setSelectedGroup(null)
       setShowAddInterface(false)
-    } catch (error) {
-      console.error('Error adding person to group:', error)
+    } catch {
+      // Error is handled by the mutation hook
     } finally {
       setIsAddingGroup(false)
     }
@@ -98,8 +100,8 @@ export function PersonGroupsDialog({ person, open, onOpenChange }: Props) {
         groupId: groupId,
         personId: person.id,
       })
-    } catch (error) {
-      console.error('Error removing person from group:', error)
+    } catch {
+      // Error is handled by the mutation hook
     } finally {
       setIsRemoving(prev => ({ ...prev, [groupId]: false }))
     }
@@ -124,7 +126,7 @@ export function PersonGroupsDialog({ person, open, onOpenChange }: Props) {
                 <CommandEmpty>No groups found.</CommandEmpty>
                 <CommandGroup heading="Available Groups">
                   <ScrollArea className="h-72">
-                    {eligibleGroups?.map((group: any) => (
+                    {eligibleGroups?.map((group) => (
                       <CommandItem
                         key={group.id}
                         value={group.id}
@@ -184,7 +186,7 @@ export function PersonGroupsDialog({ person, open, onOpenChange }: Props) {
                 </TableHeader>
                 <TableBody>
                   {personGroups && personGroups.length > 0 ? (
-                    personGroups.map((group: any) => (
+                    personGroups.map((group) => (
                       <TableRow key={group.id}>
                         <TableCell className="font-medium">
                           {group.name}

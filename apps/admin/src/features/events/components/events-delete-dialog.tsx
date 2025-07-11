@@ -9,7 +9,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { useToast } from '@/hooks/use-toast'
-import { useEvents } from '../context/events-context'
+import { useEvents } from '../hooks/use-events'
 import { useDeleteEvent } from '@/api/events'
 
 export function EventsDeleteDialog() {
@@ -27,8 +27,7 @@ export function EventsDeleteDialog() {
         description: `${currentRow.name} has been deleted.`,
       })
       setOpen(null)
-    } catch (error) {
-      console.error('Failed to delete event:', error)
+    } catch {
       toast({
         title: 'Error',
         description: 'Failed to delete the event. Please try again.',

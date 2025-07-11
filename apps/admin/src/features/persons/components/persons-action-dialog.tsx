@@ -33,7 +33,7 @@ import {
 } from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Person, personInputSchema } from '../data/schema'
-import { usePersons } from '../context/persons-context'
+import { usePersons } from '../hooks/use-persons'
 import { useCreatePerson, useUpdatePerson } from '../data/api'
 import PhoneInput from 'react-phone-number-input'
 import 'react-phone-number-input/style.css'

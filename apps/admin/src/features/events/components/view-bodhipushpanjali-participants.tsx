@@ -26,7 +26,7 @@ interface ViewBodhipushpanjaliParticipantProps {
     referralMedium?: string;
   }>;
   onRemove: (id: string) => void;
-  onUpdate: (id: string, data: any) => void;
+  onUpdate: (id: string, data: { referralMedium?: string }) => void;
 }
 
 export function ViewBodhipushpanjaliParticipants({

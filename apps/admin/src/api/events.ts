@@ -8,82 +8,70 @@ const EVENT_API_URL = `${API_BASE_URL}/api/event`
 
 // Common fetch function with credentials and error handling
 const fetchWithCredentials = async (url: string, options?: RequestInit) => {
-  try {
-    // Get the auth token if available
-    const session = await authClient.getSession()
-    const authHeader = session ? { Authorization: `Bearer ${session.token}` } : {}
-    
-    console.log(`API Request to ${url}`, 
-      options?.method || 'GET', 
-      options?.body ? JSON.parse(options.body as string) : null
-    )
-    
-    // Create headers object properly
-    const headers = new Headers(options?.headers);
-    
-    // Add auth header if available
-    if (session) {
-      headers.set('Authorization', `Bearer ${session.token}`);
+  // Get the auth token if available
+  const session = await authClient.getSession()
+  
+  
+  // Create headers object properly
+  const headers = new Headers(options?.headers);
+  
+  // Add auth header if available
+  if (session) {
+    headers.set('Authorization', `Bearer ${session.token}`);
+  }
+  
+  // Ensure content type is set
+  headers.set('Content-Type', 'application/json');
+  
+  const response = await fetch(url, {
+    ...options,
+    credentials: 'include',
+    headers,
+  })
+  
+  if (!response.ok) {
+    // Handle common error cases
+    if (response.status === 401) {
+      await authClient.logout() // Force logout on auth failure
+      window.location.href = '/sign-in' // Redirect to login
+      throw new Error('Authentication failed. Please log in again.')
     }
     
-    // Ensure content type is set
-    headers.set('Content-Type', 'application/json');
+    let errorMessage = `API error: ${response.status} ${response.statusText}`
     
-    const response = await fetch(url, {
-      ...options,
-      credentials: 'include',
-      headers,
-    })
-    
-    if (!response.ok) {
-      // Handle common error cases
-      if (response.status === 401) {
-        await authClient.logout() // Force logout on auth failure
-        window.location.href = '/sign-in' // Redirect to login
-        throw new Error('Authentication failed. Please log in again.')
-      }
-      
-      let errorMessage = `API error: ${response.status} ${response.statusText}`
-      
-      // Try to get detailed error from response
-      let errorData
-      try {
-        const contentType = response.headers.get('content-type')
-        if (contentType && contentType.includes('application/json')) {
-          errorData = await response.json()
-          
-          if (errorData) {
-            if (errorData.message) {
-              errorMessage = errorData.message
-            } else if (errorData.error) {
-              errorMessage = errorData.error
-            } else if (errorData.errors && Array.isArray(errorData.errors)) {
-              // Handle Zod validation errors
-              errorMessage = `Validation error: ${errorData.errors.map((e: any) => e.message).join(', ')}`
-            }
-          }
-        } else {
-          // If not JSON, try to get text content
-          const textContent = await response.text()
-          if (textContent) {
-            errorMessage = `Server error: ${textContent.substring(0, 200)}`
+    // Try to get detailed error from response
+    let errorData
+    try {
+      const contentType = response.headers.get('content-type')
+      if (contentType && contentType.includes('application/json')) {
+        errorData = await response.json()
+        
+        if (errorData) {
+          if (errorData.message) {
+            errorMessage = errorData.message
+          } else if (errorData.error) {
+            errorMessage = errorData.error
+          } else if (errorData.errors && Array.isArray(errorData.errors)) {
+            // Handle Zod validation errors
+            errorMessage = `Validation error: ${errorData.errors.map((e: { message: string }) => e.message).join(', ')}`
           }
         }
-      } catch (e) {
-        console.error('Failed to parse error response:', e)
+      } else {
+        // If not JSON, try to get text content
+        const textContent = await response.text()
+        if (textContent) {
+          errorMessage = `Server error: ${textContent.substring(0, 200)}`
+        }
       }
-      
-      // Log errors for debugging
-      console.error(`API Error (${response.status})`, errorData || errorMessage)
-      
-      throw new Error(errorMessage)
+    } catch {
+      // Ignore JSON parsing errors
     }
     
-    return response.json()
-  } catch (error) {
-    console.error('API request failed:', url, error)
-    throw error
+    
+    throw new Error(errorMessage)
   }
+  
+  return response.json()
 }
 
 // API functions
@@ -120,7 +108,7 @@ export const updateEvent = async (id: string, updateData: Partial<EventInput>) =
     try {
       // Ensure it's a valid date string
       sanitizedData.startDate = new Date(sanitizedData.startDate).toISOString()
-    } catch (e) {
+    } catch {
       throw new Error('Invalid start date format')
     }
   }
@@ -129,7 +117,7 @@ export const updateEvent = async (id: string, updateData: Partial<EventInput>) =
     try {
       // Ensure it's a valid date string
       sanitizedData.endDate = new Date(sanitizedData.endDate).toISOString()
-    } catch (e) {
+    } catch {
       throw new Error('Invalid end date format')
     }
   }
@@ -139,7 +127,6 @@ export const updateEvent = async (id: string, updateData: Partial<EventInput>) =
     sanitizedData.metadata = []
   }
   
-  console.log('Updating event with data:', JSON.stringify(sanitizedData, null, 2))
   
   return fetchWithCredentials(`${EVENT_API_URL}/${id}`, {
     method: 'PUT',
@@ -165,18 +152,13 @@ export const getEventParticipants = async (eventId: string) => {
 export const addParticipantToEvent = async (
   eventId: string,
   personId: string,
-  additionalData?: Record<string, any>
+  additionalData?: Record<string, unknown>
 ) => {
   // Validate parameters
   if (!eventId || !personId) {
     throw new Error('Event ID and person ID are required')
   }
   
-  console.log('Adding participant to event:', {
-    eventId,
-    personId,
-    additionalData
-  });
   
   return fetchWithCredentials(`${EVENT_API_URL}/${eventId}/participants`, {
     method: 'POST',
@@ -190,7 +172,7 @@ export const addParticipantToEvent = async (
 export const updateParticipantData = async (
   eventId: string,
   personId: string,
-  data: Record<string, any>
+  data: Record<string, unknown>
 ) => {
   // Validate parameters
   if (!eventId || !personId) {
@@ -296,18 +278,16 @@ export const useAddParticipant = () => {
     }: { 
       eventId: string; 
       personId: string; 
-      additionalData?: Record<string, any> 
+      additionalData?: Record<string, unknown> 
     }) => {
-      console.log('Calling addParticipantToEvent with:', { eventId, personId, additionalData });
       return addParticipantToEvent(eventId, personId, additionalData);
     },
     onSuccess: (_, { eventId }) => {
-      console.log('Successfully added participant, invalidating queries');
       queryClient.invalidateQueries({ queryKey: ['event', eventId] })
       queryClient.invalidateQueries({ queryKey: ['event', eventId, 'participants'] })
     },
-    onError: (error, variables) => {
-      console.error('Error adding participant:', error, variables);
+    onError: () => {
+      // Error is handled by the mutation hook consumer
     }
   })
 }
@@ -323,7 +303,7 @@ export const useUpdateParticipantData = () => {
     }: { 
       eventId: string; 
       personId: string; 
-      data: Record<string, any> 
+      data: Record<string, unknown> 
     }) => updateParticipantData(eventId, personId, data),
     onSuccess: (_, { eventId }) => {
       queryClient.invalidateQueries({ queryKey: ['event', eventId] })

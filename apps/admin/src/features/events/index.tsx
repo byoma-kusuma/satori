@@ -1,16 +1,17 @@
 import { Suspense } from 'react'
-import { useQuery, useSuspenseQuery } from '@tanstack/react-query'
+import { useSuspenseQuery } from '@tanstack/react-query'
 import { getEventsQueryOptions } from '../../api/events'
 import { Header } from '@/components/layout/header'
 import { Main } from '@/components/layout/main'
 import { ProfileDropdown } from '@/components/profile-dropdown'
 import { Search } from '@/components/search'
 import { ThemeSwitch } from '@/components/theme-switch'
-import { columns } from './components/events-columns'
+import { columns } from './components/events-columns-def'
 import { EventsDialogs } from './components/events-dialogs'
 import { EventsPrimaryButtons } from './components/events-primary-buttons'
 import { EventsTable } from './components/events-table'
-import EventsProvider, { useEvents } from './context/events-context'
+import EventsProvider from './context/events-context'
+import { useEvents } from './hooks/use-events'
 import { Button } from '@/components/ui/button'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { AlertCircle, RefreshCw } from 'lucide-react'
@@ -27,7 +28,7 @@ function EventsList() {
     refetch
   } = useSuspenseQuery({
     ...getEventsQueryOptions(),
-    onError: (err: any) => {
+    onError: (err: Error) => {
       setError(err instanceof Error ? err : new Error('Failed to load events'))
     }
   })
@@ -82,31 +83,31 @@ function EventsList() {
 }
 
 // Error boundary for the events page
-function EventsErrorFallback() {
-  const { error: queryError } = useQuery(getEventsQueryOptions())
-  
-  return (
-    <div className="flex h-full w-full flex-col items-center justify-center p-8">
-      <Alert variant="destructive" className="max-w-lg">
-        <AlertCircle className="h-5 w-5" />
-        <AlertTitle>Error loading events</AlertTitle>
-        <AlertDescription className="mt-2">
-          {queryError instanceof Error 
-            ? queryError.message 
-            : 'There was a problem loading events. Please try again.'}
-        </AlertDescription>
-      </Alert>
-      <Button 
-        variant="default" 
-        className="mt-4"
-        onClick={() => window.location.reload()}
-      >
-        <RefreshCw className="mr-2 h-4 w-4" />
-        Reload page
-      </Button>
-    </div>
-  )
-}
+// function EventsErrorFallback() {
+//   const { error: queryError } = useQuery(getEventsQueryOptions())
+//   
+//   return (
+//     <div className="flex h-full w-full flex-col items-center justify-center p-8">
+//       <Alert variant="destructive" className="max-w-lg">
+//         <AlertCircle className="h-5 w-5" />
+//         <AlertTitle>Error loading events</AlertTitle>
+//         <AlertDescription className="mt-2">
+//           {queryError instanceof Error 
+//             ? queryError.message 
+//             : 'There was a problem loading events. Please try again.'}
+//         </AlertDescription>
+//       </Alert>
+//       <Button 
+//         variant="default" 
+//         className="mt-4"
+//         onClick={() => window.location.reload()}
+//       >
+//         <RefreshCw className="mr-2 h-4 w-4" />
+//         Reload page
+//       </Button>
+//     </div>
+//   )
+// }
 
 export default function Events() {
   return (

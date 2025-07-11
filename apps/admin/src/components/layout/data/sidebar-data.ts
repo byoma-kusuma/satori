@@ -1,7 +1,6 @@
 import {
   IconCalendar,
   IconHelp,
-  IconLayoutDashboard,
   IconPalette,
   IconSettings,
   IconUsers,

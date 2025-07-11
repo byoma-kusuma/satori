@@ -25,7 +25,7 @@ interface ViewRefugeParticipantProps {
     refugeName?: string;
   }>;
   onRemove: (id: string) => void;
-  onUpdate: (id: string, data: any) => void;
+  onUpdate: (id: string, data: { refugeName?: string }) => void;
 }
 
 export function ViewRefugeParticipants({

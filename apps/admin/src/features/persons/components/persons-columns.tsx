@@ -4,7 +4,6 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Person, personTypeLabels } from '../data/schema'
 import { DataTableColumnHeader } from './data-table-column-header'
 import { DataTableRowActions } from './data-table-row-actions'
-import { format } from 'date-fns'
 import { Badge } from '@/components/ui/badge'
 
 export const columns: ColumnDef<Person>[] = [

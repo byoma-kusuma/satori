@@ -20,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useCreatePerson } from '@/api/persons'
 import { useToast } from '@/hooks/use-toast'
 import { personTypeLabels } from '@/features/persons/data/schema'
@@ -127,7 +127,6 @@ export function CreatePersonDialog({ open, onClose, onSuccess, initialName = '' 
       form.reset()
       onClose()
     } catch (error) {
-      console.error('Failed to create person:', error)
       toast({
         title: 'Error',
         description: error instanceof Error 

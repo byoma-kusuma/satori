@@ -1,5 +1,5 @@
 import React from 'react'
-import { IconHome, IconSettings, IconUsers, IconUsersGroup, IconCalendarEvent } from '@tabler/icons-react'
+import { IconUsers, IconUsersGroup, IconCalendarEvent } from '@tabler/icons-react'
 
 export const sidebarData = [
   {

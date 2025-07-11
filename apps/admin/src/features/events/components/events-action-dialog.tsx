@@ -4,7 +4,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { useEvents } from '../context/events-context'
+import { useEvents } from '../hooks/use-events'
 import { EventsForm } from './events-form'
 
 export function EventsActionDialog() {

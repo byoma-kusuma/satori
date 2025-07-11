@@ -1,7 +1,7 @@
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Group, GroupInput, groupInputSchema } from '../data/schema'
-import { useGroups } from '../context/groups-context'
+import { useGroups } from '../hooks/use-groups'
 import {
   Dialog,
   DialogContent,
@@ -62,8 +62,8 @@ export function GroupsActionDialog({ group, open, onOpenChange }: Props) {
       setOpen(null)
       setCurrentRow(null)
       onOpenChange(false)
-    } catch (error) {
-      console.error('Error submitting form:', error)
+    } catch {
+      // Error is handled by the mutation hook
     } finally {
       setIsSubmitting(false)
     }

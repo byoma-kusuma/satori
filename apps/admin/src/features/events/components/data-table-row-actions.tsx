@@ -10,7 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { useEvents } from '../context/events-context'
+import { useEvents } from '../hooks/use-events'
 import { Event } from '../data/schema'
 
 interface DataTableRowActionsProps {

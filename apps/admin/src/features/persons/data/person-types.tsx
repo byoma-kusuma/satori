@@ -3,7 +3,7 @@ import {
   IconUserCheck, 
   IconUserQuestion 
 } from '@tabler/icons-react'
-import { PersonType, personTypeLabels } from './schema'
+import { personTypeLabels } from './schema'
 
 // Define the person types with icons for the faceted filter
 export const personTypes = [

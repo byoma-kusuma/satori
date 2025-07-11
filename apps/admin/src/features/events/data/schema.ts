@@ -26,14 +26,14 @@ export interface BodhipushpanjaliPersonData {
 export type EventMetadata = RefugePersonData[] | BodhipushpanjaliPersonData[]
 
 // Type guards for checking metadata types
-export function isRefugeData(data: any[]): data is RefugePersonData[] {
+export function isRefugeData(data: unknown[]): data is RefugePersonData[] {
   return data.length === 0 || 
     (data.length > 0 && 
      'refugeName' in data[0] || 
      'completed' in data[0]);
 }
 
-export function isBodhipushpanjaliData(data: any[]): data is BodhipushpanjaliPersonData[] {
+export function isBodhipushpanjaliData(data: unknown[]): data is BodhipushpanjaliPersonData[] {
   return data.length === 0 || 
     (data.length > 0 && 
      'hasTakenRefuge' in data[0] || 
@@ -48,7 +48,7 @@ export const eventSchema = z.object({
   startDate: z.string().or(z.date()),
   endDate: z.string().or(z.date()),
   type: z.enum(eventTypeEnum),
-  metadata: z.any().optional(),
+  metadata: z.array(z.unknown()).optional(),
   createdAt: z.string().or(z.date()).optional(),
   updatedAt: z.string().or(z.date()).optional(),
   createdBy: z.string(),
@@ -106,7 +106,7 @@ export const bodhipushpanjaliParticipantSchema = z.object({
 // Participant input schema
 export const participantInputSchema = z.object({
   personId: z.string().uuid(),
-  additionalData: z.record(z.any()).optional(),
+  additionalData: z.record(z.unknown()).optional(),
 })
 
 export type ParticipantInput = z.infer<typeof participantInputSchema>

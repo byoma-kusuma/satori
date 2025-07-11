@@ -45,7 +45,7 @@ export default function ViewEventPage() {
   const [filteredParticipants, setFilteredParticipants] = useState<Array<{ id: string, name: string }>>([])
   const [showCreateDialog, setShowCreateDialog] = useState(false)
   const [newPersonName, setNewPersonName] = useState('')
-  const [isSaving, _setIsSaving] = useState(false)
+  const [isSaving] = useState(false)
   const { toast } = useToast()
   const queryClient = useQueryClient()
 
@@ -65,7 +65,7 @@ export default function ViewEventPage() {
   useEffect(() => {
     if (existingParticipants && Array.isArray(existingParticipants) && existingParticipants.length > 0) {
       // Convert to our local format, preserving all properties
-      const formattedParticipants = existingParticipants.map((p: any) => ({
+      const formattedParticipants = existingParticipants.map((p: { personId: string; firstName: string; lastName: string; refugeName?: string; referralMedium?: string }) => ({
         id: p.personId,
         name: `${p.firstName} ${p.lastName}`,
         firstName: p.firstName,
@@ -113,7 +113,7 @@ export default function ViewEventPage() {
     }
 
     // Create new participant object with appropriate fields based on event type
-    const newParticipant: any = {
+    const newParticipant: { id: string; name: string; firstName: string; lastName: string; refugeName?: string; referralMedium?: string } = {
       id: selectedPerson.id,
       name: `${selectedPerson.firstName} ${selectedPerson.lastName}`,
       firstName: selectedPerson.firstName,
@@ -128,7 +128,7 @@ export default function ViewEventPage() {
     }
 
     // Prepare type-specific additional data
-    const additionalData: Record<string, any> = {
+    const additionalData: Record<string, string> = {
       firstName: selectedPerson.firstName,
       lastName: selectedPerson.lastName
     }
@@ -159,7 +159,6 @@ export default function ViewEventPage() {
         description: `${selectedPerson.firstName} ${selectedPerson.lastName} added as participant`,
       })
     } catch (error) {
-      console.error('Failed to add participant:', error)
 
       // Revert optimistic update if API call fails
       setParticipants(prevParticipants =>
@@ -203,7 +202,6 @@ export default function ViewEventPage() {
         description: 'Participant removed successfully',
       })
     } catch (error) {
-      console.error('Failed to remove participant:', error)
 
       // Revert optimistic update if API call fails
       if (removedParticipant) {
@@ -220,7 +218,7 @@ export default function ViewEventPage() {
     }
   }
 
-  const handleUpdateParticipant = async (id: string, updateData: any) => {
+  const handleUpdateParticipant = async (id: string, updateData: { refugeName?: string; referralMedium?: string }) => {
     if (!eventId) return
 
     // Find the participant to update
@@ -254,7 +252,6 @@ export default function ViewEventPage() {
         description: 'Participant updated successfully',
       })
     } catch (error) {
-      console.error('Failed to update participant:', error)
 
       // Revert optimistic update if API call fails
       setParticipants(prevParticipants =>
@@ -279,7 +276,7 @@ export default function ViewEventPage() {
     if (!eventId || !event) return
 
     // Create new participant object with appropriate fields based on event type
-    const newParticipant: any = {
+    const newParticipant: { id: string; name: string; firstName: string; lastName: string; refugeName?: string; referralMedium?: string } = {
       id: createdPerson.id,
       name: `${createdPerson.firstName} ${createdPerson.lastName}`,
       firstName: createdPerson.firstName,
@@ -294,7 +291,7 @@ export default function ViewEventPage() {
     }
 
     // Prepare type-specific additional data
-    const additionalData: Record<string, any> = {
+    const additionalData: Record<string, string> = {
       firstName: createdPerson.firstName,
       lastName: createdPerson.lastName
     }
@@ -321,8 +318,7 @@ export default function ViewEventPage() {
         title: 'Person created successfully',
         description: `${createdPerson.firstName} ${createdPerson.lastName} has been added to the event.`,
       })
-    } catch (error) {
-      console.error('Failed to add newly created person as participant:', error)
+    } catch {
 
       // Revert optimistic update if API call fails
       setParticipants(prevParticipants =>
@@ -339,7 +335,7 @@ export default function ViewEventPage() {
 
   // Check if there are any available persons to add
   // Helper to check if there are available persons - used for UI display
-  persons.some((person: any) =>
+  persons.some((person) =>
     !participants.some(p => p.id === person.id)
   )
 
@@ -441,14 +437,14 @@ export default function ViewEventPage() {
                     isClearable
                     options={persons
                       .filter(person => !participants.some(p => p.id === person.id))
-                      .map((person: any) => ({
+                      .map((person) => ({
                         value: person.id,
                         label: `${person.firstName} ${person.lastName}`
                       }))}
                     value={selectedPersonId ? {
                       value: selectedPersonId,
-                      label: persons.find((p: any) => p.id === selectedPersonId)
-                        ? `${persons.find((p: any) => p.id === selectedPersonId)?.firstName} ${persons.find((p: any) => p.id === selectedPersonId)?.lastName}`
+                      label: persons.find((p) => p.id === selectedPersonId)
+                        ? `${persons.find((p) => p.id === selectedPersonId)?.firstName} ${persons.find((p) => p.id === selectedPersonId)?.lastName}`
                         : ""
                     } : null}
                     onChange={(newValue) => {
@@ -461,7 +457,7 @@ export default function ViewEventPage() {
                     placeholder="Select or create a person..."
                     formatCreateLabel={(inputValue) => `Create "${inputValue}"`}
                     classNames={{
-                      control: (state) => "px-1 py-1 border rounded-md bg-background h-9",
+                      control: () => "px-1 py-1 border rounded-md bg-background h-9",
                       menu: () => "bg-background border rounded-md mt-1",
                       option: (state) =>
                         state.isFocused
