@@ -41,7 +41,7 @@ export function EventsForm({ event, onSuccess }: EventsFormProps) {
     resolver: zodResolver(createEventSchema),
     defaultValues: {
       name: event?.name || '',
-      description: event?.description || '',
+      description: event?.description || undefined,
       startDate: event?.startDate 
         ? format(new Date(event.startDate), 'yyyy-MM-dd')
         : '',
@@ -57,7 +57,7 @@ export function EventsForm({ event, onSuccess }: EventsFormProps) {
     if (event) {
       form.reset({
         name: event.name,
-        description: event.description || '',
+        description: event.description || undefined,
         startDate: event.startDate 
           ? format(new Date(event.startDate), 'yyyy-MM-dd')
           : '',
@@ -79,7 +79,7 @@ export function EventsForm({ event, onSuccess }: EventsFormProps) {
           id: event.id,
           updateData: {
             name: data.name,
-            description: data.description || null,
+            description: data.description || undefined,
             startDate: data.startDate,
             endDate: data.endDate,
             type: data.type

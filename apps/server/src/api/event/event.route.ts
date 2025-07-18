@@ -31,7 +31,7 @@ const eventTypeSchema = z.enum(["REFUGE", "BODHIPUSPANJALI"]);
 // Define the input schema for creating events
 const eventInputSchema = z.object({
   name: z.string().min(1, "Name is required"),
-  description: z.string().optional(),
+  description: z.string().optional().nullable().transform(val => val === "" ? null : val),
   startDate: z.string().or(z.date()),
   endDate: z.string().or(z.date()),
   type: eventTypeSchema,
@@ -55,9 +55,10 @@ const updateParticipantSchema = z.object({
 });
 
 events.onError((err, c) => {
-  console.error(`${err}`);
+  console.error(`Event API Error: ${err}`);
   
   if (err instanceof z.ZodError) {
+    console.error('Validation errors:', err.errors);
     return c.json({ 
       success: false, 
       message: "Validation error", 
@@ -103,6 +104,8 @@ export const eventsRoutes = events
     const eventData = await c.req.valid("json");
     const user = c.get("user");
     if (!user) throw new Error("User not found");
+    
+    console.log('Creating event with data:', eventData);
     const newEvent = await createEvent(eventData, user.id);
     return c.json(newEvent, 201);
   })
