@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { userRoleEnum } from '@/types/user-roles'
 
 export const userSchema = z.object({
   id: z.string(),
@@ -6,6 +7,7 @@ export const userSchema = z.object({
   email: z.string().email(),
   emailVerified: z.boolean(),
   image: z.string().nullable(),
+  role: z.enum(userRoleEnum),
   createdAt: z.coerce.date(),
   updatedAt: z.coerce.date(),
 })

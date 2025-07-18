@@ -8,6 +8,7 @@ import {
   getPersonsByType 
 } from "./person.service";
 import { authenticated } from "../../middlewares/session";
+import { requirePermission, adminOnly } from "../../middlewares/authorization";
 import { auth } from "../../lib/auth";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
@@ -82,7 +83,7 @@ persons.onError((err, c) => {
 
 export const personsRoutes = persons
   .use(authenticated)
-  .get("/", async (c) => {
+  .get("/", requirePermission("canViewPersons"), async (c) => {
     const type = c.req.query('type') as PersonType | undefined;
     
     if (type && ['interested', 'contact', 'sangha_member', 'attended_orientation'].includes(type)) {
@@ -93,24 +94,24 @@ export const personsRoutes = persons
     const persons = await getAllPersons();
     return c.json(persons);
   })
-  .get("/:id", zValidator("param", paramsSchema), async (c) => {
+  .get("/:id", zValidator("param", paramsSchema), requirePermission("canViewPersons"), async (c) => {
     const { id } = c.req.valid("param");
     const person = await getPersonById(id);
     return c.json(person);
   })
-  .get("/:id/groups", async (c) => {
+  .get("/:id/groups", requirePermission("canViewGroups"), async (c) => {
     const id = c.req.param("id");
     const groups = await getPersonGroups(id);
     return c.json(groups);
   })
-  .post("/", zValidator("json", personInputSchema), async (c) => {
+  .post("/", zValidator("json", personInputSchema), requirePermission("canCreatePersons"), async (c) => {
     const personData = await c.req.valid("json");
     const user = c.get("user");
     if (!user) throw new Error("User not found");
     const newPerson = await createPerson(personData, user.id);
     return c.json(newPerson, 201);
   })
-  .put("/:id", zValidator("param", paramsSchema), zValidator("json", personUpdateSchema), async (c) => {
+  .put("/:id", zValidator("param", paramsSchema), zValidator("json", personUpdateSchema), requirePermission("canEditPersons"), async (c) => {
     const { id } = c.req.valid("param");
     const updateData = await c.req.valid("json");
     const user = c.get("user");
@@ -118,15 +119,10 @@ export const personsRoutes = persons
     const updatedPerson = await updatePerson(id, updateData, user.id);
     return c.json(updatedPerson);
   })
-  .delete("/:id", zValidator("param", paramsSchema), async (c) => {
+  .delete("/:id", zValidator("param", paramsSchema), requirePermission("canDeletePersons"), async (c) => {
     const { id } = c.req.valid("param");
     await deletePerson(id);
     return c.json({ success: true });
-  })
-  .get("/:id/groups", async (c) => {
-    const id = c.req.param("id");
-    const groups = await getPersonGroups(id);
-    return c.json(groups);
   });
 
 export type PersonType = typeof personsRoutes;
