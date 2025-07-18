@@ -28,6 +28,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Textarea } from '@/components/ui/textarea'
 import { personInputSchema, personTypeLabels, titleLabels, membershipTypeLabels, countries } from '../data/schema'
 import { useCreatePerson } from '../data/api'
+import { SearchableNationalitySelect } from '@/components/ui/searchable-nationality-select'
 import { Header } from '@/components/layout/header'
 import { Main } from '@/components/layout/main'
 import { ProfileDropdown } from '@/components/profile-dropdown'
@@ -377,23 +378,14 @@ export function CreatePersonPage() {
                     render={({ field }) => (
                       <FormItem className="space-y-1">
                         <FormLabel>Nationality</FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          defaultValue={field.value || undefined}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select nationality" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {countries.map((country) => (
-                              <SelectItem key={country} value={country}>
-                                {country}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <FormControl>
+                          <SearchableNationalitySelect
+                            value={field.value || ""}
+                            onValueChange={field.onChange}
+                            placeholder="Select nationality"
+                            countries={countries}
+                          />
+                        </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
