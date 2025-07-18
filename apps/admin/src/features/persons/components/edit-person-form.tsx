@@ -26,7 +26,8 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
-import { personInputSchema, personTypeLabels, titleLabels } from '../data/schema'
+import { Textarea } from '@/components/ui/textarea'
+import { personInputSchema, personTypeLabels, titleLabels, membershipTypeLabels, countries } from '../data/schema'
 import { useUpdatePerson, getPersonQueryOptions } from '../data/api'
 import { Header } from '@/components/layout/header'
 import { Main } from '@/components/layout/main'
@@ -53,34 +54,34 @@ function EditPersonForm({ personId }: { personId: string }) {
     resolver: zodResolver(personInputSchema),
     defaultValues: {
       firstName: person.firstName,
+      middleName: person.middleName || undefined,
       lastName: person.lastName,
       address: person.address,
       emailId: person.emailId || undefined,
       phoneNumber: person.phoneNumber || undefined,
+      primaryPhone: person.primaryPhone || undefined,
+      secondaryPhone: person.secondaryPhone || undefined,
       yearOfBirth: person.yearOfBirth || undefined,
       photo: person.photo || undefined,
       gender: person.gender || undefined,
-      refugee: person.refugee,
       center: person.center,
       type: person.type,
       country: person.country || undefined,
       nationality: person.nationality || undefined,
       languagePreference: person.languagePreference || undefined,
+      occupation: person.occupation || undefined,
+      notes: person.notes || undefined,
       refugeName: person.refugeName || undefined,
       yearOfRefuge: person.yearOfRefuge || undefined,
       title: person.title || undefined,
-      membershipStatus: person.membershipStatus || undefined,
+      membershipType: person.membershipType || undefined,
       hasMembershipCard: person.hasMembershipCard || undefined,
+      membershipCardNumber: person.membershipCardNumber || undefined,
+      yearOfRefugeCalendarType: person.yearOfRefugeCalendarType || 'AD',
     },
   })
 
   const personType = form.watch('type')
-  
-  useEffect(() => {
-    if (personType === 'sangha_member') {
-      form.setValue('refugee', true)
-    }
-  }, [personType, form])
 
   const onSubmit = (vals: PersonForm) => {
     updatePersonMutation.mutate({
@@ -129,6 +130,19 @@ function EditPersonForm({ personId }: { personId: string }) {
               />
               <FormField
                 control={form.control}
+                name="middleName"
+                render={({ field }) => (
+                  <FormItem className="space-y-1">
+                    <FormLabel>Middle Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter middle name" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
                 name="lastName"
                 render={({ field }) => (
                   <FormItem className="space-y-1">
@@ -156,7 +170,6 @@ function EditPersonForm({ personId }: { personId: string }) {
                         <SelectItem value="interested">{personTypeLabels.interested}</SelectItem>
                         <SelectItem value="contact">{personTypeLabels.contact}</SelectItem>
                         <SelectItem value="sangha_member">{personTypeLabels.sangha_member}</SelectItem>
-                        <SelectItem value="new_inquiry">{personTypeLabels.new_inquiry}</SelectItem>
                         <SelectItem value="attended_orientation">{personTypeLabels.attended_orientation}</SelectItem>
                       </SelectContent>
                     </Select>
@@ -285,20 +298,49 @@ function EditPersonForm({ personId }: { personId: string }) {
               />
               <FormField
                 control={form.control}
-                name="refugee"
+                name="primaryPhone"
                 render={({ field }) => (
-                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                  <FormItem className="space-y-1">
+                    <FormLabel>Primary Phone</FormLabel>
                     <FormControl>
-                      <Checkbox
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
+                      <div className="relative">
+                        <PhoneInput
+                          international
+                          countryCallingCodeEditable={true}
+                          defaultCountry="NP"
+                          placeholder="Enter primary phone"
+                          value={field.value || ''}
+                          onChange={(value) => field.onChange(value || '')}
+                          className="h-10 w-full"
+                          inputClassName="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        />
+                      </div>
                     </FormControl>
-                    <div className="space-y-1 leading-none">
-                      <FormLabel>
-                        Has Refuge Taken
-                      </FormLabel>
-                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="secondaryPhone"
+                render={({ field }) => (
+                  <FormItem className="space-y-1">
+                    <FormLabel>Secondary Phone</FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <PhoneInput
+                          international
+                          countryCallingCodeEditable={true}
+                          defaultCountry="NP"
+                          placeholder="Enter secondary phone"
+                          value={field.value || ''}
+                          onChange={(value) => field.onChange(value || '')}
+                          className="h-10 w-full"
+                          inputClassName="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        />
+                      </div>
+                    </FormControl>
+                    <FormMessage />
                   </FormItem>
                 )}
               />
@@ -321,9 +363,23 @@ function EditPersonForm({ personId }: { personId: string }) {
                 render={({ field }) => (
                   <FormItem className="space-y-1">
                     <FormLabel>Nationality</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Enter nationality" {...field} />
-                    </FormControl>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value || undefined}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select nationality" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {countries.map((country) => (
+                          <SelectItem key={country} value={country}>
+                            {country}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -336,6 +392,39 @@ function EditPersonForm({ personId }: { personId: string }) {
                     <FormLabel>Language Preference</FormLabel>
                     <FormControl>
                       <Input placeholder="Enter language preference" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="occupation"
+                render={({ field }) => (
+                  <FormItem className="space-y-1">
+                    <FormLabel>Occupation</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter occupation" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            
+            <div className="space-y-4">
+              <FormField
+                control={form.control}
+                name="notes"
+                render={({ field }) => (
+                  <FormItem className="space-y-1">
+                    <FormLabel>Notes/Comments</FormLabel>
+                    <FormControl>
+                      <Textarea 
+                        placeholder="Enter any additional notes or comments" 
+                        {...field} 
+                        rows={4}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -383,6 +472,30 @@ function EditPersonForm({ personId }: { personId: string }) {
                 />
                 <FormField
                   control={form.control}
+                  name="yearOfRefugeCalendarType"
+                  render={({ field }) => (
+                    <FormItem className="space-y-1">
+                      <FormLabel>Year of Refuge Calendar Type</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value || 'AD'}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select calendar type" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="AD">AD (Anno Domini)</SelectItem>
+                          <SelectItem value="BS">BS (Bikram Sambat)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
                   name="title"
                   render={({ field }) => (
                     <FormItem className="space-y-1">
@@ -408,13 +521,26 @@ function EditPersonForm({ personId }: { personId: string }) {
                 />
                 <FormField
                   control={form.control}
-                  name="membershipStatus"
+                  name="membershipType"
                   render={({ field }) => (
                     <FormItem className="space-y-1">
-                      <FormLabel>Membership Status</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter membership status" {...field} />
-                      </FormControl>
+                      <FormLabel>Membership Type</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value || undefined}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select membership type" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="Life Time">{membershipTypeLabels['Life Time']}</SelectItem>
+                          <SelectItem value="Board Member">{membershipTypeLabels['Board Member']}</SelectItem>
+                          <SelectItem value="General Member">{membershipTypeLabels['General Member']}</SelectItem>
+                          <SelectItem value="Honorary Member">{membershipTypeLabels['Honorary Member']}</SelectItem>
+                        </SelectContent>
+                      </Select>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -435,6 +561,19 @@ function EditPersonForm({ personId }: { personId: string }) {
                           Do you have a membership card?
                         </FormLabel>
                       </div>
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="membershipCardNumber"
+                  render={({ field }) => (
+                    <FormItem className="space-y-1">
+                      <FormLabel>Membership Card Number</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Enter membership card number" {...field} />
+                      </FormControl>
+                      <FormMessage />
                     </FormItem>
                   )}
                 />

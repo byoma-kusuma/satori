@@ -27,10 +27,16 @@ Modify it as needed.
 ### 2. Set Up a Local Database with Docker
 If you don’t have a database, you can set up one locally using Docker:
 ```sh
-docker-compose up -d
+# For Development (with hot reload and pgAdmin):
+docker-compose -f docker-compose.dev.yml up -d
+
+# For Production (optimized for deployment):
+docker-compose -f docker-compose.prod.yml up -d
 ```
 This will use the `.env` file variables to set up a PostgreSQL database along with a pgAdmin instance.
-Make sure to run this from the server folder which has docker-compose.yml file.
+Make sure to run this from the server folder which has docker compose files.
+
+> 📚 **For detailed Docker Compose documentation**, see [docs/DOCKER_COMPOSE_GUIDE.md](./docs/DOCKER_COMPOSE_GUIDE.md)
 
 ### 3. Connect to Your Database with pgAdmin
 Use the following credentials to connect to the database via pgAdmin:
@@ -92,7 +98,7 @@ Replace the
 
 ## Delete database and start from scratch
 ```sh
-docker-compose down -v
+docker-compose -f docker-compose.dev.yml down -v
 ```
 Then start from the database parts again.
 
@@ -110,7 +116,7 @@ To apply this migration, run:
 cd apps/server
 
 # Make sure the database container is running
-docker-compose up -d
+docker-compose -f docker-compose.dev.yml up -d
 
 # Apply the migration
 npx dbmate up
@@ -145,3 +151,13 @@ The Person API now supports:
    ```
 
 If not specified during creation, the default type is `interested`.
+
+## 📚 Documentation
+
+For more detailed documentation, check the [docs/](./docs/) folder:
+
+- **[Docker Compose Guide](./docs/DOCKER_COMPOSE_GUIDE.md)** - Development vs Production environments
+- **[SSL Mode Options](./docs/SSL_MODE_OPTIONS.md)** - Database security configuration  
+- **[Script Cleanup](./docs/SCRIPT_CLEANUP.md)** - npm scripts organization
+
+Or browse the [docs folder README](./docs/README.md) for a complete index.

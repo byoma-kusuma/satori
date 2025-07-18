@@ -27,9 +27,11 @@ export type JsonPrimitive = boolean | number | string | null;
 
 export type JsonValue = JsonArray | JsonObject | JsonPrimitive;
 
+export type MembershipType = "Board Member" | "General Member" | "Honorary Member" | "Life Time";
+
 export type PersonTitle = "dharma_dhar" | "sahayak_dharmacharya" | "sahayak_samathacharya";
 
-export type PersonType = "attended_orientation" | "contact" | "interested" | "new_inquiry" | "sangha_member";
+export type PersonType = "attended_orientation" | "contact" | "interested" | "sangha_member";
 
 export type Timestamp = ColumnType<Date, Date | string, Date | string>;
 
@@ -97,20 +99,39 @@ export interface Person {
   lastName: string;
   lastUpdatedBy: string;
   /**
-   * Current membership status (for Sangha members)
+   * Type of membership for Sangha members
    */
-  membershipStatus: string | null;
+  membershipType: MembershipType | null;
+  /**
+   * Middle name of the person
+   */
+  middleName: string | null;
   /**
    * Nationality of the person
    */
   nationality: string | null;
+  /**
+   * Additional notes or comments about the person
+   */
+  notes: string | null;
+  /**
+   * Occupation of the person
+   */
+  occupation: string | null;
   phoneNumber: string | null;
   photo: string | null;
-  refugee: boolean;
+  /**
+   * Primary phone number of the person
+   */
+  primaryPhone: string | null;
   /**
    * Dharma name given during refuge ceremony (for Sangha members)
    */
   refugeName: string | null;
+  /**
+   * Secondary phone number of the person
+   */
+  secondaryPhone: string | null;
   /**
    * Dharma title for Sangha members
    */

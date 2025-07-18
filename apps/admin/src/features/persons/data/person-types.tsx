@@ -1,7 +1,8 @@
 import { 
   IconUser, 
   IconUserCheck, 
-  IconUserQuestion 
+  IconUserQuestion,
+  IconUserPlus 
 } from '@tabler/icons-react'
 import { personTypeLabels } from './schema'
 
@@ -21,5 +22,10 @@ export const personTypes = [
     label: personTypeLabels.sangha_member,
     value: 'sangha_member',
     icon: IconUserCheck,
+  },
+  {
+    label: personTypeLabels.attended_orientation,
+    value: 'attended_orientation',
+    icon: IconUserPlus,
   },
 ]

@@ -76,7 +76,6 @@ export function PersonsActionDialog({ currentRow, open, onOpenChange }: Props) {
       yearOfBirth: currentRow.yearOfBirth || undefined,
       photo: currentRow.photo || undefined,
       gender: currentRow.gender || undefined,
-      refugee: currentRow.refugee,
       center: currentRow.center,
     } : {
       firstName: '',
@@ -87,7 +86,6 @@ export function PersonsActionDialog({ currentRow, open, onOpenChange }: Props) {
       yearOfBirth: undefined,
       photo: undefined,
       gender: undefined,
-      refugee: false,
       center: 'Nepal',
     },
   })
@@ -278,25 +276,6 @@ export function PersonsActionDialog({ currentRow, open, onOpenChange }: Props) {
                         </SelectContent>
                       </Select>
                       <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="refugee"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                      <FormControl>
-                        <Checkbox
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                      <div className="space-y-1 leading-none">
-                        <FormLabel>
-                          Refugee
-                        </FormLabel>
-                      </div>
                     </FormItem>
                   )}
                 />
