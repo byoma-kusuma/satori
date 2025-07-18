@@ -13,6 +13,7 @@ import {
   getSortedRowModel,
   useReactTable,
 } from '@tanstack/react-table'
+import { useNavigate } from '@tanstack/react-router'
 
 import {
   Table,
@@ -35,6 +36,7 @@ export function EventsTable<TData, TValue>({
   columns,
   data,
 }: EventsTableProps<TData, TValue>) {
+  const navigate = useNavigate()
   const [rowSelection, setRowSelection] = React.useState({})
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({})
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
@@ -62,6 +64,16 @@ export function EventsTable<TData, TValue>({
     getFacetedUniqueValues: getFacetedUniqueValues(),
   })
 
+  const handleRowClick = (event: React.MouseEvent, eventId: string) => {
+    // Prevent navigation if clicking on interactive elements
+    const target = event.target as HTMLElement
+    if (target.closest('button, a, [role="button"]')) {
+      return
+    }
+    
+    navigate({ to: `/events/${eventId}/view` })
+  }
+
   return (
     <div className="space-y-4">
       <DataTableToolbar table={table} />
@@ -87,27 +99,31 @@ export function EventsTable<TData, TValue>({
           </TableHeader>
           <TableBody>
             {table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  className="group/row"
-                  data-state={row.getIsSelected() && "selected"}
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell 
-                      key={cell.id}
-                      className={
-                        (cell.column.columnDef.meta?.className as string | undefined)
-                      }
-                    >
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext()
-                      )}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))
+              table.getRowModel().rows.map((row) => {
+                const eventId = (row.original as any).id
+                return (
+                  <TableRow
+                    key={row.id}
+                    className="group/row cursor-pointer hover:bg-muted/50 transition-colors"
+                    data-state={row.getIsSelected() && "selected"}
+                    onClick={(event) => handleRowClick(event, eventId)}
+                  >
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell 
+                        key={cell.id}
+                        className={
+                          (cell.column.columnDef.meta?.className as string | undefined)
+                        }
+                      >
+                        {flexRender(
+                          cell.column.columnDef.cell,
+                          cell.getContext()
+                        )}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                )
+              })
             ) : (
               <TableRow>
                 <TableCell
