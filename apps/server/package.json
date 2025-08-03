@@ -4,8 +4,8 @@
     "dev": "bun run --hot src/index.ts",
     "start": "bun run src/index.ts",
     "build": "tsc",
-    "migrate:dev": "dbmate up && bun run auth:migrate && bun run codegen",
-    "migrate:prod": "dbmate up && bun run auth:migrate",
+    "migrate:dev": "bun run auth:migrate && dbmate up && bun run codegen",
+    "migrate:prod": "bun run auth:migrate && dbmate up",
     "auth:migrate": "echo 'y' | npx @better-auth/cli migrate",
     "codegen": "kysely-codegen --out-file=./src/types.ts",
     "seed": "bun ./db/seeds/user.ts"
