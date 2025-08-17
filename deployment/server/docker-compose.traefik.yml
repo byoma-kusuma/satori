@@ -1,0 +1,92 @@
+version: '3.8'
+
+networks:
+  traefik-public:
+    external: true
+  satori-app-network:
+    name: ${DOCKER_NETWORK:-satori-app-network}
+
+volumes:
+  postgres_data:
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: always
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=${DB_USER:-postgres}
+      - POSTGRES_PASSWORD=${DB_PASS:-postgres}
+      - POSTGRES_DB=${DB_NAME:-postgres}
+    networks:
+      - satori-app-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-postgres}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    # NOTE: no ports -> DB is private
+
+  migrate:
+    build:
+      context: ../../apps/server
+      dockerfile: Dockerfile
+    env_file:
+      - ../../apps/server/.env
+    environment:
+      - NODE_ENV=${NODE_ENV:-production}
+      - DATABASE_URL=postgres://${DB_USER:-postgres}:${DB_PASS:-postgres}@db:${DB_PORT:-5432}/${DB_NAME:-postgres}?sslmode=${DB_SSL_MODE:-disable}
+    command: ["bun", "run", "migrate:prod"]
+    restart: "no"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - satori-app-network
+
+  app:
+    build:
+      context: ../../apps/server
+      dockerfile: Dockerfile
+    restart: always
+    env_file:
+      - ../../apps/server/.env
+    environment:
+      - NODE_ENV=${NODE_ENV:-production}
+      - DATABASE_URL=postgres://${DB_USER:-postgres}:${DB_PASS:-postgres}@db:${DB_PORT:-5432}/${DB_NAME:-postgres}?sslmode=${DB_SSL_MODE:-disable}
+      - ORIGIN=${ORIGIN}
+      - SERVER_URL=${SERVER_URL}
+      - BETTER_AUTH_URL=${BETTER_AUTH_URL}
+      - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}
+      - AUTH_HOST=${AUTH_HOST}
+      - AUTH_PORT=${AUTH_PORT}
+      - GMAIL_USER=${GMAIL_USER}
+      - GMAIL_PASS=${GMAIL_PASS}
+      - EMAIL_FROM=${EMAIL_FROM}
+      - EMAIL_SERVER=${EMAIL_SERVER}
+      - EMAIL_PORT=${EMAIL_PORT}
+      - EMAIL_USER=${EMAIL_USER}
+      - EMAIL_PASSWORD=${EMAIL_PASSWORD}
+      - TEST_USERS=${TEST_USERS}
+      - TEST_ORG=${TEST_ORG}
+      - EMAIL_SERVICE_PROVIDER=${EMAIL_SERVICE_PROVIDER}
+      - AZURE_COMMUNICATION_CONNECTION_STRING=${AZURE_COMMUNICATION_CONNECTION_STRING}
+      - AZURE_COMMUNICATION_FROM_EMAIL=${AZURE_COMMUNICATION_FROM_EMAIL}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.apiapp.rule=Host(`${SERVER_URL}`)"
+      - "traefik.http.routers.apiapp.entrypoints=websecure"
+      - "traefik.http.routers.apiapp.tls.certresolver=cf"
+      - "traefik.http.services.apiapp.loadbalancer.server.port=${APP_CONTAINER_PORT:-3000}"
+      # Optional security headers
+      - "traefik.http.middlewares.secHeaders.headers.stsSeconds=31536000"
+      - "traefik.http.middlewares.secHeaders.headers.stsIncludeSubdomains=true"
+      - "traefik.http.middlewares.secHeaders.headers.stsPreload=true"
+      - "traefik.http.routers.apiapp.middlewares=secHeaders@docker"
+    networks:
+      - traefik-public
+      - satori-app-network

@@ -1,0 +1,40 @@
+version: "3.9"
+
+networks:
+  traefik-public:
+    name: traefik-public
+    external: false
+
+services:
+  traefik:
+    image: traefik:v3.1
+    container_name: traefik
+    restart: always
+    command:
+      - "--providers.docker=true"
+      - "--providers.docker.exposedByDefault=false"
+
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entryPoint.scheme=https"
+
+      - "--certificatesresolvers.cf.acme.dnschallenge=true"
+      - "--certificatesresolvers.cf.acme.dnschallenge.provider=cloudflare"
+      - "--certificatesresolvers.cf.acme.email=${CF_API_EMAIL}"
+      - "--certificatesresolvers.cf.acme.storage=/letsencrypt/acme.json"
+
+      # Uncomment the next two lines if you want a dashboard on :8080 (secure it if exposed)
+      # - "--api.dashboard=true"
+      # - "--api.insecure=false"
+    ports:
+      - "80:80"
+      - "443:443"
+      # - "8080:8080" # dashboard (optional)
+    environment:
+      CF_DNS_API_TOKEN: "${CF_DNS_API_TOKEN}"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./acme/acme.json:/letsencrypt/acme.json
+    networks:
+      - traefik-public
