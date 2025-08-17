@@ -78,7 +78,7 @@ services:
         condition: service_completed_successfully
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.apiapp.rule=Host(`${SERVER_URL}`)"
+      - "traefik.http.routers.apiapp.rule=Host(`${AUTH_HOST}`)"
       - "traefik.http.routers.apiapp.entrypoints=websecure"
       - "traefik.http.routers.apiapp.tls.certresolver=cf"
       - "traefik.http.services.apiapp.loadbalancer.server.port=${APP_CONTAINER_PORT:-3000}"
