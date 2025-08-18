@@ -13,9 +13,7 @@ const app = new Hono();
 app.use(
   '*',
   cors({
-    origin: process.env.NODE_ENV === 'development'
-      ? [`http://localhost:${process.env.FRONTEND_PORT}`]
-      : (process.env.ORIGIN ? process.env.ORIGIN.split(',').map(o => o.trim()) : [`http://localhost:${process.env.FRONTEND_PORT}`]),
+    origin: ['https://satori.byomakusuma.com', 'https://api.satori.byomakusuma.com'],
     allowHeaders: ['Content-Type', 'Authorization'],
     allowMethods: ['POST', 'GET', 'PUT', 'DELETE', 'OPTIONS'],
     exposeHeaders: ['Content-Length'],
