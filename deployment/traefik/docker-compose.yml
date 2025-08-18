@@ -68,13 +68,26 @@ services:
       - traefik-public
       - satori-app-network
 
+  mongo:
+    image: mongo:7-jammy
+    container_name: komodo-mongo
+    restart: always
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - traefik-public
+
   komodo:
     image: ghcr.io/mbecker20/komodo:latest
     container_name: komodo
     restart: always
+    environment:
+      KOMODO_DATABASE__ADDRESS: mongo:27017
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - komodo_data:/config
+    depends_on:
+      - mongo
     labels:
       # Komodo routing
       - "traefik.enable=true"
@@ -91,3 +104,4 @@ services:
 volumes:
   auth_data:
   komodo_data:
+  mongo_data:
