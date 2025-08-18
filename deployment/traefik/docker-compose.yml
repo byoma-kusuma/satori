@@ -4,6 +4,9 @@ networks:
   traefik-public:
     name: traefik-public
     external: false
+  satori-app-network:
+    name: satori-app-network
+    external: true
 
 services:
   traefik:
@@ -38,3 +41,4 @@ services:
       - ./acme/acme.json:/letsencrypt/acme.json
     networks:
       - traefik-public
+      - satori-app-network
