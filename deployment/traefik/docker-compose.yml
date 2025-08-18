@@ -55,12 +55,18 @@ services:
       - "traefik.http.routers.dashboard.tls.certresolver=cf"
       - "traefik.http.routers.dashboard.service=api@internal"
       
-      # Basic Auth middleware - uses htpasswd format
-      - "traefik.http.middlewares.auth.basicauth.users=${TRAEFIK_USERNAME:-admin}:${TRAEFIK_PASSWORD_HASH}"
+      # Basic Auth middleware - uses generated auth file
+      - "traefik.http.middlewares.auth.basicauth.usersfile=/shared/auth"
       - "traefik.http.routers.dashboard.middlewares=auth"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./acme/acme.json:/letsencrypt/acme.json
+      - auth_data:/shared
+    depends_on:
+      - auth-gen
     networks:
       - traefik-public
       - satori-app-network
+
+volumes:
+  auth_data:
