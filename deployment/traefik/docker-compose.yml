@@ -8,17 +8,6 @@ networks:
     external: true
 
 services:
-  # Helper service to generate password hash from plain text
-  auth-gen:
-    image: httpd:alpine
-    command: sh -c 'htpasswd -nbB "$${TRAEFIK_USERNAME:-admin}" "$${TRAEFIK_PASSWORD}" > /shared/auth && echo "Auth generated"'
-    environment:
-      TRAEFIK_USERNAME: "${TRAEFIK_USERNAME:-admin}"
-      TRAEFIK_PASSWORD: "${TRAEFIK_PASSWORD}"
-    volumes:
-      - auth_data:/shared
-    restart: "no"
-
   traefik:
     image: traefik:v3.1
     container_name: traefik
