@@ -5,7 +5,6 @@ networks:
     name: traefik-public
     external: false
   satori-app-network:
-    name: satori-app-network
     external: true
 
 services:
