@@ -37,4 +37,8 @@ app.route("/api/person", personsRoutes);
 app.route("/api/group", groupsRoutes);
 app.route("/api/event", eventsRoutes);
 
-export default app;
+export default {
+  port: process.env.PORT || 3000,
+  hostname: "0.0.0.0",
+  fetch: app.fetch,
+};
