@@ -68,26 +68,26 @@ services:
       - traefik-public
       - satori-app-network
 
-  portainer:
-    image: portainer/portainer-ce:latest
-    container_name: portainer
+  komodo:
+    image: ghcr.io/mbecker20/komodo:latest
+    container_name: komodo
     restart: always
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      - portainer_data:/data
+      - komodo_data:/config
     labels:
-      # Portainer routing
+      # Komodo routing
       - "traefik.enable=true"
-      - "traefik.http.routers.portainer.rule=Host(`portainer.byomakusuma.com`)"
-      - "traefik.http.routers.portainer.entrypoints=websecure"
-      - "traefik.http.routers.portainer.tls.certresolver=cf"
-      - "traefik.http.services.portainer.loadbalancer.server.port=9000"
+      - "traefik.http.routers.komodo.rule=Host(`komodo.byomakusuma.com`)"
+      - "traefik.http.routers.komodo.entrypoints=websecure"
+      - "traefik.http.routers.komodo.tls.certresolver=cf"
+      - "traefik.http.services.komodo.loadbalancer.server.port=9120"
       
       # Use same auth as Traefik dashboard
-      - "traefik.http.routers.portainer.middlewares=auth"
+      - "traefik.http.routers.komodo.middlewares=auth"
     networks:
       - traefik-public
 
 volumes:
   auth_data:
-  portainer_data:
+  komodo_data:
