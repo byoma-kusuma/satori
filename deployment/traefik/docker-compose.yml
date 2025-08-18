@@ -26,15 +26,27 @@ services:
       - "--certificatesresolvers.cf.acme.email=${CF_API_EMAIL}"
       - "--certificatesresolvers.cf.acme.storage=/letsencrypt/acme.json"
 
-      # Uncomment the next two lines if you want a dashboard on :8080 (secure it if exposed)
-      # - "--api.dashboard=true"
-      # - "--api.insecure=false"
+      # Dashboard configuration - secure via labels, not insecure port
+      - "--api.dashboard=true"
+      - "--api=true"
     ports:
       - "80:80"
       - "443:443"
-      # - "8080:8080" # dashboard (optional)
     environment:
       CF_DNS_API_TOKEN: "${CF_DNS_API_TOKEN}"
+      TRAEFIK_USERNAME: "${TRAEFIK_USERNAME:-admin}"
+      TRAEFIK_PASSWORD: "${TRAEFIK_PASSWORD}"
+    labels:
+      # Dashboard routing
+      - "traefik.enable=true"
+      - "traefik.http.routers.dashboard.rule=Host(`traefik.byomakusuma.com`)"
+      - "traefik.http.routers.dashboard.entrypoints=websecure"
+      - "traefik.http.routers.dashboard.tls.certresolver=cf"
+      - "traefik.http.routers.dashboard.service=api@internal"
+      
+      # Basic Auth middleware - uses htpasswd format
+      - "traefik.http.middlewares.auth.basicauth.users=${TRAEFIK_USERNAME:-admin}:${TRAEFIK_PASSWORD_HASH}"
+      - "traefik.http.routers.dashboard.middlewares=auth"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./acme/acme.json:/letsencrypt/acme.json
