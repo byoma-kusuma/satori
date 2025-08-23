@@ -1,29 +1,18 @@
-import nodemailer from "nodemailer";
+import { sendEmailGmail } from "./email/gmail.email-provider";
+import { sendEmailAzure } from "./email/azure.email-provider";
+import { EmailOptions } from "./email/email-interface";
 
-export interface EmailOptions {
-  to: string;
-  subject: string;
-  text: string;
-  html?: string;
-}
 
 export async function sendEmail(options: EmailOptions): Promise<any> {
-  const transporter = nodemailer.createTransport({
-    service: "gmail",
-    auth: {
-      user: process.env.GMAIL_USER,
-      pass: process.env.GMAIL_PASS 
-    }
-  });
+  const provider = process.env.EMAIL_SERVICE_PROVIDER;
 
-  const mailOptions = {
-    from: process.env.GMAIL_USER,
-    to: options.to,
-    subject: options.subject,
-    text: options.text,
-    html: options.html || ""
-  };
-
-  const info = await transporter.sendMail(mailOptions);
-  return info;
+  switch (provider) {
+    case "azure":
+    case "azure-communication-services":
+      return await sendEmailAzure(options);
+    case "gmail":
+      return await sendEmailGmail(options);
+    default:
+      throw new Error(`Unsupported email service provider: ${provider}. Supported providers: azure, azure-communication-services, gmail`);
+  }
 }

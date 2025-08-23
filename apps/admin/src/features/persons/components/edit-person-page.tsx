@@ -2,7 +2,7 @@
 
 import { z } from 'zod'
 import { useForm } from 'react-hook-form'
-import { useRef, useEffect } from 'react'
+import { useRef } from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useNavigate, useParams } from '@tanstack/react-router'
 import { useSuspenseQuery } from '@tanstack/react-query'
@@ -43,10 +43,10 @@ function EditPersonForm({ personId }: { personId: string }) {
   const navigate = useNavigate()
   const formRef = useRef<HTMLFormElement>(null)
   const updatePersonMutation = useUpdatePerson()
-  
+
   // Fetch the person data
   const { data: person } = useSuspenseQuery(getPersonQueryOptions(personId))
-  
+
   const form = useForm<PersonForm>({
     resolver: zodResolver(personInputSchema),
     defaultValues: {
@@ -256,8 +256,8 @@ function EditPersonForm({ personId }: { personId: string }) {
         </Form>
       </CardContent>
       <CardFooter className="flex justify-end gap-2">
-        <Button 
-          variant="outline" 
+        <Button
+          variant="outline"
           onClick={() => navigate({ to: '/persons' })}
         >
           Cancel
@@ -300,7 +300,7 @@ function EditPersonSkeleton() {
 export function EditPersonPage() {
   const navigate = useNavigate()
   const { personId } = useParams({ from: '/_authenticated/persons/$personId/edit' })
-  
+
   return (
     <>
       <Header fixed>
@@ -312,9 +312,9 @@ export function EditPersonPage() {
       </Header>
       <Main>
         <div className='mb-6'>
-          <Button 
-            variant="outline" 
-            className="mb-4" 
+          <Button
+            variant="outline"
+            className="mb-4"
             onClick={() => navigate({ to: '/persons' })}
           >
             <IconChevronLeft className="mr-2 h-4 w-4" /> Back to Person List

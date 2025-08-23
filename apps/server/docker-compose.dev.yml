@@ -1,0 +1,93 @@
+version: '3.8'
+
+services:
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=${NODE_ENV:-development}
+      - DATABASE_URL=${DATABASE_URL}
+    depends_on:
+      - db
+    networks:
+      - ${DOCKER_NETWORK:-satori-app-network}
+    volumes:
+      - .:/app
+      - /app/node_modules
+    command: ["bun", "run", "migrate:dev"]
+    restart: "no"
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - "${APP_HOST_PORT:-3000}:${APP_CONTAINER_PORT:-3000}"
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=${NODE_ENV:-development}
+      - DATABASE_URL=${DATABASE_URL}
+      - ORIGIN=${ORIGIN}
+      - BETTER_AUTH_URL=${BETTER_AUTH_URL}
+      - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}
+      - AUTH_HOST=${AUTH_HOST}
+      - AUTH_PORT=${AUTH_PORT}
+      - GMAIL_USER=${GMAIL_USER}
+      - GMAIL_PASS=${GMAIL_PASS}
+      - EMAIL_FROM=${EMAIL_FROM}
+      - EMAIL_SERVER=${EMAIL_SERVER}
+      - EMAIL_PORT=${EMAIL_PORT}
+      - EMAIL_USER=${EMAIL_USER}
+      - EMAIL_PASSWORD=${EMAIL_PASSWORD}
+      - TEST_USERS=${TEST_USERS}
+      - TEST_ORG=${TEST_ORG}
+      - EMAIL_SERVICE_PROVIDER=${EMAIL_SERVICE_PROVIDER}
+      - AZURE_COMMUNICATION_CONNECTION_STRING=${AZURE_COMMUNICATION_CONNECTION_STRING}
+      - AZURE_COMMUNICATION_FROM_EMAIL=${AZURE_COMMUNICATION_FROM_EMAIL}
+    depends_on:
+      - db
+    networks:
+      - satori-app-network
+    volumes:
+      - .:/app
+      - /app/node_modules
+    command: ["bun", "run", "dev"]
+
+  db:
+    image: postgres:17-alpine
+    restart: always
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=${DB_USER:-postgres}
+      - POSTGRES_PASSWORD=${DB_PASS:-postgres}
+      - POSTGRES_DB=${DB_NAME:-postgres}
+    ports:
+      - "${DB_HOST_PORT:-5432}:${DB_CONTAINER_PORT:-5432}"
+    networks:
+      - ${DOCKER_NETWORK:-satori-app-network}
+
+  pgadmin:
+    image: dpage/pgadmin4
+    restart: always
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "${PGADMIN_HOST_PORT:-5050}:${PGADMIN_CONTAINER_PORT:-80}"
+    depends_on:
+      - db
+    networks:
+      - ${DOCKER_NETWORK:-satori-app-network}
+
+networks:
+  satori-app-network:
+    name: ${DOCKER_NETWORK:-satori-app-network}
+
+volumes:
+  postgres_data:

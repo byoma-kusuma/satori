@@ -1,5 +1,5 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { useEvents } from '../context/events-context'
+import { useEvents } from '../hooks/use-events'
 import { getEventParticipantsQueryOptions } from '@/api/events'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'

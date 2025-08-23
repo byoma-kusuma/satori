@@ -1,0 +1,48 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          script_stop: true
+          script: |
+            set -e
+            if [ ! -d /apps ]; then
+              sudo mkdir -p /apps
+              sudo chown -R $USER:$USER /apps
+            fi
+            cd /apps
+
+            if [ ! -d .git ]; then
+              git clone https://github.com/byoma-kusuma/satori
+            fi
+
+            git fetch --all
+            git checkout main
+            git pull --ff-only
+
+            # Ensure compose and env exist (env created manually on server)
+            test -f docker-compose.yml || (echo "Missing docker-compose.yml in /apps"; exit 1)
+            test -f .env || (echo "Missing .env in /apps"; exit 1)
+
+            # Build & run
+            docker compose build --pull
+            docker compose up -d --remove-orphans
+
+            # Cleanup old images
+            docker image prune -f

@@ -9,7 +9,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { Group } from '../data/schema'
-import { useGroups } from '../context/groups-context'
+import { useGroups } from '../hooks/use-groups'
 import { useDeleteGroup } from '../data/api'
 import { useState } from 'react'
 
@@ -31,8 +31,8 @@ export function GroupsDeleteDialog({ group, open, onOpenChange }: Props) {
       setOpen(null)
       setCurrentRow(null)
       onOpenChange(false)
-    } catch (error) {
-      console.error('Error deleting group:', error)
+    } catch {
+      // Error is handled by the mutation hook
     } finally {
       setIsDeleting(false)
     }

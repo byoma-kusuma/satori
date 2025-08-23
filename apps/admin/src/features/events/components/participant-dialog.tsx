@@ -1,5 +1,5 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { useEvents } from '../context/events-context'
+import { useEvents } from '../hooks/use-events'
 import { useEffect, useState } from 'react'
 import { useAddParticipant, getEventParticipantsQueryOptions } from '@/api/events'
 import { useSuspenseQuery } from '@tanstack/react-query'
@@ -7,7 +7,7 @@ import { z } from 'zod'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useToast } from '@/hooks/use-toast'
-import { participantInputSchema } from '../data/schema'
+import { participantInputSchema, RefugePersonData, BodhipushpanjaliPersonData } from '../data/schema'
 import { Button } from '@/components/ui/button'
 import { getPersonsQueryOptions } from '@/api/persons'
 import {
@@ -33,8 +33,7 @@ export function AddParticipantDialog() {
   // Get persons list for the dropdown
   const { data: persons } = useSuspenseQuery({
     ...getPersonsQueryOptions(),
-    onError: (error) => {
-      console.error("Failed to fetch persons:", error)
+    onError: () => {
       toast({
         title: "Error",
         description: "Failed to load persons list. Please try again.",
@@ -50,8 +49,7 @@ export function AddParticipantDialog() {
     enabled: !!currentRow?.id && open === 'addParticipant',
     // Return empty array if query fails
     placeholderData: [],
-    onError: (error) => {
-      console.error("Failed to fetch participants:", error)
+    onError: () => {
       // Don't show an error toast for this as it's less critical
     }
   })
@@ -101,11 +99,6 @@ export function AddParticipantDialog() {
         lastName: selectedPerson.lastName,
       }
       
-      console.log('Submitting participant data:', {
-        eventId: currentRow.id,
-        personId,
-        additionalData: enhancedAdditionalData
-      })
       
       await addParticipantMutation.mutateAsync({
         eventId: currentRow.id,
@@ -121,7 +114,6 @@ export function AddParticipantDialog() {
       form.reset()
       setOpen(null)
     } catch (error) {
-      console.error('Failed to add participant:', error)
       toast({
         title: 'Error',
         description: error instanceof Error 
@@ -139,7 +131,7 @@ export function AddParticipantDialog() {
       return true
     }
     // Filter out persons who are already participants in this event
-    return !participants.some((p: any) => p && p.personId && p.personId === person.id)
+    return !participants.some((p: RefugePersonData | BodhipushpanjaliPersonData) => p && p.personId && p.personId === person.id)
   }) || []
   
   // Handle the creation of a new person
@@ -190,7 +182,7 @@ export function AddParticipantDialog() {
                         placeholder="Select or create a person..."
                         formatCreateLabel={(inputValue) => `Create "${inputValue}"`}
                         classNames={{
-                          control: (state) => "px-1 py-1 border rounded-md bg-background h-10",
+                          control: () => "px-1 py-1 border rounded-md bg-background h-10",
                           menu: () => "bg-background border rounded-md mt-1",
                           option: (state) => 
                             state.isFocused 

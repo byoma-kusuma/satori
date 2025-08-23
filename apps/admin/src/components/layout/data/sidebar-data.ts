@@ -1,40 +1,27 @@
 import {
-  IconBarrierBlock,
-  IconBrowserCheck,
-  IconBug,
   IconCalendar,
-  IconChecklist,
-  IconError404,
   IconHelp,
-  IconLayoutDashboard,
-  IconLock,
-  IconLockAccess,
-  IconMessages,
-  IconNotification,
-  IconPackages,
   IconPalette,
-  IconServerOff,
   IconSettings,
-  IconTool,
-  IconUserCog,
-  IconUserOff,
   IconUsers,
   IconUsersGroup,
 } from '@tabler/icons-react'
-import { AudioWaveform, Command, GalleryVerticalEnd } from 'lucide-react'
+import { AudioWaveform, GalleryVerticalEnd } from 'lucide-react'
 import { type SidebarData } from '../types'
+import { type User } from '@/hooks/use-auth'
+import { ByomaKusumaIcon } from '@/components/byoma-kusuma-icon'
 
-export const sidebarData: SidebarData = {
+const baseSidebarData = {
   user: {
-    name: 'Byoma Kusuma',
-    email: 'satnaingdev@gmail.com',
+    name: 'ByomaKusuma',
+    email: 'placeholder@byomakusuma.com',
     avatar: '/avatars/byoma-kusuma.jpg',
   },
   teams: [
     {
-      name: 'Byoma Kusuma',
-      logo: Command,
-      plan: 'Vite + Byoma Kusuma UI',
+      name: 'ByomaKusuma',
+      logo: ByomaKusumaIcon,
+      plan: 'ByomaKusuma UI',
     },
     {
       name: 'Acme Inc',
@@ -52,32 +39,6 @@ export const sidebarData: SidebarData = {
       title: 'General',
       items: [
         {
-          title: 'Dashboard',
-          url: '/',
-          icon: IconLayoutDashboard,
-        },
-        {
-          title: 'Tasks',
-          url: '/tasks',
-          icon: IconChecklist,
-        },
-        {
-          title: 'Apps',
-          url: '/apps',
-          icon: IconPackages,
-        },
-        {
-          title: 'Chats',
-          url: '/chats',
-          badge: '3',
-          icon: IconMessages,
-        },
-        {
-          title: 'Users',
-          url: '/users',
-          icon: IconUsers,
-        },
-        {
           title: 'Persons',
           url: '/persons',
           icon: IconUsers,
@@ -92,67 +53,10 @@ export const sidebarData: SidebarData = {
           url: '/events',
           icon: IconCalendar,
         },
-      ],
-    },
-    {
-      title: 'Pages',
-      items: [
         {
-          title: 'Auth',
-          icon: IconLockAccess,
-          items: [
-            {
-              title: 'Sign In',
-              url: '/sign-in',
-            },
-            {
-              title: 'Sign In (2 Col)',
-              url: '/sign-in-2',
-            },
-            {
-              title: 'Sign Up',
-              url: '/sign-up',
-            },
-            {
-              title: 'Forgot Password',
-              url: '/forgot-password',
-            },
-            {
-              title: 'OTP',
-              url: '/otp',
-            },
-          ],
-        },
-        {
-          title: 'Errors',
-          icon: IconBug,
-          items: [
-            {
-              title: 'Unauthorized',
-              url: '/401',
-              icon: IconLock,
-            },
-            {
-              title: 'Forbidden',
-              url: '/403',
-              icon: IconUserOff,
-            },
-            {
-              title: 'Not Found',
-              url: '/404',
-              icon: IconError404,
-            },
-            {
-              title: 'Internal Server Error',
-              url: '/500',
-              icon: IconServerOff,
-            },
-            {
-              title: 'Maintenance Error',
-              url: '/503',
-              icon: IconBarrierBlock,
-            },
-          ],
+          title: 'Users',
+          url: '/users',
+          icon: IconUsers,
         },
       ],
     },
@@ -164,29 +68,9 @@ export const sidebarData: SidebarData = {
           icon: IconSettings,
           items: [
             {
-              title: 'Profile',
-              url: '/settings',
-              icon: IconUserCog,
-            },
-            {
-              title: 'Account',
-              url: '/settings/account',
-              icon: IconTool,
-            },
-            {
               title: 'Appearance',
               url: '/settings/appearance',
               icon: IconPalette,
-            },
-            {
-              title: 'Notifications',
-              url: '/settings/notifications',
-              icon: IconNotification,
-            },
-            {
-              title: 'Display',
-              url: '/settings/display',
-              icon: IconBrowserCheck,
             },
           ],
         },
@@ -199,3 +83,14 @@ export const sidebarData: SidebarData = {
     },
   ],
 }
+
+export const getSidebarData = (user: User | null): SidebarData => ({
+  ...baseSidebarData,
+  user: user ? {
+    name: user.name,
+    email: user.email,
+    avatar: baseSidebarData.user.avatar
+  } : baseSidebarData.user
+} as SidebarData)
+
+export const sidebarData: SidebarData = baseSidebarData as SidebarData

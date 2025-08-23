@@ -1,0 +1,12 @@
+{
+  "build": {
+    "command": "NODE_OPTIONS=--max-old-space-size=8192 pnpm build",
+    "output_directory": "dist",
+    "root_directory": ""
+  },
+  "environment": {
+    "production": {
+      "VITE_API_URL": "https://portal.byomakusuma.com"
+    }
+  }
+}

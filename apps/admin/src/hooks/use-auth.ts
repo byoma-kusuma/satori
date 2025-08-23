@@ -17,17 +17,18 @@ export const useAuth = () => {
     // Get the current user from the auth client
     const fetchUser = async () => {
       try {
-        const userData = await authClient.getUser()
-        if (userData) {
+        const { data } = await authClient.getSession()
+        
+        if (data?.user) {
           setUser({
-            id: userData.id,
-            name: userData.name || '',
-            email: userData.email,
+            id: data.user.id,
+            name: data.user.name || '',
+            email: data.user.email,
             role: 'admin' // You can implement role-based auth later
           })
         }
-      } catch (error) {
-        console.error('Failed to fetch user:', error)
+      } catch {
+        // Session fetch failed, user is not authenticated
       } finally {
         setIsLoading(false)
       }
@@ -40,8 +41,8 @@ export const useAuth = () => {
     try {
       await authClient.logout()
       setUser(null)
-    } catch (error) {
-      console.error('Logout failed:', error)
+    } catch {
+      // Logout error is not critical
     }
   }
 

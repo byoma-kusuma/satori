@@ -3,96 +3,92 @@ import { authClient } from '@/auth-client'
 import { EventInput } from '../features/events/data/schema'
 
 // API base URL - ensure it matches the server route
-const API_BASE_URL = 'http://localhost:3000/api/event'
+import { API_BASE_URL } from './base-url'
+const EVENT_API_URL = `${API_BASE_URL}/api/event`
 
 // Common fetch function with credentials and error handling
 const fetchWithCredentials = async (url: string, options?: RequestInit) => {
-  try {
-    // Get the auth token if available
-    const session = await authClient.getSession()
-    const authHeader = session ? { Authorization: `Bearer ${session.token}` } : {}
-    
-    console.log(`API Request to ${url}`, 
-      options?.method || 'GET', 
-      options?.body ? JSON.parse(options.body as string) : null
-    )
-    
-    const response = await fetch(url, {
-      ...options,
-      credentials: 'include',
-      headers: {
-        ...options?.headers,
-        ...authHeader,
-        'Content-Type': 'application/json',
-      },
-    })
-    
-    if (!response.ok) {
-      // Handle common error cases
-      if (response.status === 401) {
-        await authClient.logout() // Force logout on auth failure
-        window.location.href = '/sign-in' // Redirect to login
-        throw new Error('Authentication failed. Please log in again.')
-      }
-      
-      let errorMessage = `API error: ${response.status} ${response.statusText}`
-      
-      // Try to get detailed error from response
-      let errorData
-      try {
-        const contentType = response.headers.get('content-type')
-        if (contentType && contentType.includes('application/json')) {
-          errorData = await response.json()
-          
-          if (errorData) {
-            if (errorData.message) {
-              errorMessage = errorData.message
-            } else if (errorData.error) {
-              errorMessage = errorData.error
-            } else if (errorData.errors && Array.isArray(errorData.errors)) {
-              // Handle Zod validation errors
-              errorMessage = `Validation error: ${errorData.errors.map((e: any) => e.message).join(', ')}`
-            }
-          }
-        } else {
-          // If not JSON, try to get text content
-          const textContent = await response.text()
-          if (textContent) {
-            errorMessage = `Server error: ${textContent.substring(0, 200)}`
-          }
-        }
-      } catch (e) {
-        console.error('Failed to parse error response:', e)
-      }
-      
-      // Log errors for debugging
-      console.error(`API Error (${response.status})`, errorData || errorMessage)
-      
-      throw new Error(errorMessage)
+  // Get the auth token if available
+  const session = await authClient.getSession()
+  
+  
+  // Create headers object properly
+  const headers = new Headers(options?.headers);
+  
+  // Add auth header if available
+  if (session) {
+    headers.set('Authorization', `Bearer ${session.token}`);
+  }
+  
+  // Ensure content type is set
+  headers.set('Content-Type', 'application/json');
+  
+  const response = await fetch(url, {
+    ...options,
+    credentials: 'include',
+    headers,
+  })
+  
+  if (!response.ok) {
+    // Handle common error cases
+    if (response.status === 401) {
+      await authClient.logout() // Force logout on auth failure
+      window.location.href = '/sign-in' // Redirect to login
+      throw new Error('Authentication failed. Please log in again.')
     }
     
-    return response.json()
-  } catch (error) {
-    console.error('API request failed:', url, error)
-    throw error
+    let errorMessage = `API error: ${response.status} ${response.statusText}`
+    
+    // Try to get detailed error from response
+    let errorData
+    try {
+      const contentType = response.headers.get('content-type')
+      if (contentType && contentType.includes('application/json')) {
+        errorData = await response.json()
+        
+        if (errorData) {
+          if (errorData.message) {
+            errorMessage = errorData.message
+          } else if (errorData.error) {
+            errorMessage = errorData.error
+          } else if (errorData.errors && Array.isArray(errorData.errors)) {
+            // Handle Zod validation errors
+            errorMessage = `Validation error: ${errorData.errors.map((e: { message: string }) => e.message).join(', ')}`
+          }
+        }
+      } else {
+        // If not JSON, try to get text content
+        const textContent = await response.text()
+        if (textContent) {
+          errorMessage = `Server error: ${textContent.substring(0, 200)}`
+        }
+      }
+    } catch {
+      // Ignore JSON parsing errors
+    }
+    
+    
+    throw new Error(errorMessage)
   }
+  
+  return response.json()
 }
 
 // API functions
 export const getEvents = async () => {
-  return fetchWithCredentials(`${API_BASE_URL}`)
+  return fetchWithCredentials(`${EVENT_API_URL}`)
 }
 
 export const getEventsByType = async (type: string) => {
-  return fetchWithCredentials(`${API_BASE_URL}?type=${type}`)
+  return fetchWithCredentials(`${EVENT_API_URL}?type=${type}`)
 }
 
 export const getEvent = async (id: string) => {
-  return fetchWithCredentials(`${API_BASE_URL}/${id}`)
+  return fetchWithCredentials(`${EVENT_API_URL}/${id}`)
 }
 
 export const createEvent = async (eventData: EventInput) => {
-  return fetchWithCredentials(`${API_BASE_URL}`, {
+  return fetchWithCredentials(`${EVENT_API_URL}`, {
     method: 'POST',
     body: JSON.stringify(eventData),
   })
@@ -108,20 +104,20 @@ export const updateEvent = async (id: string, updateData: Partial<EventInput>) =
   const sanitizedData = { ...updateData }
   
   // Ensure dates are proper strings if present
-  if (sanitizedData.start_date) {
+  if (sanitizedData.startDate) {
     try {
       // Ensure it's a valid date string
-      sanitizedData.start_date = new Date(sanitizedData.start_date).toISOString()
-    } catch (e) {
+      sanitizedData.startDate = new Date(sanitizedData.startDate).toISOString()
+    } catch {
       throw new Error('Invalid start date format')
     }
   }
   
-  if (sanitizedData.end_date) {
+  if (sanitizedData.endDate) {
     try {
       // Ensure it's a valid date string
-      sanitizedData.end_date = new Date(sanitizedData.end_date).toISOString()
-    } catch (e) {
+      sanitizedData.endDate = new Date(sanitizedData.endDate).toISOString()
+    } catch {
       throw new Error('Invalid end date format')
     }
   }
@@ -131,16 +127,15 @@ export const updateEvent = async (id: string, updateData: Partial<EventInput>) =
     sanitizedData.metadata = []
   }
   
-  console.log('Updating event with data:', JSON.stringify(sanitizedData, null, 2))
   
-  return fetchWithCredentials(`${API_BASE_URL}/${id}`, {
+  return fetchWithCredentials(`${EVENT_API_URL}/${id}`, {
     method: 'PUT',
     body: JSON.stringify(sanitizedData),
   })
 }
 
 export const deleteEvent = async (id: string) => {
-  return fetchWithCredentials(`${API_BASE_URL}/${id}`, {
+  return fetchWithCredentials(`${EVENT_API_URL}/${id}`, {
     method: 'DELETE',
   })
 }
@@ -151,26 +146,21 @@ export const getEventParticipants = async (eventId: string) => {
   if (!eventId) {
     return [] // Return empty array if no eventId provided
   }
-  return fetchWithCredentials(`${API_BASE_URL}/${eventId}/participants`)
+  return fetchWithCredentials(`${EVENT_API_URL}/${eventId}/participants`)
 }
 
 export const addParticipantToEvent = async (
   eventId: string,
   personId: string,
-  additionalData?: Record<string, any>
+  additionalData?: Record<string, unknown>
 ) => {
   // Validate parameters
   if (!eventId || !personId) {
     throw new Error('Event ID and person ID are required')
   }
   
-  console.log('Adding participant to event:', {
-    eventId,
-    personId,
-    additionalData
-  });
   
-  return fetchWithCredentials(`${API_BASE_URL}/${eventId}/participants`, {
+  return fetchWithCredentials(`${EVENT_API_URL}/${eventId}/participants`, {
     method: 'POST',
     body: JSON.stringify({ 
       personId, 
@@ -182,14 +172,14 @@ export const addParticipantToEvent = async (
 export const updateParticipantData = async (
   eventId: string,
   personId: string,
-  data: Record<string, any>
+  data: Record<string, unknown>
 ) => {
   // Validate parameters
   if (!eventId || !personId) {
     throw new Error('Event ID and person ID are required')
   }
   
-  return fetchWithCredentials(`${API_BASE_URL}/${eventId}/participants/${personId}`, {
+  return fetchWithCredentials(`${EVENT_API_URL}/${eventId}/participants/${personId}`, {
     method: 'PUT',
     body: JSON.stringify({ data }),
   })
@@ -201,7 +191,7 @@ export const removeParticipantFromEvent = async (eventId: string, personId: stri
     throw new Error('Event ID and person ID are required')
   }
   
-  return fetchWithCredentials(`${API_BASE_URL}/${eventId}/participants/${personId}`, {
+  return fetchWithCredentials(`${EVENT_API_URL}/${eventId}/participants/${personId}`, {
     method: 'DELETE',
   })
 }
@@ -288,18 +278,16 @@ export const useAddParticipant = () => {
     }: { 
       eventId: string; 
       personId: string; 
-      additionalData?: Record<string, any> 
+      additionalData?: Record<string, unknown> 
     }) => {
-      console.log('Calling addParticipantToEvent with:', { eventId, personId, additionalData });
       return addParticipantToEvent(eventId, personId, additionalData);
     },
     onSuccess: (_, { eventId }) => {
-      console.log('Successfully added participant, invalidating queries');
       queryClient.invalidateQueries({ queryKey: ['event', eventId] })
       queryClient.invalidateQueries({ queryKey: ['event', eventId, 'participants'] })
     },
-    onError: (error, variables) => {
-      console.error('Error adding participant:', error, variables);
+    onError: () => {
+      // Error is handled by the mutation hook consumer
     }
   })
 }
@@ -315,7 +303,7 @@ export const useUpdateParticipantData = () => {
     }: { 
       eventId: string; 
       personId: string; 
-      data: Record<string, any> 
+      data: Record<string, unknown> 
     }) => updateParticipantData(eventId, personId, data),
     onSuccess: (_, { eventId }) => {
       queryClient.invalidateQueries({ queryKey: ['event', eventId] })

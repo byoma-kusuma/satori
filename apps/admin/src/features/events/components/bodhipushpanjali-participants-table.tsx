@@ -12,8 +12,6 @@ import {
 } from '@/components/ui/table'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Checkbox } from '@/components/ui/checkbox'
 import { CheckIcon, Cross1Icon, Pencil1Icon, TrashIcon } from '@radix-ui/react-icons'
 
 interface BodhipushpanjaliParticipant {
@@ -121,8 +119,7 @@ export function BodhipushpanjaliParticipantsTable({ eventId, participants }: Bod
         title: 'Referral medium updated',
         description: 'The referral medium has been updated successfully.'
       })
-    } catch (error) {
-      console.error('Failed to update referral medium:', error)
+    } catch {
       toast({
         title: 'Error',
         description: 'Failed to update the referral medium. Please try again.',
@@ -152,8 +149,7 @@ export function BodhipushpanjaliParticipantsTable({ eventId, participants }: Bod
         title: 'Participant removed',
         description: 'Participant has been removed from the event.'
       })
-    } catch (error) {
-      console.error('Failed to remove participant:', error)
+    } catch {
       toast({
         title: 'Error',
         description: 'Failed to remove the participant. Please try again.',

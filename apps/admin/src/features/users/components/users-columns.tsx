@@ -4,6 +4,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { User } from '../data/schema'
 import { DataTableColumnHeader } from './data-table-column-header'
 import { DataTableRowActions } from './data-table-row-actions'
+import { RoleBadge } from '@/components/role-badge'
 import { format } from 'date-fns'
 
 export const columns: ColumnDef<User>[] = [
@@ -61,6 +62,13 @@ export const columns: ColumnDef<User>[] = [
       <DataTableColumnHeader column={column} title="Email Verified" />
     ),
     cell: ({ row }) => (row.original.emailVerified ? 'Yes' : 'No'),
+  },
+  {
+    accessorKey: 'role',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Role" />
+    ),
+    cell: ({ row }) => <RoleBadge role={row.original.role} />,
   },
   {
     accessorKey: 'createdAt',
