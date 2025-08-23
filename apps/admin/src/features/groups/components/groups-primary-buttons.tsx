@@ -1,6 +1,6 @@
 import { PlusCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { useGroups } from '../context/groups-context'
+import { useGroups } from '../hooks/use-groups'
 
 export function GroupsPrimaryButtons() {
   const { setOpen } = useGroups()

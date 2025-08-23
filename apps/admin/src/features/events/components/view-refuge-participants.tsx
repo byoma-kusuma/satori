@@ -10,8 +10,6 @@ import {
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { CheckIcon, Cross1Icon, Pencil1Icon } from '@radix-ui/react-icons';
-import { Badge } from '@/components/ui/badge';
-import { Checkbox } from '@/components/ui/checkbox';
 
 interface ViewRefugeParticipantProps {
   participants: Array<{ 
@@ -27,7 +25,7 @@ interface ViewRefugeParticipantProps {
     refugeName?: string;
   }>;
   onRemove: (id: string) => void;
-  onUpdate: (id: string, data: any) => void;
+  onUpdate: (id: string, data: { refugeName?: string }) => void;
 }
 
 export function ViewRefugeParticipants({

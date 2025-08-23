@@ -1,13 +1,12 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { 
   getGroupMembersQueryOptions, 
   useRemovePersonFromGroup 
 } from '../data/api'
-import { getPersonsQueryOptions } from '@/api/persons'
 import { getUserQueryOptions } from '@/api/users'
 import { Group } from '../data/schema'
-import { useGroups } from '../context/groups-context'
+import { useGroups } from '../hooks/use-groups'
 import {
   Dialog,
   DialogContent,
@@ -29,12 +28,8 @@ import {
 
 // Helper component to display user name instead of ID
 function UserName({ userId }: { userId: string }) {
-  try {
-    const { data: user } = useSuspenseQuery(getUserQueryOptions(userId))
-    return <>{user?.name || userId}</>
-  } catch (error) {
-    return <>{userId}</>
-  }
+  const { data: user } = useSuspenseQuery(getUserQueryOptions(userId))
+  return <>{user?.name || userId}</>
 }
 
 interface Props {
@@ -59,8 +54,8 @@ export function GroupMembersDialog({ group, open, onOpenChange }: Props) {
         groupId: group.id,
         personId,
       })
-    } catch (error) {
-      console.error('Error removing person from group:', error)
+    } catch {
+      // Error is handled by the mutation hook
     } finally {
       setIsRemoving(prev => ({ ...prev, [personId]: false }))
     }
@@ -99,7 +94,7 @@ export function GroupMembersDialog({ group, open, onOpenChange }: Props) {
             </TableHeader>
             <TableBody>
               {members && members.length > 0 ? (
-                members.map((member: any) => (
+                members.map((member) => (
                   <TableRow key={member.id}>
                     <TableCell className="font-medium">
                       {member.firstName} {member.lastName}

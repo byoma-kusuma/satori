@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { getPersonsQueryOptions } from '@/api/persons'
 import { Group } from '../data/schema'
-import { useGroups } from '../context/groups-context'
+import { useGroups } from '../hooks/use-groups'
 import { useAddPersonToGroup, getGroupMembersQueryOptions } from '../data/api'
 import {
   Dialog,
@@ -42,7 +42,7 @@ export function AddMemberDialog({ group, open, onOpenChange }: Props) {
 
   // Filter out persons who are already members of the group
   const eligiblePersons = persons?.filter(
-    (person: any) => !groupMembers?.some((member: any) => member.id === person.id)
+    (person) => !groupMembers?.some((member) => member.id === person.id)
   )
 
   async function handleAddMember() {
@@ -57,8 +57,8 @@ export function AddMemberDialog({ group, open, onOpenChange }: Props) {
       setSelectedPerson(null)
       setOpen(null)
       onOpenChange(false)
-    } catch (error) {
-      console.error('Error adding person to group:', error)
+    } catch {
+      // Error is handled by the mutation hook
     } finally {
       setIsSubmitting(false)
     }
@@ -81,7 +81,7 @@ export function AddMemberDialog({ group, open, onOpenChange }: Props) {
               <CommandEmpty>No person found.</CommandEmpty>
               <CommandGroup heading="Persons">
                 <ScrollArea className="h-72">
-                  {eligiblePersons?.map((person: any) => (
+                  {eligiblePersons?.map((person) => (
                     <CommandItem
                       key={person.id}
                       value={person.id}

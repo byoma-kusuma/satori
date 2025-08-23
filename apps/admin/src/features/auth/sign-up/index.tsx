@@ -1,4 +1,4 @@
-import ViteLogo from '@/assets/vite.svg'
+import Logo from '@/assets/byoma-kusuma-logo.gif'
 import { SignUpForm } from './components/sign-up-form'
 import { Link } from '@tanstack/react-router'
 
@@ -24,7 +24,7 @@ export default function SignUp() {
         </div>
 
         <img
-          src={ViteLogo}
+          src={Logo}
           className='relative m-auto'
           width={301}
           height={60}

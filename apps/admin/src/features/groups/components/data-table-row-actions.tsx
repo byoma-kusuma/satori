@@ -10,7 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { useGroups } from '../context/groups-context'
+import { useGroups } from '../hooks/use-groups'
 import { Group } from '../data/schema'
 
 interface DataTableRowActionsProps<TData> {

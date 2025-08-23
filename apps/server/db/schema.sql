@@ -58,13 +58,26 @@ CREATE TYPE public.gender_type AS ENUM (
 
 
 --
+-- Name: person_title; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.person_title AS ENUM (
+    'dharma_dhar',
+    'sahayak_dharmacharya',
+    'sahayak_samathacharya'
+);
+
+
+--
 -- Name: person_type; Type: TYPE; Schema: public; Owner: -
 --
 
 CREATE TYPE public.person_type AS ENUM (
     'interested',
     'contact',
-    'sangha_member'
+    'sangha_member',
+    'new_inquiry',
+    'attended_orientation'
 );
 
 
@@ -162,8 +175,73 @@ CREATE TABLE public.person (
     "createdBy" text NOT NULL,
     "lastUpdatedBy" text NOT NULL,
     type public.person_type DEFAULT 'interested'::public.person_type NOT NULL,
-    CONSTRAINT "person_yearOfBirth_check" CHECK (("yearOfBirth" > 1900))
+    country character varying(100),
+    nationality character varying(100),
+    "languagePreference" character varying(50),
+    "refugeName" character varying(100),
+    "yearOfRefuge" integer,
+    title public.person_title,
+    "membershipStatus" character varying(50),
+    "hasMembershipCard" boolean,
+    CONSTRAINT "person_yearOfBirth_check" CHECK (("yearOfBirth" > 1900)),
+    CONSTRAINT person_yearofrefuge_check CHECK ((("yearOfRefuge" IS NULL) OR ("yearOfRefuge" > 1900)))
 );
+
+
+--
+-- Name: COLUMN person.country; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.person.country IS 'Country of residence';
+
+
+--
+-- Name: COLUMN person.nationality; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.person.nationality IS 'Nationality of the person';
+
+
+--
+-- Name: COLUMN person."languagePreference"; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.person."languagePreference" IS 'Preferred language for communication';
+
+
+--
+-- Name: COLUMN person."refugeName"; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.person."refugeName" IS 'Dharma name given during refuge ceremony (for Sangha members)';
+
+
+--
+-- Name: COLUMN person."yearOfRefuge"; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.person."yearOfRefuge" IS 'Year when refuge was taken (for Sangha members)';
+
+
+--
+-- Name: COLUMN person.title; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.person.title IS 'Dharma title for Sangha members';
+
+
+--
+-- Name: COLUMN person."membershipStatus"; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.person."membershipStatus" IS 'Current membership status (for Sangha members)';
+
+
+--
+-- Name: COLUMN person."hasMembershipCard"; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.person."hasMembershipCard" IS 'Whether the person has a membership card (for Sangha members)';
 
 
 --
@@ -379,6 +457,13 @@ CREATE INDEX idx_person_center ON public.person USING btree (center);
 
 
 --
+-- Name: idx_person_country; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_person_country ON public.person USING btree (country) WHERE (country IS NOT NULL);
+
+
+--
 -- Name: idx_person_created_by; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -414,10 +499,31 @@ CREATE INDEX idx_person_group_person_id ON public.person_group USING btree ("per
 
 
 --
+-- Name: idx_person_language_pref; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_person_language_pref ON public.person USING btree ("languagePreference") WHERE ("languagePreference" IS NOT NULL);
+
+
+--
+-- Name: idx_person_membership_card; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_person_membership_card ON public.person USING btree ("hasMembershipCard") WHERE ("hasMembershipCard" IS NOT NULL);
+
+
+--
 -- Name: idx_person_names; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX idx_person_names ON public.person USING btree ("firstName", "lastName");
+
+
+--
+-- Name: idx_person_nationality; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_person_nationality ON public.person USING btree (nationality) WHERE (nationality IS NOT NULL);
 
 
 --
@@ -432,6 +538,13 @@ CREATE INDEX idx_person_phone ON public.person USING btree ("phoneNumber") WHERE
 --
 
 CREATE INDEX idx_person_refugee ON public.person USING btree (refugee);
+
+
+--
+-- Name: idx_person_title; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_person_title ON public.person USING btree (title) WHERE (title IS NOT NULL);
 
 
 --
@@ -514,4 +627,5 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20250218032240'),
     ('20250303000000'),
     ('20250311000000'),
-    ('20250317213500');
+    ('20250317213500'),
+    ('20250708084043');

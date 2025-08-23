@@ -4,7 +4,6 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Person, personTypeLabels } from '../data/schema'
 import { DataTableColumnHeader } from './data-table-column-header'
 import { DataTableRowActions } from './data-table-row-actions'
-import { format } from 'date-fns'
 import { Badge } from '@/components/ui/badge'
 
 export const columns: ColumnDef<Person>[] = [
@@ -62,13 +61,15 @@ export const columns: ColumnDef<Person>[] = [
       <DataTableColumnHeader column={column} title="Type" />
     ),
     cell: ({ row }) => {
-      const type = row.getValue<'interested' | 'contact' | 'sangha_member'>('type')
+      const type = row.getValue<'interested' | 'contact' | 'sangha_member' | 'attended_orientation'>('type')
       
       const badgeVariant = type === 'sangha_member' 
         ? 'default' 
         : type === 'contact' 
           ? 'secondary' 
-          : 'outline'
+          : type === 'attended_orientation'
+            ? 'destructive'
+            : 'outline'
           
       return (
         <Badge variant={badgeVariant}>
@@ -102,26 +103,6 @@ export const columns: ColumnDef<Person>[] = [
       return value.includes(row.getValue(id))
     },
     enableColumnFilter: true,
-  },
-  {
-    accessorKey: 'createdAt',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Created" />
-    ),
-    cell: ({ row }) => {
-      const date = row.getValue<Date>('createdAt')
-      return date ? format(new Date(date), 'dd-MM-yyyy') : 'N/A'
-    },
-  },
-  {
-    accessorKey: 'updatedAt',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Updated" />
-    ),
-    cell: ({ row }) => {
-      const date = row.getValue<Date>('updatedAt')
-      return date ? format(new Date(date), 'dd-MM-yyyy') : 'N/A'
-    },
   },
   {
     id: 'actions',

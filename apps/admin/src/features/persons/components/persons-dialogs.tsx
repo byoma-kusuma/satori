@@ -1,4 +1,4 @@
-import { usePersons } from '../context/persons-context'
+import { usePersons } from '../hooks/use-persons'
 import { PersonsDeleteDialog } from './persons-delete-dialog'
 import { PersonGroupsDialog } from './person-groups-dialog'
 

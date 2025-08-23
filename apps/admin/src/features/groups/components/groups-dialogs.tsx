@@ -1,4 +1,4 @@
-import { useGroups } from '../context/groups-context'
+import { useGroups } from '../hooks/use-groups'
 import { GroupsActionDialog } from './groups-action-dialog'
 import { GroupsDeleteDialog } from './groups-delete-dialog'
 import { GroupMembersDialog } from './group-members-dialog'

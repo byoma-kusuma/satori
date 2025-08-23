@@ -76,6 +76,9 @@ const AuthenticatedSettingsAccountLazyImport = createFileRoute(
 const AuthenticatedPersonsCreateLazyImport = createFileRoute(
   '/_authenticated/persons/create',
 )()
+const AuthenticatedUsersUserIdEditLazyImport = createFileRoute(
+  '/_authenticated/users/$userId/edit',
+)()
 const AuthenticatedPersonsPersonIdEditLazyImport = createFileRoute(
   '/_authenticated/persons/$personId/edit',
 )()
@@ -326,6 +329,17 @@ const AuthenticatedPersonsCreateLazyRoute =
     import('./routes/_authenticated/persons/create.lazy').then((d) => d.Route),
   )
 
+const AuthenticatedUsersUserIdEditLazyRoute =
+  AuthenticatedUsersUserIdEditLazyImport.update({
+    id: '/users/$userId/edit',
+    path: '/users/$userId/edit',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any).lazy(() =>
+    import('./routes/_authenticated/users/$userId/edit.lazy').then(
+      (d) => d.Route,
+    ),
+  )
+
 const AuthenticatedPersonsPersonIdEditLazyRoute =
   AuthenticatedPersonsPersonIdEditLazyImport.update({
     id: '/persons/$personId/edit',
@@ -562,6 +576,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPersonsPersonIdEditLazyImport
       parentRoute: typeof AuthenticatedRouteImport
     }
+    '/_authenticated/users/$userId/edit': {
+      id: '/_authenticated/users/$userId/edit'
+      path: '/users/$userId/edit'
+      fullPath: '/users/$userId/edit'
+      preLoaderRoute: typeof AuthenticatedUsersUserIdEditLazyImport
+      parentRoute: typeof AuthenticatedRouteImport
+    }
   }
 }
 
@@ -607,6 +628,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedUsersIndexLazyRoute: typeof AuthenticatedUsersIndexLazyRoute
   AuthenticatedEventsEventIdViewLazyRoute: typeof AuthenticatedEventsEventIdViewLazyRoute
   AuthenticatedPersonsPersonIdEditLazyRoute: typeof AuthenticatedPersonsPersonIdEditLazyRoute
+  AuthenticatedUsersUserIdEditLazyRoute: typeof AuthenticatedUsersUserIdEditLazyRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -626,6 +648,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
     AuthenticatedEventsEventIdViewLazyRoute,
   AuthenticatedPersonsPersonIdEditLazyRoute:
     AuthenticatedPersonsPersonIdEditLazyRoute,
+  AuthenticatedUsersUserIdEditLazyRoute: AuthenticatedUsersUserIdEditLazyRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
@@ -661,6 +684,7 @@ export interface FileRoutesByFullPath {
   '/users': typeof AuthenticatedUsersIndexLazyRoute
   '/events/$eventId/view': typeof AuthenticatedEventsEventIdViewLazyRoute
   '/persons/$personId/edit': typeof AuthenticatedPersonsPersonIdEditLazyRoute
+  '/users/$userId/edit': typeof AuthenticatedUsersUserIdEditLazyRoute
 }
 
 export interface FileRoutesByTo {
@@ -691,6 +715,7 @@ export interface FileRoutesByTo {
   '/users': typeof AuthenticatedUsersIndexLazyRoute
   '/events/$eventId/view': typeof AuthenticatedEventsEventIdViewLazyRoute
   '/persons/$personId/edit': typeof AuthenticatedPersonsPersonIdEditLazyRoute
+  '/users/$userId/edit': typeof AuthenticatedUsersUserIdEditLazyRoute
 }
 
 export interface FileRoutesById {
@@ -725,6 +750,7 @@ export interface FileRoutesById {
   '/_authenticated/users/': typeof AuthenticatedUsersIndexLazyRoute
   '/_authenticated/events/$eventId/view': typeof AuthenticatedEventsEventIdViewLazyRoute
   '/_authenticated/persons/$personId/edit': typeof AuthenticatedPersonsPersonIdEditLazyRoute
+  '/_authenticated/users/$userId/edit': typeof AuthenticatedUsersUserIdEditLazyRoute
 }
 
 export interface FileRouteTypes {
@@ -759,6 +785,7 @@ export interface FileRouteTypes {
     | '/users'
     | '/events/$eventId/view'
     | '/persons/$personId/edit'
+    | '/users/$userId/edit'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/500'
@@ -788,6 +815,7 @@ export interface FileRouteTypes {
     | '/users'
     | '/events/$eventId/view'
     | '/persons/$personId/edit'
+    | '/users/$userId/edit'
   id:
     | '__root__'
     | '/_authenticated'
@@ -820,6 +848,7 @@ export interface FileRouteTypes {
     | '/_authenticated/users/'
     | '/_authenticated/events/$eventId/view'
     | '/_authenticated/persons/$personId/edit'
+    | '/_authenticated/users/$userId/edit'
   fileRoutesById: FileRoutesById
 }
 
@@ -892,7 +921,8 @@ export const routeTree = rootRoute
         "/_authenticated/tasks/",
         "/_authenticated/users/",
         "/_authenticated/events/$eventId/view",
-        "/_authenticated/persons/$personId/edit"
+        "/_authenticated/persons/$personId/edit",
+        "/_authenticated/users/$userId/edit"
       ]
     },
     "/(auth)/500": {
@@ -1005,6 +1035,10 @@ export const routeTree = rootRoute
     },
     "/_authenticated/persons/$personId/edit": {
       "filePath": "_authenticated/persons/$personId/edit.lazy.tsx",
+      "parent": "/_authenticated"
+    },
+    "/_authenticated/users/$userId/edit": {
+      "filePath": "_authenticated/users/$userId/edit.lazy.tsx",
       "parent": "/_authenticated"
     }
   }

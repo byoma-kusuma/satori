@@ -1,9 +1,10 @@
 import { 
   IconUser, 
   IconUserCheck, 
-  IconUserQuestion 
+  IconUserQuestion,
+  IconUserPlus 
 } from '@tabler/icons-react'
-import { PersonType, personTypeLabels } from './schema'
+import { personTypeLabels } from './schema'
 
 // Define the person types with icons for the faceted filter
 export const personTypes = [
@@ -21,5 +22,10 @@ export const personTypes = [
     label: personTypeLabels.sangha_member,
     value: 'sangha_member',
     icon: IconUserCheck,
+  },
+  {
+    label: personTypeLabels.attended_orientation,
+    value: 'attended_orientation',
+    icon: IconUserPlus,
   },
 ]

@@ -27,7 +27,11 @@ export type JsonPrimitive = boolean | number | string | null;
 
 export type JsonValue = JsonArray | JsonObject | JsonPrimitive;
 
-export type PersonType = "contact" | "interested" | "sangha_member";
+export type MembershipType = "Board Member" | "General Member" | "Honorary Member" | "Life Time";
+
+export type PersonTitle = "dharma_dhar" | "sahayak_dharmacharya" | "sahayak_samathacharya";
+
+export type PersonType = "attended_orientation" | "contact" | "interested" | "sangha_member";
 
 export type Timestamp = ColumnType<Date, Date | string, Date | string>;
 
@@ -74,20 +78,71 @@ export interface Group {
 export interface Person {
   address: string;
   center: CenterLocation;
+  /**
+   * Country of residence
+   */
+  country: string | null;
   createdAt: Generated<Timestamp | null>;
   createdBy: string;
   emailId: string | null;
   firstName: string;
   gender: GenderType | null;
+  /**
+   * Whether the person has a membership card (for Sangha members)
+   */
+  hasMembershipCard: boolean | null;
   id: Generated<string>;
+  /**
+   * Preferred language for communication
+   */
+  languagePreference: string | null;
   lastName: string;
   lastUpdatedBy: string;
+  /**
+   * Type of membership for Sangha members
+   */
+  membershipType: MembershipType | null;
+  /**
+   * Middle name of the person
+   */
+  middleName: string | null;
+  /**
+   * Nationality of the person
+   */
+  nationality: string | null;
+  /**
+   * Additional notes or comments about the person
+   */
+  notes: string | null;
+  /**
+   * Occupation of the person
+   */
+  occupation: string | null;
   phoneNumber: string | null;
   photo: string | null;
-  refugee: boolean;
+  /**
+   * Primary phone number of the person
+   */
+  primaryPhone: string | null;
+  /**
+   * Dharma name given during refuge ceremony (for Sangha members)
+   */
+  refugeName: string | null;
+  /**
+   * Secondary phone number of the person
+   */
+  secondaryPhone: string | null;
+  /**
+   * Dharma title for Sangha members
+   */
+  title: PersonTitle | null;
   type: Generated<PersonType>;
   updatedAt: Generated<Timestamp | null>;
   yearOfBirth: number | null;
+  /**
+   * Year when refuge was taken (for Sangha members)
+   */
+  yearOfRefuge: number | null;
 }
 
 export interface PersonGroup {

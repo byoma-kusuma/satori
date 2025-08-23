@@ -1,5 +1,5 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { useEvents } from '../context/events-context'
+import { useEvents } from '../hooks/use-events'
 import { useEffect } from 'react'
 import { useUpdateParticipantData } from '@/api/events'
 import { z } from 'zod'
@@ -82,8 +82,7 @@ export function EditParticipantDialog() {
       })
       
       setOpen(null)
-    } catch (error) {
-      console.error('Failed to update participant:', error)
+    } catch {
       toast({
         title: 'Error',
         description: 'Failed to update the participant. Please try again.',

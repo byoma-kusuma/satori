@@ -4,7 +4,6 @@ import { authClient } from '@/auth-client'
 import { queryClient } from '@/main'
 
 export function handleServerError(error: unknown) {
-  console.error('API Error:', error)
 
   let errMsg = 'Something went wrong!'
   let errorCode = 0
@@ -23,8 +22,8 @@ export function handleServerError(error: unknown) {
     typeof error === 'object' && 
     'status' in error
   ) {
-    errorCode = Number((error as any).status) || 0
-    errMsg = (error as any).statusText || error.message
+    errorCode = Number((error as Error & { status?: number }).status) || 0
+    errMsg = (error as Error & { statusText?: string }).statusText || error.message
   }
   // Handle generic Error objects
   else if (error instanceof Error) {

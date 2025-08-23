@@ -2,7 +2,8 @@ import { queryOptions } from '@tanstack/react-query'
 import { GroupInput } from '../features/groups/data/schema'
 
 // API base URL
-const API_BASE_URL = 'http://localhost:3000/api/group'
+import { API_BASE_URL } from './base-url'
+const GROUP_API_URL = `${API_BASE_URL}/api/group`
 
 // Common fetch function with credentials
 const fetchWithCredentials = async (url: string, options?: RequestInit) => {
@@ -22,53 +23,53 @@ const fetchWithCredentials = async (url: string, options?: RequestInit) => {
 
 // API functions
 export const getGroups = async () => {
-  return fetchWithCredentials(`${API_BASE_URL}`)
+  return fetchWithCredentials(`${GROUP_API_URL}`)
 }
 
 export const getGroup = async (id: string) => {
-  return fetchWithCredentials(`${API_BASE_URL}/${id}`)
+  return fetchWithCredentials(`${GROUP_API_URL}/${id}`)
 }
 
 export const createGroup = async (groupData: GroupInput) => {
-  return fetchWithCredentials(`${API_BASE_URL}`, {
+  return fetchWithCredentials(`${GROUP_API_URL}`, {
     method: 'POST',
     body: JSON.stringify(groupData),
   })
 }
 
 export const updateGroup = async (id: string, updateData: GroupInput) => {
-  return fetchWithCredentials(`${API_BASE_URL}/${id}`, {
+  return fetchWithCredentials(`${GROUP_API_URL}/${id}`, {
     method: 'PUT',
     body: JSON.stringify(updateData),
   })
 }
 
 export const deleteGroup = async (id: string) => {
-  return fetchWithCredentials(`${API_BASE_URL}/${id}`, {
+  return fetchWithCredentials(`${GROUP_API_URL}/${id}`, {
     method: 'DELETE',
   })
 }
 
 export const getGroupMembers = async (id: string) => {
-  return fetchWithCredentials(`${API_BASE_URL}/${id}/persons`)
+  return fetchWithCredentials(`${GROUP_API_URL}/${id}/persons`)
 }
 
 export const addPersonToGroup = async (groupId: string, personId: string) => {
-  return fetchWithCredentials(`${API_BASE_URL}/${groupId}/persons`, {
+  return fetchWithCredentials(`${GROUP_API_URL}/${groupId}/persons`, {
     method: 'POST',
     body: JSON.stringify({ personId }),
   })
 }
 
 export const removePersonFromGroup = async (groupId: string, personId: string) => {
-  return fetchWithCredentials(`${API_BASE_URL}/${groupId}/persons/${personId}`, {
+  return fetchWithCredentials(`${GROUP_API_URL}/${groupId}/persons/${personId}`, {
     method: 'DELETE',
   })
 }
 
 export const getPersonGroups = async (personId: string) => {
   // The endpoint for getting a person's groups from the person route
-  return fetchWithCredentials(`http://localhost:3000/api/person/${personId}/groups`)
+  return fetchWithCredentials(`${API_BASE_URL}/api/person/${personId}/groups`)
 }
 
 // React Query options

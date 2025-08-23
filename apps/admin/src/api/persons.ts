@@ -2,75 +2,77 @@ import { queryOptions } from '@tanstack/react-query'
 import { PersonInput } from '../features/persons/data/schema'
 
 // API base URL
-const API_BASE_URL = 'http://localhost:3000/api/person'
+import { API_BASE_URL } from './base-url'
+const PERSON_API_URL = `${API_BASE_URL}/api/person`
 
 import { authClient } from '@/auth-client'
 
 // Common fetch function with credentials and error handling
 const fetchWithCredentials = async (url: string, options?: RequestInit) => {
-  try {
-    // Get the auth token if available
-    const session = await authClient.getSession()
-    const authHeader = session ? { Authorization: `Bearer ${session.token}` } : {}
-    
-    const response = await fetch(url, {
-      ...options,
-      credentials: 'include',
-      headers: {
-        ...options?.headers,
-        ...authHeader,
-        'Content-Type': 'application/json',
-      },
-    })
-    
-    if (!response.ok) {
-      // Handle common error cases
-      if (response.status === 401) {
-        await authClient.logout() // Force logout on auth failure
-        window.location.href = '/sign-in' // Redirect to login
-        throw new Error('Authentication failed. Please log in again.')
-      }
-      
-      // Try to get detailed error from response
-      const errorData = await response.json().catch(() => null)
-      throw new Error(
-        errorData?.message || 
-        `API error: ${response.status} ${response.statusText}`
-      )
+  // Get the auth token if available
+  const session = await authClient.getSession()
+  
+  // Create headers object properly
+  const headers = new Headers(options?.headers);
+  
+  // Add auth header if available
+  if (session) {
+    headers.set('Authorization', `Bearer ${session.token}`);
+  }
+  
+  // Ensure content type is set
+  headers.set('Content-Type', 'application/json');
+  
+  const response = await fetch(url, {
+    ...options,
+    credentials: 'include',
+    headers,
+  })
+  
+  if (!response.ok) {
+    // Handle common error cases
+    if (response.status === 401) {
+      await authClient.logout() // Force logout on auth failure
+      window.location.href = '/sign-in' // Redirect to login
+      throw new Error('Authentication failed. Please log in again.')
     }
     
-    return response.json()
-  } catch (error) {
-    console.error('API request failed:', url, error)
-    throw error
+    // Try to get detailed error from response
+    const errorData = await response.json().catch(() => null)
+    throw new Error(
+      errorData?.message || 
+      `API error: ${response.status} ${response.statusText}`
+    )
   }
+  
+  return response.json()
 }
 
 // API functions
 export const getPersons = async () => {
-  return fetchWithCredentials(`${API_BASE_URL}`)
+  return fetchWithCredentials(`${PERSON_API_URL}`)
 }
 
 export const getPerson = async (id: string) => {
-  return fetchWithCredentials(`${API_BASE_URL}/${id}`)
+  return fetchWithCredentials(`${PERSON_API_URL}/${id}`)
 }
 
 export const createPerson = async (personData: PersonInput) => {
-  return fetchWithCredentials(`${API_BASE_URL}`, {
+  return fetchWithCredentials(`${PERSON_API_URL}`, {
     method: 'POST',
     body: JSON.stringify(personData),
   })
 }
 
 export const updatePerson = async (id: string, updateData: PersonInput) => {
-  return fetchWithCredentials(`${API_BASE_URL}/${id}`, {
+  return fetchWithCredentials(`${PERSON_API_URL}/${id}`, {
     method: 'PUT',
     body: JSON.stringify(updateData),
   })
 }
 
 export const deletePerson = async (id: string) => {
-  return fetchWithCredentials(`${API_BASE_URL}/${id}`, {
+  return fetchWithCredentials(`${PERSON_API_URL}/${id}`, {
     method: 'DELETE',
   })
 }

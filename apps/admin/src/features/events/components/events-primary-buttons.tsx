@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button'
-import { useEvents } from '../context/events-context'
+import { useEvents } from '../hooks/use-events'
 import { PlusIcon } from '@radix-ui/react-icons'
 
 export function EventsPrimaryButtons() {

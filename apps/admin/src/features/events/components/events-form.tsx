@@ -41,7 +41,7 @@ export function EventsForm({ event, onSuccess }: EventsFormProps) {
     resolver: zodResolver(createEventSchema),
     defaultValues: {
       name: event?.name || '',
-      description: event?.description || '',
+      description: event?.description || undefined,
       startDate: event?.startDate 
         ? format(new Date(event.startDate), 'yyyy-MM-dd')
         : '',
@@ -55,10 +55,9 @@ export function EventsForm({ event, onSuccess }: EventsFormProps) {
   // Update form when event prop changes
   useEffect(() => {
     if (event) {
-      console.log('Resetting form with event data:', event);
       form.reset({
         name: event.name,
-        description: event.description || '',
+        description: event.description || undefined,
         startDate: event.startDate 
           ? format(new Date(event.startDate), 'yyyy-MM-dd')
           : '',
@@ -72,7 +71,6 @@ export function EventsForm({ event, onSuccess }: EventsFormProps) {
 
   // Handle form submission
   const onSubmit = form.handleSubmit(async (data) => {
-    console.log('Form submitted with data:', data);
     
     try {
       if (event) {
@@ -81,7 +79,7 @@ export function EventsForm({ event, onSuccess }: EventsFormProps) {
           id: event.id,
           updateData: {
             name: data.name,
-            description: data.description || null,
+            description: data.description || undefined,
             startDate: data.startDate,
             endDate: data.endDate,
             type: data.type
@@ -111,7 +109,6 @@ export function EventsForm({ event, onSuccess }: EventsFormProps) {
       
       onSuccess();
     } catch (error) {
-      console.error('Operation failed:', error);
       toast({
         title: 'Error',
         description: error instanceof Error 
@@ -126,7 +123,6 @@ export function EventsForm({ event, onSuccess }: EventsFormProps) {
     <Form {...form}>
       <form 
         onSubmit={(e) => {
-          console.log('Form submitted!');
           onSubmit(e);
         }} 
         className="space-y-6"
