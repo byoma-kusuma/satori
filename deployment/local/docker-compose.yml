@@ -1,8 +1,6 @@
 version: '3.8'
 
 networks:
-  traefik-public:
-    external: true
   satori-app-network:
     name: ${DOCKER_NETWORK:-satori-app-network}
 
@@ -19,6 +17,9 @@ services:
       - POSTGRES_USER=${DB_USER:-postgres}
       - POSTGRES_PASSWORD=${DB_PASS:-postgres}
       - POSTGRES_DB=${DB_NAME:-postgres}
+      - POSTGRES_HOST_AUTH_METHOD=trust
+    ports:
+      - "${DB_PORT:-5432}:5432"
     networks:
       - satori-app-network
     healthcheck:
@@ -26,11 +27,10 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
-    # NOTE: no ports -> DB is private
 
   migrate:
     build:
-      context: .
+      context: ../../apps/server
       dockerfile: Dockerfile
     env_file:
       - .env
@@ -47,13 +47,13 @@ services:
 
   app:
     build:
-      context: .
+      context: ../../apps/server
       dockerfile: Dockerfile
     restart: always
     env_file:
       - .env
     environment:
-      - NODE_ENV=${NODE_ENV:-production}
+      - NODE_ENV=${NODE_ENV:-development}
       - DATABASE_URL=postgres://${DB_USER:-postgres}:${DB_PASS:-postgres}@db:${DB_PORT:-5432}/${DB_NAME:-postgres}?sslmode=${DB_SSL_MODE:-disable}
       - SERVER_URL=${SERVER_URL}
       - BETTER_AUTH_URL=${BETTER_AUTH_URL}
@@ -72,20 +72,25 @@ services:
       - EMAIL_SERVICE_PROVIDER=${EMAIL_SERVICE_PROVIDER}
       - AZURE_COMMUNICATION_CONNECTION_STRING=${AZURE_COMMUNICATION_CONNECTION_STRING}
       - AZURE_COMMUNICATION_FROM_EMAIL=${AZURE_COMMUNICATION_FROM_EMAIL}
+    ports:
+      - "${APP_CONTAINER_PORT:-3001}:3001"
     depends_on:
       migrate:
         condition: service_completed_successfully
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.apiapp.rule=Host(`${AUTH_HOST}`)"
-      - "traefik.http.routers.apiapp.entrypoints=websecure"
-      - "traefik.http.routers.apiapp.tls.certresolver=cf"
-      - "traefik.http.services.apiapp.loadbalancer.server.port=${APP_CONTAINER_PORT:-3000}"
-      # Optional security headers
-      - "traefik.http.middlewares.secHeaders.headers.stsSeconds=31536000"
-      - "traefik.http.middlewares.secHeaders.headers.stsIncludeSubdomains=true"
-      - "traefik.http.middlewares.secHeaders.headers.stsPreload=true"
-      - "traefik.http.routers.apiapp.middlewares=secHeaders@docker"
     networks:
-      - traefik-public
+      - satori-app-network
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    restart: always
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=${PGADMIN_EMAIL:-admin@admin.com}
+      - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_PASSWORD:-admin}
+      - PGADMIN_CONFIG_SERVER_MODE=False
+    ports:
+      - "8080:80"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
       - satori-app-network
