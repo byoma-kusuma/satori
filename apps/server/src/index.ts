@@ -21,7 +21,7 @@ console.log("Allowed origins:", process.env.ORIGIN);
 app.use(
   '*',
   cors({
-     origin: (origin) => {
+     origin: (origin:any) => {
       const allowed = process.env.ORIGIN?.split(',').map(o => o.trim()) || []
       // only return the origin if it's explicitly allowed
       if (origin && allowed.includes(origin)) {
