@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form'
 import { useRef, useEffect } from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useNavigate, useParams } from '@tanstack/react-router'
-import { useSuspenseQuery } from '@tanstack/react-query'
+import { useSuspenseQuery, useQuery } from '@tanstack/react-query'
 import { toast } from '@/hooks/use-toast'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
@@ -28,7 +28,7 @@ import {
 import { Checkbox } from '@/components/ui/checkbox'
 import { Textarea } from '@/components/ui/textarea'
 import { personInputSchema, personTypeLabels, titleLabels, membershipTypeLabels, countries } from '../data/schema'
-import { useUpdatePerson, getPersonQueryOptions } from '../data/api'
+import { useUpdatePerson, getPersonQueryOptions, getKramaInstructorsQueryOptions } from '../data/api'
 import { SearchableNationalitySelect } from '@/components/ui/searchable-nationality-select'
 import { Header } from '@/components/layout/header'
 import { Main } from '@/components/layout/main'
@@ -79,15 +79,29 @@ function EditPersonForm({ personId }: { personId: string }) {
       hasMembershipCard: person.hasMembershipCard || undefined,
       membershipCardNumber: person.membershipCardNumber || undefined,
       yearOfRefugeCalendarType: person.yearOfRefugeCalendarType || 'AD',
+      is_krama_instructor: person.is_krama_instructor || false,
+      krama_instructor_person_id: person.krama_instructor_person_id || undefined,
     },
   })
 
   const personType = form.watch('type')
+  
+  // Fetch Krama Instructors only when person type is attended_orientation
+  const { data: kramaInstructors = [] } = useQuery({
+    ...getKramaInstructorsQueryOptions(),
+    enabled: personType === 'attended_orientation'
+  })
 
   const onSubmit = (vals: PersonForm) => {
+    // Convert "none" back to null for krama_instructor_person_id
+    const processedVals = {
+      ...vals,
+      krama_instructor_person_id: vals.krama_instructor_person_id === "none" ? null : vals.krama_instructor_person_id
+    };
+
     updatePersonMutation.mutate({
       id: personId,
-      updateData: vals
+      updateData: processedVals
     }, {
       onSuccess: () => {
         toast({ title: 'Person updated successfully' })
@@ -178,6 +192,39 @@ function EditPersonForm({ personId }: { personId: string }) {
                   </FormItem>
                 )}
               />
+              
+              {/* Krama Instructor field - only visible when type is attended_orientation */}
+              {personType === 'attended_orientation' && (
+                <FormField
+                  control={form.control}
+                  name="krama_instructor_person_id"
+                  render={({ field }) => (
+                    <FormItem className="space-y-1">
+                      <FormLabel>Krama Instructor</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value || 'none'}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select Krama Instructor" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="none">None</SelectItem>
+                          {kramaInstructors.map((instructor) => (
+                            <SelectItem key={instructor.id} value={instructor.id}>
+                              {instructor.firstName} {instructor.lastName}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+              
               <FormField
                 control={form.control}
                 name="center"
@@ -551,6 +598,25 @@ function EditPersonForm({ personId }: { personId: string }) {
                       <div className="space-y-1 leading-none">
                         <FormLabel>
                           Do you have a membership card?
+                        </FormLabel>
+                      </div>
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="is_krama_instructor"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel>
+                          Is this person a Krama Instructor?
                         </FormLabel>
                       </div>
                     </FormItem>

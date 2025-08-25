@@ -5,7 +5,9 @@ import {
   createPerson, 
   updatePerson, 
   deletePerson,
-  getPersonsByType 
+  getPersonsByType,
+  getAllKramaInstructors,
+  getPersonWithKramaInstructor
 } from "./person.service";
 import { authenticated } from "../../middlewares/session";
 import { requirePermission, adminOnly } from "../../middlewares/authorization";
@@ -49,6 +51,8 @@ const personInputSchema = z.object({
   hasMembershipCard: z.boolean().nullable().optional().default(null),
   membershipCardNumber: z.string().nullable().optional().default(null),
   yearOfRefugeCalendarType: z.enum(["BS", "AD"]).nullable().optional().default(null),
+  is_krama_instructor: z.boolean().nullable().optional().default(false),
+  krama_instructor_person_id: z.string().uuid().nullable().optional().default(null),
 });
 
 const personUpdateSchema = personInputSchema.partial();
@@ -94,6 +98,11 @@ export const personsRoutes = persons
     const persons = await getAllPersons();
     return c.json(persons);
   })
+  // Krama Instructor routes - MUST be before /:id routes
+  .get("/krama-instructors", requirePermission("canViewPersons"), async (c) => {
+    const kramaInstructors = await getAllKramaInstructors();
+    return c.json(kramaInstructors);
+  })
   .get("/:id", zValidator("param", paramsSchema), requirePermission("canViewPersons"), async (c) => {
     const { id } = c.req.valid("param");
     const person = await getPersonById(id);
@@ -103,6 +112,11 @@ export const personsRoutes = persons
     const id = c.req.param("id");
     const groups = await getPersonGroups(id);
     return c.json(groups);
+  })
+  .get("/:id/with-krama-instructor", zValidator("param", paramsSchema), requirePermission("canViewPersons"), async (c) => {
+    const { id } = c.req.valid("param");
+    const personWithKrama = await getPersonWithKramaInstructor(id);
+    return c.json(personWithKrama);
   })
   .post("/", zValidator("json", personInputSchema), requirePermission("canCreatePersons"), async (c) => {
     const personData = await c.req.valid("json");

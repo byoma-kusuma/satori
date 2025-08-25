@@ -77,6 +77,15 @@ export const deletePerson = async (id: string) => {
   })
 }
 
+// Krama Instructor API functions
+export const getKramaInstructors = async () => {
+  return fetchWithCredentials(`${PERSON_API_URL}/krama-instructors`)
+}
+
+export const getPersonWithKramaInstructor = async (id: string) => {
+  return fetchWithCredentials(`${PERSON_API_URL}/${id}/with-krama-instructor`)
+}
+
 // React Query options
 export const getPersonsQueryOptions = () => queryOptions({
   queryKey: ['persons'],
@@ -87,6 +96,18 @@ export const getPersonQueryOptions = (id: string) =>
   queryOptions({
     queryKey: ['person', id],
     queryFn: () => getPerson(id),
+  })
+
+// Krama Instructor Query Options
+export const getKramaInstructorsQueryOptions = () => queryOptions({
+  queryKey: ['krama-instructors'],
+  queryFn: getKramaInstructors,
+})
+
+export const getPersonWithKramaInstructorQueryOptions = (id: string) =>
+  queryOptions({
+    queryKey: ['person-with-krama-instructor', id],
+    queryFn: () => getPersonWithKramaInstructor(id),
   })
 
 // React Query mutation hooks
@@ -126,3 +147,4 @@ export const useDeletePerson = () => {
     },
   })
 }
+
