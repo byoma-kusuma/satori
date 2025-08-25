@@ -1,0 +1,93 @@
+version: "3.9"
+
+networks:
+  traefik-public:
+    name: traefik-public
+    external: false
+  satori-app-network:
+    external: true
+
+services:
+  # Helper service to generate password hash from plain text
+  auth-gen:
+    image: httpd:alpine
+    command: sh -c 'htpasswd -nbB "$${TRAEFIK_USERNAME:-admin}" "$${TRAEFIK_PASSWORD}" > /shared/auth && echo "Auth generated successfully"'
+    environment:
+      TRAEFIK_USERNAME: "${TRAEFIK_USERNAME:-admin}"
+      TRAEFIK_PASSWORD: "${TRAEFIK_PASSWORD}"
+    volumes:
+      - auth_data:/shared
+    restart: "no"
+
+  traefik:
+    image: traefik:v3.1
+    container_name: traefik
+    restart: always
+    command:
+      - "--providers.docker=true"
+      - "--providers.docker.exposedByDefault=false"
+
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entryPoint.scheme=https"
+
+      - "--certificatesresolvers.cf.acme.dnschallenge=true"
+      - "--certificatesresolvers.cf.acme.dnschallenge.provider=cloudflare"
+      - "--certificatesresolvers.cf.acme.email=${CF_API_EMAIL}"
+      - "--certificatesresolvers.cf.acme.storage=/letsencrypt/acme.json"
+
+      # Dashboard configuration - secure via labels, not insecure port
+      - "--api.dashboard=true"
+      - "--api=true"
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      CF_DNS_API_TOKEN: "${CF_DNS_API_TOKEN}"
+      TRAEFIK_USERNAME: "${TRAEFIK_USERNAME:-admin}"
+      TRAEFIK_PASSWORD: "${TRAEFIK_PASSWORD}"
+    labels:
+      # Dashboard routing
+      - "traefik.enable=true"
+      - "traefik.http.routers.dashboard.rule=Host(`traefik.byomakusuma.com`)"
+      - "traefik.http.routers.dashboard.entrypoints=websecure"
+      - "traefik.http.routers.dashboard.tls.certresolver=cf"
+      - "traefik.http.routers.dashboard.service=api@internal"
+      
+      # Basic Auth middleware - uses generated auth file
+      - "traefik.http.middlewares.auth.basicauth.usersfile=/shared/auth"
+      - "traefik.http.routers.dashboard.middlewares=auth"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./acme/acme.json:/letsencrypt/acme.json
+      - auth_data:/shared
+    depends_on:
+      - auth-gen
+    networks:
+      - traefik-public
+      - satori-app-network
+
+  portainer:
+    image: portainer/portainer-ce:latest
+    container_name: portainer
+    restart: always
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - portainer_data:/data
+    labels:
+      # Portainer routing
+      - "traefik.enable=true"
+      - "traefik.http.routers.portainer.rule=Host(`portainer.byomakusuma.com`)"
+      - "traefik.http.routers.portainer.entrypoints=websecure"
+      - "traefik.http.routers.portainer.tls.certresolver=cf"
+      - "traefik.http.services.portainer.loadbalancer.server.port=9000"
+      
+      # Use same auth as Traefik dashboard
+      - "traefik.http.routers.portainer.middlewares=auth"
+    networks:
+      - traefik-public
+
+volumes:
+  auth_data:
+  portainer_data:

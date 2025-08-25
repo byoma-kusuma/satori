@@ -6,7 +6,7 @@
     "build": "tsc",
     "migrate:dev": "bun run auth:migrate && dbmate up && bun run codegen",
     "migrate:prod": "bun run auth:migrate && dbmate up",
-    "auth:migrate": "echo 'y' | npx @better-auth/cli migrate",
+    "auth:migrate": "echo 'y' | bun x @better-auth/cli@1.3.4 migrate",
     "codegen": "kysely-codegen --out-file=./src/types.ts",
     "seed": "bun ./db/seeds/user.ts"
   },
@@ -29,7 +29,7 @@
     "nodemailer": "^6.10.0",
     "pg": "^8.13.1",
     "uuid": "^11.1.0",
-    "zod": "^3.24.2"
+    "zod": "^3.23.8"
   },
   "devDependencies": {
     "@types/bun": "latest",

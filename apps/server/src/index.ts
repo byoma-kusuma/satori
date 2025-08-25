@@ -9,13 +9,26 @@ import { eventsRoutes } from "./api/event/event.route";
 
 const app = new Hono();
 
+// check if origin is set in environment variables if not default to localhost for development
+if (!process.env.ORIGIN) {
+  console.log("No ORIGIN set in environment variables, defaulting to http://localhost:3000");
+  process.env.ORIGIN = `http://localhost:${process.env.FRONTEND_PORT ?? 3000}`;
+}
+
+console.log("Allowed origins:", process.env.ORIGIN);
+
 // CORS middleware configuration
 app.use(
   '*',
   cors({
-    origin: process.env.NODE_ENV === 'development'
-      ? [`http://localhost:${process.env.FRONTEND_PORT}`]
-      : (process.env.ORIGIN ? process.env.ORIGIN.split(',').map(o => o.trim()) : [`http://localhost:${process.env.FRONTEND_PORT}`]),
+     origin: (origin:any) => {
+      const allowed = process.env.ORIGIN?.split(',').map(o => o.trim()) || []
+      // only return the origin if it's explicitly allowed
+      if (origin && allowed.includes(origin)) {
+        return origin
+      }
+      return null // no header -> browser blocks it
+    },
     allowHeaders: ['Content-Type', 'Authorization'],
     allowMethods: ['POST', 'GET', 'PUT', 'DELETE', 'OPTIONS'],
     exposeHeaders: ['Content-Length'],
@@ -37,4 +50,8 @@ app.route("/api/person", personsRoutes);
 app.route("/api/group", groupsRoutes);
 app.route("/api/event", eventsRoutes);
 
-export default app;
+export default {
+  port: process.env.PORT || 3000,
+  hostname: "0.0.0.0",
+  fetch: app.fetch,
+};
