@@ -86,10 +86,10 @@ function EditPersonForm({ personId }: { personId: string }) {
 
   const personType = form.watch('type')
   
-  // Fetch Krama Instructors only when person type is attended_orientation
+  // Fetch Krama Instructors when person type is attended_orientation or sangha_member
   const { data: kramaInstructors = [] } = useQuery({
     ...getKramaInstructorsQueryOptions(),
-    enabled: personType === 'attended_orientation'
+    enabled: personType === 'attended_orientation' || personType === 'sangha_member'
   })
 
   const onSubmit = (vals: PersonForm) => {
@@ -193,8 +193,8 @@ function EditPersonForm({ personId }: { personId: string }) {
                 )}
               />
               
-              {/* Krama Instructor field - only visible when type is attended_orientation */}
-              {personType === 'attended_orientation' && (
+              {/* Krama Instructor field - visible when type is attended_orientation or sangha_member */}
+              {(personType === 'attended_orientation' || personType === 'sangha_member') && (
                 <FormField
                   control={form.control}
                   name="krama_instructor_person_id"
