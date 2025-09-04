@@ -15,6 +15,9 @@ export const personSchema = z.object({
   updatedAt: z.coerce.date().nullable(),
   createdBy: z.string(),
   lastUpdatedBy: z.string(),
+  type: z.enum(['interested', 'contact', 'sangha_member', 'attended_orientation']),
+  is_krama_instructor: z.boolean().nullable(),
+  krama_instructor_person_id: z.string().nullable(),
 })
 
 export type Person = z.infer<typeof personSchema>
@@ -45,9 +48,21 @@ export const personInputSchema = z.object({
   hasMembershipCard: z.boolean().optional(),
   membershipCardNumber: z.string().optional(),
   yearOfRefugeCalendarType: z.enum(['BS', 'AD']).optional(),
+  is_krama_instructor: z.boolean().optional(),
+  krama_instructor_person_id: z.string().optional(),
 })
 
 export type PersonInput = z.infer<typeof personInputSchema>
+
+// Krama Instructor specific types
+export const kramaInstructorSchema = z.object({
+  id: z.string(),
+  firstName: z.string(),
+  lastName: z.string(),
+  emailId: z.string().nullable(),
+})
+
+export type KramaInstructor = z.infer<typeof kramaInstructorSchema>
 
 export const personTypeLabels = {
   interested: 'Interested',

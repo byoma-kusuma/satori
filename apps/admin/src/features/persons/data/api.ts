@@ -8,7 +8,11 @@ import {
   getPersonQueryOptions,
   useCreatePerson,
   useUpdatePerson,
-  useDeletePerson
+  useDeletePerson,
+  getKramaInstructors,
+  getPersonWithKramaInstructor,
+  getKramaInstructorsQueryOptions,
+  getPersonWithKramaInstructorQueryOptions
 } from '@/api/persons'
 
 // Re-export all the hooks and functions for use within the persons feature
@@ -22,7 +26,11 @@ export {
   getPersonQueryOptions,
   useCreatePerson,
   useUpdatePerson,
-  useDeletePerson
+  useDeletePerson,
+  getKramaInstructors,
+  getPersonWithKramaInstructor,
+  getKramaInstructorsQueryOptions,
+  getPersonWithKramaInstructorQueryOptions
 }
 
 // Add any person-specific API utilities or extensions here 
