@@ -90,6 +90,7 @@ function EditPersonForm({ personId }: { personId: string }) {
   const { data: kramaInstructors = [] } = useQuery({
     ...getKramaInstructorsQueryOptions(),
     enabled: personType === 'attended_orientation' || personType === 'sangha_member'
+
   })
 
   const onSubmit = (vals: PersonForm) => {
@@ -195,6 +196,7 @@ function EditPersonForm({ personId }: { personId: string }) {
               
               {/* Krama Instructor field - visible when type is attended_orientation or sangha_member */}
               {(personType === 'attended_orientation' || personType === 'sangha_member') && (
+
                 <FormField
                   control={form.control}
                   name="krama_instructor_person_id"
