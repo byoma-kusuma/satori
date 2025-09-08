@@ -83,6 +83,16 @@ export const columns: ColumnDef<Person>[] = [
     enableColumnFilter: true,
   },
   {
+    accessorKey: 'membershipCardNumber',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Membership ID" />
+    ),
+    cell: ({ row }) => {
+      const membershipId = row.getValue<string>('membershipCardNumber')
+      return membershipId || '-'
+    },
+  },
+  {
     accessorKey: 'emailId',
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Email" />

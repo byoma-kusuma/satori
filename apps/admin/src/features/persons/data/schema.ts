@@ -16,6 +16,7 @@ export const personSchema = z.object({
   createdBy: z.string(),
   lastUpdatedBy: z.string(),
   type: z.enum(['interested', 'contact', 'sangha_member', 'attended_orientation']),
+  membershipCardNumber: z.string().nullable(),
   is_krama_instructor: z.boolean().nullable(),
   krama_instructor_person_id: z.string().nullable(),
 })
