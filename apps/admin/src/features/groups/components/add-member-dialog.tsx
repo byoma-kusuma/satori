@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useSuspenseQuery } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { getPersonsQueryOptions } from '@/api/persons'
 import { Group } from '../data/schema'
 import { useGroups } from '../hooks/use-groups'
@@ -31,10 +31,11 @@ interface Props {
 
 export function AddMemberDialog({ group, open, onOpenChange }: Props) {
   const { setOpen } = useGroups()
-  const { data: persons } = useSuspenseQuery(getPersonsQueryOptions)
-  const { data: groupMembers } = useSuspenseQuery(
-    getGroupMembersQueryOptions(group.id)
-  )
+  const { data: persons } = useQuery(getPersonsQueryOptions())
+  const { data: groupMembers } = useQuery({
+    ...getGroupMembersQueryOptions(group?.id || ''),
+    enabled: !!group?.id
+  })
   
   const [selectedPerson, setSelectedPerson] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -44,6 +45,18 @@ export function AddMemberDialog({ group, open, onOpenChange }: Props) {
   const eligiblePersons = persons?.filter(
     (person) => !groupMembers?.some((member) => member.id === person.id)
   )
+
+  if (!group?.id || !persons) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Loading...</DialogTitle>
+          </DialogHeader>
+        </DialogContent>
+      </Dialog>
+    )
+  }
 
   async function handleAddMember() {
     if (!selectedPerson) return
@@ -55,8 +68,7 @@ export function AddMemberDialog({ group, open, onOpenChange }: Props) {
         personId: selectedPerson,
       })
       setSelectedPerson(null)
-      setOpen(null)
-      onOpenChange(false)
+      setOpen('members')
     } catch {
       // Error is handled by the mutation hook
     } finally {
@@ -107,8 +119,7 @@ export function AddMemberDialog({ group, open, onOpenChange }: Props) {
             variant="outline"
             onClick={() => {
               setSelectedPerson(null)
-              setOpen(null)
-              onOpenChange(false)
+              setOpen('members')
             }}
           >
             Cancel

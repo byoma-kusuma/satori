@@ -12,6 +12,7 @@ import {
 } from '@tanstack/react-table'
 import { useState } from 'react'
 import { Group } from '../data/schema'
+import { useGroups } from '../hooks/use-groups'
 import { DataTablePagination } from './data-table-pagination'
 import {
   Table,
@@ -29,6 +30,7 @@ interface GroupsTableProps {
 }
 
 export function GroupsTable({ data, columns }: GroupsTableProps) {
+  const { setOpen, setCurrentRow } = useGroups()
   const [sorting, setSorting] = useState<SortingState>([])
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
@@ -91,6 +93,16 @@ export function GroupsTable({ data, columns }: GroupsTableProps) {
                 <TableRow
                   key={row.id}
                   data-state={row.getIsSelected() && 'selected'}
+                  className="cursor-pointer hover:bg-muted/50"
+                  onClick={(e) => {
+                    const target = e.target as HTMLElement
+                    const isInteractive = target.closest('button, input[type="checkbox"], [role="button"], [role="menuitem"]')
+                    
+                    if (!isInteractive) {
+                      setCurrentRow(row.original)
+                      setOpen('members')
+                    }
+                  }}
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>
