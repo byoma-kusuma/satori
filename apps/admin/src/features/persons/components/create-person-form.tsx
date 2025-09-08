@@ -73,6 +73,9 @@ export function CreatePersonPage() {
       membershipType: undefined,
       hasMembershipCard: undefined,
       membershipCardNumber: undefined,
+      emergencyContactName: undefined,
+      emergencyContactRelationship: undefined,
+      emergencyContactPhone: undefined,
       yearOfRefugeCalendarType: 'AD',
     },
   })
@@ -474,6 +477,63 @@ export function CreatePersonPage() {
                             {...field} 
                             rows={4}
                           />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                
+                {/* Emergency Contact Section */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6 pt-6 border-t">
+                  <div className="col-span-2">
+                    <h3 className="text-lg font-semibold mb-4">Emergency Contact</h3>
+                  </div>
+                  <FormField
+                    control={form.control}
+                    name="emergencyContactName"
+                    render={({ field }) => (
+                      <FormItem className="space-y-1">
+                        <FormLabel>Emergency Contact Name</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Enter emergency contact name" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="emergencyContactRelationship"
+                    render={({ field }) => (
+                      <FormItem className="space-y-1">
+                        <FormLabel>Relationship</FormLabel>
+                        <FormControl>
+                          <Input placeholder="e.g., Spouse, Parent, Sibling" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="emergencyContactPhone"
+                    render={({ field }) => (
+                      <FormItem className="space-y-1">
+                        <FormLabel>Emergency Contact Phone</FormLabel>
+                        <FormControl>
+                          <div className="relative">
+                            <PhoneInput
+                              international
+                              countryCallingCodeEditable={true}
+                              defaultCountry="NP"
+                              placeholder="Enter emergency contact phone"
+                              value={field.value || ''}
+                              onChange={(value) => field.onChange(value || '')}
+                              className="h-10 w-full"
+                              inputClassName="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                            />
+                          </div>
                         </FormControl>
                         <FormMessage />
                       </FormItem>

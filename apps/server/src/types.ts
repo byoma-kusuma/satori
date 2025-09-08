@@ -143,6 +143,18 @@ export interface Person {
    * Year when refuge was taken (for Sangha members)
    */
   yearOfRefuge: number | null;
+  /**
+   * Name of emergency contact person
+   */
+  emergencyContactName: string | null;
+  /**
+   * Relationship to the emergency contact
+   */
+  emergencyContactRelationship: string | null;
+  /**
+   * Phone number of emergency contact person
+   */
+  emergencyContactPhone: string | null;
 }
 
 export interface PersonGroup {
