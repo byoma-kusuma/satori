@@ -5,6 +5,7 @@ import { Person, personTypeLabels } from '../data/schema'
 import { DataTableColumnHeader } from './data-table-column-header'
 import { DataTableRowActions } from './data-table-row-actions'
 import { Badge } from '@/components/ui/badge'
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 
 export const columns: ColumnDef<Person>[] = [
   {
@@ -36,6 +37,22 @@ export const columns: ColumnDef<Person>[] = [
         'bg-background transition-colors duration-200 group-hover/row:bg-muted group-data-[state=selected]/row:bg-muted'
       ),
     },
+  },
+  {
+    id: 'photo',
+    header: 'Photo',
+    cell: ({ row }) => {
+      const person = row.original
+      return (
+        <Avatar className="h-8 w-8">
+          <AvatarImage src={person.photo || ''} alt={`${person.firstName} ${person.lastName}`} />
+          <AvatarFallback className="text-xs">
+            {person.firstName.charAt(0)}{person.lastName.charAt(0)}
+          </AvatarFallback>
+        </Avatar>
+      )
+    },
+    enableSorting: false,
   },
   {
     accessorKey: 'firstName',

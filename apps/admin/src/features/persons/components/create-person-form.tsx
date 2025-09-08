@@ -29,6 +29,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { personInputSchema, personTypeLabels, titleLabels, membershipTypeLabels, countries } from '../data/schema'
 import { useCreatePerson } from '../data/api'
 import { SearchableNationalitySelect } from '@/components/ui/searchable-nationality-select'
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { Header } from '@/components/layout/header'
 import { Main } from '@/components/layout/main'
 import { ProfileDropdown } from '@/components/profile-dropdown'
@@ -129,6 +130,47 @@ export function CreatePersonPage() {
                 onSubmit={form.handleSubmit(onSubmit)}
                 className="space-y-4"
               >
+                {/* Avatar Photo Upload */}
+                <FormField
+                  control={form.control}
+                  name="photo"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-col items-center space-y-4">
+                      <div className="relative cursor-pointer group">
+                        <Avatar className="h-24 w-24 border-2 border-dashed border-gray-300 group-hover:border-primary transition-colors">
+                          <AvatarImage src={field.value || ''} alt="Profile photo" />
+                          <AvatarFallback className="bg-gray-50 text-gray-400">
+                            <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                            </svg>
+                          </AvatarFallback>
+                        </Avatar>
+                        <FormControl>
+                          <Input
+                            type="file"
+                            accept="image/*"
+                            className="absolute inset-0 h-full w-full opacity-0 cursor-pointer"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0]
+                              if (file) {
+                                const reader = new FileReader()
+                                reader.onloadend = () => {
+                                  field.onChange(reader.result as string)
+                                }
+                                reader.readAsDataURL(file)
+                              }
+                            }}
+                          />
+                        </FormControl>
+                      </div>
+                      <FormLabel className="text-sm font-medium cursor-pointer hover:text-primary transition-colors">
+                        Click to upload photo
+                      </FormLabel>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
@@ -261,6 +303,7 @@ export function CreatePersonPage() {
                       </FormItem>
                     )}
                   />
+
                   <FormField
                     control={form.control}
                     name="address"
