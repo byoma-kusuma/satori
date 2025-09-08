@@ -1,5 +1,6 @@
 import { Suspense } from 'react'
 import { useSuspenseQuery } from '@tanstack/react-query'
+import { IconLoader } from '@tabler/icons-react'
 import { getPersonsQueryOptions } from './data/api'
 import { Header } from '@/components/layout/header'
 import { Main } from '@/components/layout/main'
@@ -46,7 +47,11 @@ export default function Persons() {
   return (
     <PersonsProvider>
       <Suspense
-        fallback={<div className='p-4 text-center'>Loading persons...</div>}
+        fallback={
+          <div className='flex h-screen items-center justify-center'>
+            <IconLoader className='h-8 w-8 animate-spin' />
+          </div>
+        }
       >
         <PersonsList />
       </Suspense>

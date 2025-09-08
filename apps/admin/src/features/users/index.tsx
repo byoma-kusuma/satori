@@ -1,5 +1,6 @@
 import { Suspense } from 'react'
 import { useSuspenseQuery } from '@tanstack/react-query'
+import { IconLoader } from '@tabler/icons-react'
 import { getUsersQueryOptions } from '@/api/users'
 import { Header } from '@/components/layout/header'
 import { Main } from '@/components/layout/main'
@@ -53,7 +54,11 @@ export default function Users() {
         for real production usage
       */}
       <Suspense
-        fallback={<div className='p-4 text-center'>Loading users...</div>}
+        fallback={
+          <div className='flex h-screen items-center justify-center'>
+            <IconLoader className='h-8 w-8 animate-spin' />
+          </div>
+        }
       >
         <UsersList />
       </Suspense>
