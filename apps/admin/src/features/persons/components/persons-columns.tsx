@@ -55,6 +55,18 @@ export const columns: ColumnDef<Person>[] = [
     enableSorting: false,
   },
   {
+    accessorKey: 'personCode',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="ID" />
+    ),
+    cell: ({ row }) => {
+      const personCode = row.getValue<string>('personCode')
+      return personCode ? (
+        <span className="font-mono text-sm font-medium">{personCode}</span>
+      ) : '-'
+    },
+  },
+  {
     accessorKey: 'firstName',
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="First Name" />

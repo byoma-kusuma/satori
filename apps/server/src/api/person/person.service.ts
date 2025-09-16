@@ -1,6 +1,31 @@
 import { db } from '../../database';
 import { PersonInput, PersonType } from './person.types';
 
+// Generate person code from first and last name initials + 4 digit number
+const generatePersonCode = async (firstName: string, lastName: string): Promise<string> => {
+  const initials = (firstName.charAt(0) + lastName.charAt(0)).toUpperCase();
+  
+  // Find the highest existing number for these initials
+  const existingCodes = await db
+    .selectFrom('person')
+    .select('personCode')
+    .where('personCode', 'like', `${initials}%`)
+    .execute();
+  
+  let maxNumber = 0;
+  existingCodes.forEach(row => {
+    if (row.personCode) {
+      const number = parseInt(row.personCode.slice(2));
+      if (!isNaN(number) && number > maxNumber) {
+        maxNumber = number;
+      }
+    }
+  });
+  
+  const nextNumber = (maxNumber + 1).toString().padStart(4, '0');
+  return `${initials}${nextNumber}`;
+};
+
 export async function getAllPersons() {
   return db
     .selectFrom('person')
@@ -17,10 +42,13 @@ export async function getPersonById(id: string) {
 }
 
 export async function createPerson(personData: PersonInput, createdBy: string) {
+  const personCode = await generatePersonCode(personData.firstName, personData.lastName);
+  
   return db
     .insertInto('person')
     .values({
       ...personData,
+      personCode,
       createdBy,
       lastUpdatedBy: createdBy,
     })

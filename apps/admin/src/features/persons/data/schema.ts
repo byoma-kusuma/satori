@@ -1,7 +1,11 @@
 import { z } from 'zod'
 
+// Pre-compiled regex for better performance
+const PHOTO_DATA_URL_REGEX = /^data:image\/(jpeg|jpg|png|webp);base64,/
+
 export const personSchema = z.object({
   id: z.string(),
+  personCode: z.string().nullable(),
   firstName: z.string(),
   lastName: z.string(),
   address: z.string(),
@@ -50,7 +54,13 @@ export const personInputSchema = z.object({
   primaryPhone: z.string().optional(),
   secondaryPhone: z.string().optional(),
   yearOfBirth: z.number().int().min(1900).optional(),
-  photo: z.string().optional(),
+  photo: z.string().optional().refine(
+    (val) => {
+      if (!val) return true;
+      return PHOTO_DATA_URL_REGEX.test(val);
+    },
+    { message: "Photo must be a valid image" }
+  ),
   gender: z.enum(['male', 'female', 'other', 'prefer_not_to_say']).optional(),
   center: z.enum(['Nepal', 'USA', 'Australia', 'UK']),
   type: z.enum(['interested', 'contact', 'sangha_member', 'attended_orientation']),
