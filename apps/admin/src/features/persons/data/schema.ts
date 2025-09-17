@@ -10,7 +10,6 @@ export const personSchema = z.object({
   lastName: z.string(),
   address: z.string(),
   emailId: z.string().nullable(),
-  phoneNumber: z.string().nullable(),
   yearOfBirth: z.number().nullable(),
   photo: z.string().nullable(),
   gender: z.enum(['male', 'female', 'other', 'prefer_not_to_say']).nullable(),
@@ -40,6 +39,7 @@ export const personSchema = z.object({
   emergencyContactPhone: z.string().nullable(),
   is_krama_instructor: z.boolean().nullable(),
   krama_instructor_person_id: z.string().nullable(),
+  referredBy: z.string().nullable(),
 })
 
 export type Person = z.infer<typeof personSchema>
@@ -50,7 +50,6 @@ export const personInputSchema = z.object({
   lastName: z.string().min(1, 'Last name is required'),
   address: z.string().min(1, 'Address is required'),
   emailId: z.string().email().optional().or(z.literal('')),
-  phoneNumber: z.string().optional(),
   primaryPhone: z.string().optional(),
   secondaryPhone: z.string().optional(),
   yearOfBirth: z.number().int().min(1900).optional(),
@@ -81,6 +80,7 @@ export const personInputSchema = z.object({
   yearOfRefugeCalendarType: z.enum(['BS', 'AD']).optional(),
   is_krama_instructor: z.boolean().optional(),
   krama_instructor_person_id: z.string().optional(),
+  referredBy: z.string().optional(),
 })
 
 export type PersonInput = z.infer<typeof personInputSchema>

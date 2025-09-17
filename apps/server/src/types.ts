@@ -35,6 +35,8 @@ export type PersonType = "attended_orientation" | "contact" | "interested" | "sa
 
 export type Timestamp = ColumnType<Date, Date | string, Date | string>;
 
+export type UserRole = "admin" | "krama_instructor" | "viewer";
+
 export interface Account {
   accessToken: string | null;
   accessTokenExpiresAt: Timestamp | null;
@@ -85,6 +87,18 @@ export interface Person {
   createdAt: Generated<Timestamp | null>;
   createdBy: string;
   emailId: string | null;
+  /**
+   * Name of emergency contact person
+   */
+  emergencyContactName: string | null;
+  /**
+   * Phone number of emergency contact person
+   */
+  emergencyContactPhone: string | null;
+  /**
+   * Relationship to the emergency contact (e.g., spouse, parent, sibling)
+   */
+  emergencyContactRelationship: string | null;
   firstName: string;
   gender: GenderType | null;
   /**
@@ -92,12 +106,18 @@ export interface Person {
    */
   hasMembershipCard: boolean | null;
   id: Generated<string>;
+  is_krama_instructor: Generated<boolean | null>;
+  krama_instructor_person_id: string | null;
   /**
    * Preferred language for communication
    */
   languagePreference: string | null;
   lastName: string;
   lastUpdatedBy: string;
+  /**
+   * Membership card number for Sangha members
+   */
+  membershipCardNumber: string | null;
   /**
    * Type of membership for Sangha members
    */
@@ -118,12 +138,17 @@ export interface Person {
    * Occupation of the person
    */
   occupation: string | null;
+  personCode: string | null;
   phoneNumber: string | null;
   photo: string | null;
   /**
    * Primary phone number of the person
    */
   primaryPhone: string | null;
+  /**
+   * Free form text field indicating who referred this person
+   */
+  referredBy: string | null;
   /**
    * Dharma name given during refuge ceremony (for Sangha members)
    */
@@ -144,17 +169,9 @@ export interface Person {
    */
   yearOfRefuge: number | null;
   /**
-   * Name of emergency contact person
+   * Calendar type for year of refuge (BS or AD)
    */
-  emergencyContactName: string | null;
-  /**
-   * Relationship to the emergency contact
-   */
-  emergencyContactRelationship: string | null;
-  /**
-   * Phone number of emergency contact person
-   */
-  emergencyContactPhone: string | null;
+  yearOfRefugeCalendarType: string | null;
 }
 
 export interface PersonGroup {
@@ -187,6 +204,10 @@ export interface User {
   id: string;
   image: string | null;
   name: string;
+  /**
+   * Role of the user for access control (admin, krama_instructor, viewer)
+   */
+  role: Generated<UserRole>;
   updatedAt: Timestamp;
 }
 

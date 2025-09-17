@@ -39,9 +39,11 @@ import { ThemeSwitch } from '@/components/theme-switch'
 import { IconChevronLeft, IconUpload, IconX, IconId } from '@tabler/icons-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Suspense } from 'react'
+import React from 'react'
 import PhoneInput from 'react-phone-number-input'
 import 'react-phone-number-input/style.css'
 import { PhotoIdPrintDialog } from './photo-id-print-dialog'
+import { countryToPhoneCode } from '@/utils/country-phone-codes'
 
 type PersonForm = z.infer<typeof personInputSchema>
 
@@ -120,6 +122,8 @@ function EditPersonForm({ personId }: { personId: string }) {
   const formRef = useRef<HTMLFormElement>(null)
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false)
   const [showPhotoIdDialog, setShowPhotoIdDialog] = useState(false)
+  const [primaryPhoneCountry, setPrimaryPhoneCountry] = useState<string>('NP')
+  const [secondaryPhoneCountry, setSecondaryPhoneCountry] = useState<string>('NP')
   const updatePersonMutation = useUpdatePerson()
   
   // Fetch the person data
@@ -133,7 +137,6 @@ function EditPersonForm({ personId }: { personId: string }) {
       lastName: person.lastName,
       address: person.address,
       emailId: person.emailId || undefined,
-      phoneNumber: person.phoneNumber || undefined,
       primaryPhone: person.primaryPhone || undefined,
       secondaryPhone: person.secondaryPhone || undefined,
       yearOfBirth: person.yearOfBirth || undefined,
@@ -158,10 +161,40 @@ function EditPersonForm({ personId }: { personId: string }) {
       yearOfRefugeCalendarType: person.yearOfRefugeCalendarType || 'AD',
       is_krama_instructor: person.is_krama_instructor || false,
       krama_instructor_person_id: person.krama_instructor_person_id || undefined,
+      referredBy: person.referredBy || undefined,
     },
   })
 
   const personType = form.watch('type')
+  const selectedCountry = form.watch('country')
+  const primaryPhone = form.watch('primaryPhone')
+  const secondaryPhone = form.watch('secondaryPhone')
+  
+  // Initialize phone country codes based on existing data
+  React.useEffect(() => {
+    if (person.country && countryToPhoneCode[person.country]) {
+      const countryCode = countryToPhoneCode[person.country]
+      setPrimaryPhoneCountry(countryCode)
+      setSecondaryPhoneCountry(countryCode)
+    }
+  }, [person.country])
+  
+  // Update phone country codes when country changes, but only if phone fields are empty
+  React.useEffect(() => {
+    if (selectedCountry && countryToPhoneCode[selectedCountry]) {
+      const newCountryCode = countryToPhoneCode[selectedCountry]
+      
+      // Update primary phone country if field is empty
+      if (!primaryPhone || primaryPhone.trim() === '') {
+        setPrimaryPhoneCountry(newCountryCode)
+      }
+      
+      // Update secondary phone country if field is empty
+      if (!secondaryPhone || secondaryPhone.trim() === '') {
+        setSecondaryPhoneCountry(newCountryCode)
+      }
+    }
+  }, [selectedCountry, primaryPhone, secondaryPhone])
   
   // Fetch Krama Instructors when person type is attended_orientation or sangha_member
   const { data: kramaInstructors = [] } = useQuery({
@@ -179,7 +212,6 @@ function EditPersonForm({ personId }: { personId: string }) {
       center: vals.center,
       type: vals.type,
       emailId: vals.emailId || null,
-      phoneNumber: vals.phoneNumber || null,
       primaryPhone: vals.primaryPhone || null,
       secondaryPhone: vals.secondaryPhone || null,
       yearOfBirth: vals.yearOfBirth || null,
@@ -201,6 +233,7 @@ function EditPersonForm({ personId }: { personId: string }) {
       yearOfRefugeCalendarType: vals.yearOfRefugeCalendarType || null,
       is_krama_instructor: vals.is_krama_instructor || false,
       krama_instructor_person_id: vals.krama_instructor_person_id === "none" ? null : vals.krama_instructor_person_id || null,
+      referredBy: vals.referredBy || null,
     };
     
     // Handle photo field
@@ -568,23 +601,35 @@ function EditPersonForm({ personId }: { personId: string }) {
                 />
                 <FormField
                   control={form.control}
-                  name="phoneNumber"
+                  name="country"
                   render={({ field }) => (
                     <FormItem className="space-y-1">
-                      <FormLabel>Phone Number</FormLabel>
+                      <FormLabel>Country</FormLabel>
                       <FormControl>
-                        <div className="relative">
-                          <PhoneInput
-                            international
-                            countryCallingCodeEditable={true}
-                            defaultCountry="NP"
-                            placeholder="Enter phone number"
-                            value={field.value || ''}
-                            onChange={(value) => field.onChange(value || '')}
-                            className="h-10 w-full"
-                            inputClassName="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                          />
-                        </div>
+                        <SearchableNationalitySelect
+                          value={field.value || ""}
+                          onValueChange={field.onChange}
+                          placeholder="Select country"
+                          countries={countries}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="nationality"
+                  render={({ field }) => (
+                    <FormItem className="space-y-1">
+                      <FormLabel>Nationality</FormLabel>
+                      <FormControl>
+                        <SearchableNationalitySelect
+                          value={field.value || ""}
+                          onValueChange={field.onChange}
+                          placeholder="Select nationality"
+                          countries={countries}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -601,7 +646,7 @@ function EditPersonForm({ personId }: { personId: string }) {
                           <PhoneInput
                             international
                             countryCallingCodeEditable={true}
-                            defaultCountry="NP"
+                            defaultCountry={primaryPhoneCountry as any}
                             placeholder="Enter primary phone"
                             value={field.value || ''}
                             onChange={(value) => field.onChange(value || '')}
@@ -625,7 +670,7 @@ function EditPersonForm({ personId }: { personId: string }) {
                           <PhoneInput
                             international
                             countryCallingCodeEditable={true}
-                            defaultCountry="NP"
+                            defaultCountry={secondaryPhoneCountry as any}
                             placeholder="Enter secondary phone"
                             value={field.value || ''}
                             onChange={(value) => field.onChange(value || '')}
@@ -633,37 +678,6 @@ function EditPersonForm({ personId }: { personId: string }) {
                             inputClassName="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                           />
                         </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="country"
-                  render={({ field }) => (
-                    <FormItem className="space-y-1">
-                      <FormLabel>Country</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter country" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="nationality"
-                  render={({ field }) => (
-                    <FormItem className="space-y-1">
-                      <FormLabel>Nationality</FormLabel>
-                      <FormControl>
-                        <SearchableNationalitySelect
-                          value={field.value || ""}
-                          onValueChange={field.onChange}
-                          placeholder="Select nationality"
-                          countries={countries}
-                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -690,6 +704,19 @@ function EditPersonForm({ personId }: { personId: string }) {
                       <FormLabel>Occupation</FormLabel>
                       <FormControl>
                         <Input placeholder="Enter occupation" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="referredBy"
+                  render={({ field }) => (
+                    <FormItem className="space-y-1">
+                      <FormLabel>Referred By</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Enter who referred this person" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

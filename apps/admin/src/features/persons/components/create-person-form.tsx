@@ -3,6 +3,7 @@
 import { z } from 'zod'
 import { useForm } from 'react-hook-form'
 import { useRef, useState } from 'react'
+import React from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useNavigate } from '@tanstack/react-router'
 import { useQuery } from '@tanstack/react-query'
@@ -39,6 +40,7 @@ import { ThemeSwitch } from '@/components/theme-switch'
 import { IconChevronLeft, IconUpload, IconX } from '@tabler/icons-react'
 import PhoneInput from 'react-phone-number-input'
 import 'react-phone-number-input/style.css'
+import { countryToPhoneCode } from '@/utils/country-phone-codes'
 
 type PersonForm = z.infer<typeof personInputSchema>
 
@@ -116,6 +118,8 @@ export function CreatePersonPage() {
   const navigate = useNavigate()
   const formRef = useRef<HTMLFormElement>(null)
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false)
+  const [primaryPhoneCountry, setPrimaryPhoneCountry] = useState<string>('NP')
+  const [secondaryPhoneCountry, setSecondaryPhoneCountry] = useState<string>('NP')
   const createPersonMutation = useCreatePerson()
 
   const form = useForm<PersonForm>({
@@ -126,7 +130,6 @@ export function CreatePersonPage() {
       lastName: '',
       address: '',
       emailId: undefined,
-      phoneNumber: undefined,
       primaryPhone: undefined,
       secondaryPhone: undefined,
       yearOfBirth: undefined,
@@ -151,10 +154,31 @@ export function CreatePersonPage() {
       yearOfRefugeCalendarType: 'AD',
       is_krama_instructor: false,
       krama_instructor_person_id: undefined,
+      referredBy: undefined,
     },
   })
 
   const personType = form.watch('type')
+  const selectedCountry = form.watch('country')
+  const primaryPhone = form.watch('primaryPhone')
+  const secondaryPhone = form.watch('secondaryPhone')
+  
+  // Update phone country codes when country changes, but only if phone fields are empty
+  React.useEffect(() => {
+    if (selectedCountry && countryToPhoneCode[selectedCountry]) {
+      const newCountryCode = countryToPhoneCode[selectedCountry]
+      
+      // Update primary phone country if field is empty
+      if (!primaryPhone || primaryPhone.trim() === '') {
+        setPrimaryPhoneCountry(newCountryCode)
+      }
+      
+      // Update secondary phone country if field is empty
+      if (!secondaryPhone || secondaryPhone.trim() === '') {
+        setSecondaryPhoneCountry(newCountryCode)
+      }
+    }
+  }, [selectedCountry, primaryPhone, secondaryPhone])
   
   // Fetch Krama Instructors when person type is attended_orientation or sangha_member
   const { data: kramaInstructors = [] } = useQuery({
@@ -171,7 +195,6 @@ export function CreatePersonPage() {
       center: vals.center,
       type: vals.type,
       emailId: vals.emailId || null,
-      phoneNumber: vals.phoneNumber || null,
       primaryPhone: vals.primaryPhone || null,
       secondaryPhone: vals.secondaryPhone || null,
       yearOfBirth: vals.yearOfBirth || null,
@@ -193,6 +216,7 @@ export function CreatePersonPage() {
       yearOfRefugeCalendarType: vals.yearOfRefugeCalendarType || null,
       is_krama_instructor: vals.is_krama_instructor || false,
       krama_instructor_person_id: vals.krama_instructor_person_id === "none" ? null : vals.krama_instructor_person_id || null,
+      referredBy: vals.referredBy || null,
     };
     
     // Handle photo field
@@ -557,23 +581,35 @@ export function CreatePersonPage() {
                   />
                   <FormField
                     control={form.control}
-                    name="phoneNumber"
+                    name="country"
                     render={({ field }) => (
                       <FormItem className="space-y-1">
-                        <FormLabel>Phone Number</FormLabel>
+                        <FormLabel>Country</FormLabel>
                         <FormControl>
-                          <div className="relative">
-                            <PhoneInput
-                              international
-                              countryCallingCodeEditable={true}
-                              defaultCountry="NP"
-                              placeholder="Enter phone number"
-                              value={field.value || ''}
-                              onChange={(value) => field.onChange(value || '')}
-                              className="h-10 w-full"
-                              inputClassName="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                            />
-                          </div>
+                          <SearchableNationalitySelect
+                            value={field.value || ""}
+                            onValueChange={field.onChange}
+                            placeholder="Select country"
+                            countries={countries}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="nationality"
+                    render={({ field }) => (
+                      <FormItem className="space-y-1">
+                        <FormLabel>Nationality</FormLabel>
+                        <FormControl>
+                          <SearchableNationalitySelect
+                            value={field.value || ""}
+                            onValueChange={field.onChange}
+                            placeholder="Select nationality"
+                            countries={countries}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -590,7 +626,7 @@ export function CreatePersonPage() {
                             <PhoneInput
                               international
                               countryCallingCodeEditable={true}
-                              defaultCountry="NP"
+                              defaultCountry={primaryPhoneCountry as any}
                               placeholder="Enter primary phone"
                               value={field.value || ''}
                               onChange={(value) => field.onChange(value || '')}
@@ -614,7 +650,7 @@ export function CreatePersonPage() {
                             <PhoneInput
                               international
                               countryCallingCodeEditable={true}
-                              defaultCountry="NP"
+                              defaultCountry={secondaryPhoneCountry as any}
                               placeholder="Enter secondary phone"
                               value={field.value || ''}
                               onChange={(value) => field.onChange(value || '')}
@@ -622,37 +658,6 @@ export function CreatePersonPage() {
                               inputClassName="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                             />
                           </div>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="country"
-                    render={({ field }) => (
-                      <FormItem className="space-y-1">
-                        <FormLabel>Country</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Enter country" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="nationality"
-                    render={({ field }) => (
-                      <FormItem className="space-y-1">
-                        <FormLabel>Nationality</FormLabel>
-                        <FormControl>
-                          <SearchableNationalitySelect
-                            value={field.value || ""}
-                            onValueChange={field.onChange}
-                            placeholder="Select nationality"
-                            countries={countries}
-                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -679,6 +684,19 @@ export function CreatePersonPage() {
                         <FormLabel>Occupation</FormLabel>
                         <FormControl>
                           <Input placeholder="Enter occupation" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="referredBy"
+                    render={({ field }) => (
+                      <FormItem className="space-y-1">
+                        <FormLabel>Referred By</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Enter who referred this person" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>

@@ -42,7 +42,6 @@ const personInputSchema = z.object({
   center: z.enum(["Nepal", "USA", "Australia", "UK"]).default("Nepal"),
   emailId: z.string().email().nullable().optional().default(null),
   gender: z.enum(["male", "female", "other", "prefer_not_to_say"]).nullable().optional().default(null),
-  phoneNumber: z.string().nullable().optional().default(null),
   primaryPhone: z.string().nullable().optional().default(null),
   secondaryPhone: z.string().nullable().optional().default(null),
   photo: z.string().nullable().optional().default(null).refine(
@@ -71,6 +70,7 @@ const personInputSchema = z.object({
   yearOfRefugeCalendarType: z.enum(["BS", "AD"]).nullable().optional().default(null),
   is_krama_instructor: z.boolean().nullable().optional().default(false),
   krama_instructor_person_id: z.string().uuid().nullable().optional().default(null),
+  referredBy: z.string().nullable().optional().default(null),
 });
 
 const personUpdateSchema = personInputSchema.partial();
