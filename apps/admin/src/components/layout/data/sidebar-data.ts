@@ -5,6 +5,8 @@ import {
   IconSettings,
   IconUsers,
   IconUsersGroup,
+  IconCertificate,
+  IconUser,
 } from '@tabler/icons-react'
 import { AudioWaveform, GalleryVerticalEnd } from 'lucide-react'
 import { type SidebarData } from '../types'
@@ -52,6 +54,16 @@ const baseSidebarData = {
           title: 'Events',
           url: '/events',
           icon: IconCalendar,
+        },
+        {
+          title: 'Empowerments',
+          url: '/empowerments',
+          icon: IconCertificate,
+        },
+        {
+          title: 'Gurus',
+          url: '/gurus',
+          icon: IconUser,
         },
         {
           title: 'Users',

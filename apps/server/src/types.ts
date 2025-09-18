@@ -53,6 +53,18 @@ export interface Account {
   userId: string;
 }
 
+export interface Empowerment {
+  class: string;
+  created_at: Generated<Timestamp | null>;
+  created_by: string;
+  description: string | null;
+  id: Generated<string>;
+  last_updated_by: string;
+  name: string;
+  prerequisites: string | null;
+  updated_at: Generated<Timestamp | null>;
+}
+
 export interface Event {
   createdAt: Generated<Timestamp | null>;
   createdBy: string;
@@ -222,6 +234,7 @@ export interface Verification {
 
 export interface DB {
   account: Account;
+  empowerment: Empowerment;
   event: Event;
   group: Group;
   person: Person;
