@@ -10,20 +10,22 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { IconEdit, IconTrash } from '@tabler/icons-react'
 import { useState } from 'react'
-import { EmpowermentDialog } from './empowerment-dialog'
+import { PersonEmpowermentDialog } from './person-empowerment-dialog'
 import { ConfirmDialog } from '@/components/confirm-dialog'
-import { useDeleteEmpowerment } from '../data/api'
+import { useDeletePersonEmpowerment } from '../../person-empowerments/data/api'
 import { toast } from '@/hooks/use-toast'
-import { Empowerment } from './empowerments-columns'
+import { PersonEmpowerment } from './person-empowerment-columns'
 
 interface DataTableRowActionsProps {
-  row: Row<Empowerment>
+  row: Row<PersonEmpowerment>
+  empowerments?: any[]
+  gurus?: any[]
 }
 
-export function DataTableRowActions({ row }: DataTableRowActionsProps) {
+export function DataTableRowActions({ row, empowerments = [], gurus = [] }: DataTableRowActionsProps) {
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
-  const deleteEmpowermentMutation = useDeleteEmpowerment()
+  const deleteEmpowermentMutation = useDeletePersonEmpowerment()
 
   const handleEdit = () => {
     setEditDialogOpen(true)
@@ -36,11 +38,11 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
   const confirmDelete = () => {
     deleteEmpowermentMutation.mutate(row.original.id, {
       onSuccess: () => {
-        toast({ title: 'Empowerment deleted successfully' })
+        toast({ title: 'Person empowerment deleted successfully' })
         setDeleteConfirmOpen(false)
       },
       onError: () => {
-        toast({ title: 'Failed to delete empowerment', variant: 'destructive' })
+        toast({ title: 'Failed to delete person empowerment', variant: 'destructive' })
       }
     })
   }
@@ -70,17 +72,20 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <EmpowermentDialog
+      <PersonEmpowermentDialog
         open={editDialogOpen}
         onOpenChange={setEditDialogOpen}
-        empowermentId={row.original.id}
+        personId={row.original.person_id}
+        empowerment={row.original}
+        empowerments={empowerments}
+        gurus={gurus}
       />
 
       <ConfirmDialog
         open={deleteConfirmOpen}
         onOpenChange={setDeleteConfirmOpen}
-        title="Delete Empowerment"
-        desc="Are you sure you want to delete this empowerment? This action cannot be undone."
+        title="Delete Person Empowerment"
+        desc="Are you sure you want to delete this person empowerment? This action cannot be undone."
         handleConfirm={confirmDelete}
         isLoading={deleteEmpowermentMutation.isPending}
         destructive

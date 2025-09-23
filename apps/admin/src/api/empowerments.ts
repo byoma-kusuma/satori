@@ -36,7 +36,13 @@ const fetchWithCredentials = async (url: string, options?: RequestInit) => {
 }
 
 export const getEmpowerments = async () => {
-  return fetchWithCredentials(`${EMPOWERMENT_API_URL}`)
+  try {
+    const result = await fetchWithCredentials(`${EMPOWERMENT_API_URL}`)
+    return result
+  } catch (error) {
+    console.error('Failed to fetch empowerments:', error)
+    throw error // Don't silently return empty array, let React Query handle the error
+  }
 }
 
 export const getEmpowerment = async (id: string) => {
@@ -66,6 +72,9 @@ export const deleteEmpowerment = async (id: string) => {
 export const getEmpowermentsQueryOptions = () => queryOptions({
   queryKey: ['empowerments'],
   queryFn: getEmpowerments,
+  staleTime: 5 * 60 * 1000, // 5 minutes
+  retry: 1,
+  refetchOnWindowFocus: false, // Prevent refetch loops on focus
 })
 
 export const getEmpowermentQueryOptions = (id: string) => queryOptions({

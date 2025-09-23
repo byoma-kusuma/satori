@@ -11,6 +11,7 @@ import { groupsRoutes } from "./api/group/group.route";
 import { eventsRoutes } from "./api/event/event.route";
 import { empowermentRoute } from "./api/empowerment/empowerment.route";
 import { gurusRoutes } from "./api/guru/guru.route";
+import { personEmpowermentRoute } from "./api/person-empowerment/person-empowerment.route";
 
 const app = new Hono();
 
@@ -56,6 +57,7 @@ app.route("/api/group", groupsRoutes);
 app.route("/api/event", eventsRoutes);
 app.route("/api/empowerment", empowermentRoute);
 app.route("/api/guru", gurusRoutes);
+app.route("/api/person-empowerment", personEmpowermentRoute);
 
 export default {
   port: process.env.PORT || 3000,

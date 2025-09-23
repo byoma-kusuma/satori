@@ -37,7 +37,7 @@ export const columns: ColumnDef<Guru>[] = [
     },
   },
   {
-    accessorKey: 'guruName',
+    accessorKey: 'name',
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Guru Name" />
     ),

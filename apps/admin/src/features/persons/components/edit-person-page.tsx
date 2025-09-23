@@ -297,7 +297,7 @@ function EditPersonSkeleton() {
   )
 }
 
-export function EditPersonPage() {
+export function EditPersonPageOld() {
   const navigate = useNavigate()
   const { personId } = useParams({ from: '/_authenticated/persons/$personId/edit' })
 

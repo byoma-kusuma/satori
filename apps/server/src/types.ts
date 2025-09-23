@@ -89,6 +89,15 @@ export interface Group {
   updatedAt: Generated<Timestamp | null>;
 }
 
+export interface Guru {
+  created_at: Generated<Timestamp | null>;
+  created_by: string;
+  id: Generated<string>;
+  last_updated_by: string;
+  name: string;
+  updated_at: Generated<Timestamp | null>;
+}
+
 export interface Person {
   address: string;
   center: CenterLocation;
@@ -186,6 +195,20 @@ export interface Person {
   yearOfRefugeCalendarType: string | null;
 }
 
+export interface PersonEmpowerment {
+  created_at: Generated<Timestamp | null>;
+  created_by: string;
+  empowerment_id: string;
+  end_date: Timestamp | null;
+  guru_id: string;
+  id: Generated<string>;
+  last_updated_by: string;
+  person_id: string;
+  start_date: Timestamp;
+  type: Generated<string>;
+  updated_at: Generated<Timestamp | null>;
+}
+
 export interface PersonGroup {
   addedBy: string;
   groupId: string;
@@ -237,7 +260,9 @@ export interface DB {
   empowerment: Empowerment;
   event: Event;
   group: Group;
+  guru: Guru;
   person: Person;
+  person_empowerment: PersonEmpowerment;
   person_group: PersonGroup;
   schema_migrations: SchemaMigrations;
   session: Session;

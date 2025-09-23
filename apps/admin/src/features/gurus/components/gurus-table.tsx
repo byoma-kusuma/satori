@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import {
   ColumnFiltersState,
   SortingState,
@@ -34,10 +35,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { getGurusQueryOptions, useCreateGuru, useUpdateGuru, useDeleteGuru } from '../data/api'
 
 interface Guru {
   id: string
-  guruName: string
+  name: string
 }
 
 export function GurusTable() {
@@ -49,15 +51,14 @@ export function GurusTable() {
   const [editingGuru, setEditingGuru] = useState<Guru | null>(null)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [guruToDelete, setGuruToDelete] = useState<Guru | undefined>()
-  const [gurus, setGurus] = useState<Guru[]>(() => {
-    const saved = localStorage.getItem('gurus')
-    return saved ? JSON.parse(saved) : []
-  })
 
-  // Save to localStorage whenever gurus change
-  useEffect(() => {
-    localStorage.setItem('gurus', JSON.stringify(gurus))
-  }, [gurus])
+  // Fetch gurus from API
+  const { data: gurus = [], isLoading } = useQuery(getGurusQueryOptions())
+
+  // Mutations
+  const createMutation = useCreateGuru()
+  const updateMutation = useUpdateGuru()
+  const deleteMutation = useDeleteGuru()
 
   const handleEdit = (guru: Guru) => {
     setEditingGuru(guru)
@@ -71,25 +72,33 @@ export function GurusTable() {
 
   const confirmDelete = () => {
     if (guruToDelete) {
-      setGurus(prev => prev.filter(g => g.id !== guruToDelete.id))
-      setDeleteDialogOpen(false)
-      setGuruToDelete(undefined)
+      deleteMutation.mutate(guruToDelete.id, {
+        onSuccess: () => {
+          setDeleteDialogOpen(false)
+          setGuruToDelete(undefined)
+        }
+      })
     }
   }
 
-  const handleSave = (guruData: { guruName: string }) => {
+  const handleSave = (guruData: { name: string }) => {
     if (editingGuru) {
-      setGurus(prev => prev.map(g => 
-        g.id === editingGuru.id 
-          ? { ...g, guruName: guruData.guruName }
-          : g
-      ))
+      updateMutation.mutate({
+        id: editingGuru.id,
+        data: { name: guruData.name }
+      }, {
+        onSuccess: () => {
+          setDialogOpen(false)
+          setEditingGuru(null)
+        }
+      })
     } else {
-      const newGuru: Guru = {
-        id: Date.now().toString(),
-        guruName: guruData.guruName
-      }
-      setGurus(prev => [...prev, newGuru])
+      createMutation.mutate({ name: guruData.name }, {
+        onSuccess: () => {
+          setDialogOpen(false)
+          setEditingGuru(null)
+        }
+      })
     }
   }
 
@@ -127,6 +136,10 @@ export function GurusTable() {
       rowSelection,
     },
   })
+
+  if (isLoading) {
+    return <div>Loading gurus...</div>
+  }
 
   return (
     <div className="space-y-4">
@@ -211,7 +224,7 @@ export function GurusTable() {
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
               This action cannot be undone. This will permanently delete the guru
-              "{guruToDelete?.guruName}".
+              "{guruToDelete?.name}".
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

@@ -6,33 +6,33 @@ import { Label } from '@/components/ui/label'
 
 interface Guru {
   id: string
-  guruName: string
+  name: string
 }
 
 interface GuruDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   guru?: Guru | null
-  onSave: (data: { guruName: string }) => void
+  onSave: (data: { name: string }) => void
 }
 
 export function GuruDialog({ open, onOpenChange, guru, onSave }: GuruDialogProps) {
-  const [guruName, setGuruName] = useState('')
+  const [name, setName] = useState('')
   const isEditing = !!guru
 
   useEffect(() => {
     if (open) {
-      setGuruName(guru?.guruName || '')
+      setName(guru?.name || '')
     }
   }, [open, guru])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!guruName.trim()) return
+    if (!name.trim()) return
 
-    onSave({ guruName })
+    onSave({ name })
     onOpenChange(false)
-    setGuruName('')
+    setName('')
   }
 
   return (
@@ -45,19 +45,19 @@ export function GuruDialog({ open, onOpenChange, guru, onSave }: GuruDialogProps
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="guruName">Guru Name</Label>
+            <Label htmlFor="name">Guru Name</Label>
             <Input
-              id="guruName"
+              id="name"
               placeholder="Enter guru name"
-              value={guruName}
-              onChange={(e) => setGuruName(e.target.value)}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
             />
           </div>
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="submit" disabled={!guruName.trim()}>
+            <Button type="submit" disabled={!name.trim()}>
               {isEditing ? 'Update' : 'Create'}
             </Button>
           </div>

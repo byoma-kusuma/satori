@@ -1,90 +1,97 @@
-import { Hono } from "hono";
-import { 
-  getAllGurus, 
-  getGuruById, 
-  createGuru, 
-  updateGuru, 
-  deleteGuru
-} from "./guru.service";
-import { authenticated } from "../../middlewares/session";
-import { requirePermission } from "../../middlewares/authorization";
-import { auth } from "../../lib/auth";
-import { z } from "zod";
-import { zValidator } from "@hono/zod-validator";
-import { HTTPException } from "hono/http-exception";
-
-const gurus = new Hono<{
-  Variables: {
-    user: typeof auth.$Infer.Session.user | null;
-    session: typeof auth.$Infer.Session.session | null;
-  };
-}>();
+import { Hono } from 'hono'
+import { zValidator } from '@hono/zod-validator'
+import { z } from 'zod'
+import { db } from '../../database'
+import { authenticated } from '../../middlewares/session'
 
 const guruInputSchema = z.object({
-  guruName: z.string().min(1, "Guru name is required"),
-});
+  name: z.string().min(1, 'Name is required'),
+})
 
-const guruUpdateSchema = guruInputSchema.partial();
+const guruUpdateSchema = guruInputSchema.partial()
 
-const paramsSchema = z.object({
-  id: z.string().min(1, "ID is required"),
-});
-
-gurus.onError((err, c) => {
-  console.error(`${err}`);
-  
-  if (err instanceof z.ZodError) {
-    return c.json({ 
-      success: false, 
-      message: "Validation error", 
-      errors: err.errors 
-    }, 400);
-  }
-  
-  if (err instanceof HTTPException) {
-    return c.json({ 
-      success: false, 
-      message: err.message 
-    }, err.status);
-  }
-  
-  return c.json({ 
-    success: false, 
-    message: "Internal server error" 
-  }, 500);
-});
-
-export const gurusRoutes = gurus
-  .use(authenticated)
-  .get("/", requirePermission("canViewPersons"), async (c) => {
-    const gurus = await getAllGurus();
-    return c.json(gurus);
-  })
-  .get("/:id", zValidator("param", paramsSchema), requirePermission("canViewPersons"), async (c) => {
-    const { id } = c.req.valid("param");
-    const guru = await getGuruById(id);
-    return c.json(guru);
-  })
-  .post("/", zValidator("json", guruInputSchema), requirePermission("canCreatePersons"), async (c) => {
-    const guruData = await c.req.valid("json");
-    const user = c.get("user");
-    if (!user) throw new Error("User not found");
-    const newGuru = await createGuru(guruData, user.id);
-    return c.json(newGuru, 201);
-  })
-  .put("/:id", zValidator("param", paramsSchema), zValidator("json", guruUpdateSchema), requirePermission("canEditPersons"), async (c) => {
-    const { id } = c.req.valid("param");
-    const updateData = await c.req.valid("json");
-    const user = c.get("user");
-    if (!user) throw new Error("User not found");
+export const gurusRoutes = new Hono()
+  .use('*', authenticated)
+  .get('/', async (c) => {
+    const gurus = await db
+      .selectFrom('guru')
+      .selectAll()
+      .orderBy('name', 'asc')
+      .execute()
     
-    const updatedGuru = await updateGuru(id, updateData, user.id);
-    return c.json(updatedGuru);
+    return c.json(gurus)
   })
-  .delete("/:id", zValidator("param", paramsSchema), requirePermission("canDeletePersons"), async (c) => {
-    const { id } = c.req.valid("param");
-    await deleteGuru(id);
-    return c.json({ success: true });
-  });
+  .get('/:id', async (c) => {
+    const id = c.req.param('id')
+    
+    const guru = await db
+      .selectFrom('guru')
+      .selectAll()
+      .where('id', '=', id)
+      .executeTakeFirst()
+    
+    if (!guru) {
+      return c.json({ error: 'Guru not found' }, 404)
+    }
+    
+    return c.json(guru)
+  })
+  .post('/', zValidator('json', guruInputSchema), async (c) => {
+    const data = c.req.valid('json')
+    const user = c.get('user')
+    
+    const guru = await db
+      .insertInto('guru')
+      .values({
+        name: data.name,
+        created_by: (user as any).id,
+        last_updated_by: (user as any).id,
+      })
+      .returningAll()
+      .executeTakeFirstOrThrow()
+    
+    return c.json(guru, 201)
+  })
+  .put('/:id', zValidator('json', guruUpdateSchema), async (c) => {
+    const id = c.req.param('id')
+    const data = c.req.valid('json')
+    const user = c.get('user')
+    
+    const updateData: any = {
+      last_updated_by: (user as any).id,
+      updated_at: new Date(),
+    }
+
+    if (data.name) {
+      updateData.name = data.name
+    }
+
+    const guru = await db
+      .updateTable('guru')
+      .set(updateData)
+      .where('id', '=', id)
+      .returningAll()
+      .executeTakeFirst()
+    
+    if (!guru) {
+      return c.json({ error: 'Guru not found' }, 404)
+    }
+    
+    return c.json(guru)
+  })
+  .delete('/:id', async (c) => {
+    const id = c.req.param('id')
+    
+    const result = await db
+      .deleteFrom('guru')
+      .where('id', '=', id)
+      .executeTakeFirst()
+    
+    if (Number(result.numDeletedRows) === 0) {
+      return c.json({ error: 'Guru not found' }, 404)
+    }
+    
+    return c.json({ message: 'Guru deleted successfully' })
+  })
 
 export type GuruType = typeof gurusRoutes;

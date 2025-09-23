@@ -1026,7 +1026,7 @@ function EditPersonSkeleton() {
   )
 }
 
-export function EditPersonPage() {
+export function EditPersonPageOld() {
   const navigate = useNavigate()
   const { personId } = useParams({ from: '/_authenticated/persons/$personId/edit' })
   
@@ -1060,3 +1060,6 @@ export function EditPersonPage() {
     </>
   )
 }
+
+import { EditPersonPage as EditPersonPageTabbed } from './edit-person-form-tabbed'
+export { EditPersonPageTabbed as EditPersonPage }
