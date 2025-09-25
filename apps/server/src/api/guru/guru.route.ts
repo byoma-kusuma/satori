@@ -18,7 +18,7 @@ export const gurusRoutes = new Hono()
       .selectAll()
       .orderBy('name', 'asc')
       .execute()
-    
+
     return c.json(gurus)
   })
   .get('/:id', async (c) => {
@@ -39,27 +39,26 @@ export const gurusRoutes = new Hono()
   .post('/', zValidator('json', guruInputSchema), async (c) => {
     const data = c.req.valid('json')
     const user = c.get('user')
-    
+
     const guru = await db
       .insertInto('guru')
       .values({
         name: data.name,
-        created_by: (user as any).id,
-        last_updated_by: (user as any).id,
+        created_by: user?.id || 'system',
+        last_updated_by: user?.id || 'system',
       })
       .returningAll()
       .executeTakeFirstOrThrow()
-    
+
     return c.json(guru, 201)
   })
   .put('/:id', zValidator('json', guruUpdateSchema), async (c) => {
     const id = c.req.param('id')
     const data = c.req.valid('json')
     const user = c.get('user')
-    
+
     const updateData: any = {
-      last_updated_by: (user as any).id,
-      updated_at: new Date(),
+      last_updated_by: user?.id || 'system',
     }
 
     if (data.name) {
@@ -72,26 +71,38 @@ export const gurusRoutes = new Hono()
       .where('id', '=', id)
       .returningAll()
       .executeTakeFirst()
-    
+
     if (!guru) {
       return c.json({ error: 'Guru not found' }, 404)
     }
-    
+
     return c.json(guru)
   })
   .delete('/:id', async (c) => {
     const id = c.req.param('id')
-    
-    const result = await db
-      .deleteFrom('guru')
-      .where('id', '=', id)
-      .executeTakeFirst()
-    
-    if (Number(result.numDeletedRows) === 0) {
-      return c.json({ error: 'Guru not found' }, 404)
+
+    try {
+      const result = await db
+        .deleteFrom('guru')
+        .where('id', '=', id)
+        .executeTakeFirst()
+
+      if (Number(result.numDeletedRows) === 0) {
+        return c.json({ error: 'Guru not found' }, 404)
+      }
+
+      return c.json({ message: 'Guru deleted successfully' })
+    } catch (error: any) {
+      // Check if it's a foreign key constraint violation
+      if (error.code === '23503') {
+        return c.json({
+          error: 'Cannot delete guru because it is referenced in person empowerments. Please remove all related empowerments first.'
+        }, 400)
+      }
+
+      // Re-throw other errors
+      throw error
     }
-    
-    return c.json({ message: 'Guru deleted successfully' })
   })
 
 export type GuruType = typeof gurusRoutes;

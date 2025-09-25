@@ -28,7 +28,7 @@ const fetchWithCredentials = async (url: string, options?: RequestInit) => {
     }
     
     const errorData = await response.json().catch(() => null)
-    throw new Error(errorData?.message || `API error: ${response.status} ${response.statusText}`)
+    throw new Error(errorData?.error || errorData?.message || `API error: ${response.status} ${response.statusText}`)
   }
   
   return response.json()

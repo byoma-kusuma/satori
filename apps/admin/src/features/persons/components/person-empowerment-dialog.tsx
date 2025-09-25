@@ -73,8 +73,8 @@ export function PersonEmpowermentDialog({
           empowerment_id: empowerment.empowerment_id,
           guru_id: empowerment.guru_id,
           type: empowerment.type,
-          start_date: empowerment.start_date ? new Date(empowerment.start_date).toISOString().slice(0, 10) : '',
-          end_date: empowerment.end_date ? new Date(empowerment.end_date).toISOString().slice(0, 10) : '',
+          start_date: empowerment.start_date ? empowerment.start_date.split('T')[0] : '',
+          end_date: empowerment.end_date ? empowerment.end_date.split('T')[0] : '',
         })
       } else {
         form.reset({

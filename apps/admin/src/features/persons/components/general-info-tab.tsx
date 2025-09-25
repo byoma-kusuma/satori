@@ -154,16 +154,6 @@ export function GeneralInfoTab({ form, person, formRef, onSubmit }: GeneralInfoT
         onSubmit={form.handleSubmit(onSubmit)}
         className="space-y-6"
       >
-        {/* Person Code Display */}
-        {person.personCode && (
-          <div className="bg-muted/50 p-4 rounded-lg">
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-muted-foreground">Person ID:</span>
-              <span className="font-mono text-lg font-semibold">{person.personCode}</span>
-            </div>
-          </div>
-        )}
-        
         {/* Person Type */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <FormField

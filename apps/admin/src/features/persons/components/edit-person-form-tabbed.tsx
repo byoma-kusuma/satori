@@ -130,12 +130,6 @@ function EditPersonForm({ personId }: { personId: string }) {
 
   return (
     <Card className="w-full">
-      <CardHeader>
-        <CardTitle>Edit Person</CardTitle>
-        <CardDescription>
-          Update the person's information.
-        </CardDescription>
-      </CardHeader>
       <CardContent>
         <Tabs defaultValue="general" className="w-full">
           <TabsList className="grid w-full grid-cols-2">
@@ -201,10 +195,42 @@ function EditPersonSkeleton() {
   )
 }
 
+function EditPersonHeader({ personId }: { personId: string }) {
+  const { data: person } = useSuspenseQuery(getPersonQueryOptions(personId))
+  const navigate = useNavigate()
+
+  return (
+    <div className='mb-6'>
+      <Button
+        variant="outline"
+        className="mb-4"
+        onClick={() => navigate({ to: '/persons' })}
+      >
+        <IconChevronLeft className="mr-2 h-4 w-4" /> Back to Person List
+      </Button>
+      <div className='flex items-center gap-2'>
+         <h3 className='text-2xl font-bold tracking-tight'>
+          Edit Person -
+        </h3>
+        <span className='text-lg font-medium text-muted-foreground'>{person.firstName} {person.lastName} -</span>
+       
+        {person.personCode && (
+          <span className='text-sm font-mono text-muted-foreground bg-muted px-2 py-1 rounded'>
+            {person.personCode}
+          </span>
+        )}
+      </div>
+      <p className='text-muted-foreground'>
+        Update the person's information.
+      </p>
+    </div>
+  )
+}
+
 export function EditPersonPage() {
   const navigate = useNavigate()
   const { personId } = useParams({ from: '/_authenticated/persons/$personId/edit' })
-  
+
   return (
     <>
       <Header fixed>
@@ -215,20 +241,8 @@ export function EditPersonPage() {
         </div>
       </Header>
       <Main>
-        <div className='mb-6'>
-          <Button 
-            variant="outline" 
-            className="mb-4" 
-            onClick={() => navigate({ to: '/persons' })}
-          >
-            <IconChevronLeft className="mr-2 h-4 w-4" /> Back to Person List
-          </Button>
-          <h2 className='text-2xl font-bold tracking-tight'>Edit Person</h2>
-          <p className='text-muted-foreground'>
-            Update the person's information.
-          </p>
-        </div>
         <Suspense fallback={<EditPersonSkeleton />}>
+          <EditPersonHeader personId={personId} />
           <EditPersonForm personId={personId} />
         </Suspense>
       </Main>

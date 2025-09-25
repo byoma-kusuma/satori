@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { toast } from '@/hooks/use-toast'
 import {
   ColumnFiltersState,
   SortingState,
@@ -76,6 +77,17 @@ export function GurusTable() {
         onSuccess: () => {
           setDeleteDialogOpen(false)
           setGuruToDelete(undefined)
+          toast({
+            title: 'Success',
+            description: 'Guru deleted successfully',
+          })
+        },
+        onError: (error: any) => {
+          toast({
+            title: 'Error',
+            description: error?.message || 'Failed to delete guru',
+            variant: 'destructive',
+          })
         }
       })
     }

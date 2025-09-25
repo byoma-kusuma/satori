@@ -79,15 +79,65 @@ export const empowermentRoute = new Hono()
   })
   .delete('/:id', async (c) => {
     const id = c.req.param('id')
-    
-    const result = await db
-      .deleteFrom('empowerment')
+
+    // Check if empowerment exists
+    const empowerment = await db
+      .selectFrom('empowerment')
+      .select('id')
       .where('id', '=', id)
       .executeTakeFirst()
-    
-    if (result.numDeletedRows === 0n) {
+
+    if (!empowerment) {
       return c.json({ error: 'Empowerment not found' }, 404)
     }
-    
-    return c.json({ message: 'Empowerment deleted successfully' })
+
+    // Check if empowerment is referenced in person_empowerment table
+    const personEmpowermentCount = await db
+      .selectFrom('person_empowerment')
+      .select((eb) => eb.fn.count('id').as('count'))
+      .where('empowerment_id', '=', id)
+      .executeTakeFirst()
+
+    if (personEmpowermentCount && Number(personEmpowermentCount.count) > 0) {
+      return c.json({
+        error: 'Cannot delete empowerment because it is referenced by person empowerment records',
+        details: `This empowerment is assigned to ${personEmpowermentCount.count} person(s)`
+      }, 409)
+    }
+
+    try {
+      const result = await db
+        .deleteFrom('empowerment')
+        .where('id', '=', id)
+        .executeTakeFirst()
+
+      return c.json({ message: 'Empowerment deleted successfully' })
+    } catch (error: any) {
+      // Handle foreign key constraint violations
+      if (error.code === '23503' || error.message?.includes('foreign key constraint')) {
+        // Double-check the reference count for a more accurate message
+        const personEmpowermentCount = await db
+          .selectFrom('person_empowerment')
+          .select((eb) => eb.fn.count('id').as('count'))
+          .where('empowerment_id', '=', id)
+          .executeTakeFirst()
+
+        const count = personEmpowermentCount ? Number(personEmpowermentCount.count) : 0
+
+        return c.json({
+          error: 'Cannot delete empowerment because it is currently assigned to people',
+          details: count > 0
+            ? `This empowerment is assigned to ${count} person(s). Please remove all assignments before deleting.`
+            : 'This empowerment is referenced by other records and cannot be deleted.',
+          code: 'FOREIGN_KEY_VIOLATION'
+        }, 409)
+      }
+
+      // Handle other database errors
+      console.error('Error deleting empowerment:', error)
+      return c.json({
+        error: 'Failed to delete empowerment',
+        details: 'An unexpected error occurred while trying to delete the empowerment.'
+      }, 500)
+    }
   })

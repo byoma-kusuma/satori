@@ -81,7 +81,6 @@ function EditPersonForm({ personId }: { personId: string }) {
   return (
     <Card className="max-w-2xl mx-auto">
       <CardHeader>
-        <CardTitle>Edit Person</CardTitle>
         <CardDescription>
           Update the person's information.
         </CardDescription>

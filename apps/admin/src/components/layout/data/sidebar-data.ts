@@ -15,13 +15,13 @@ import { ByomaKusumaIcon } from '@/components/byoma-kusuma-icon'
 
 const baseSidebarData = {
   user: {
-    name: 'ByomaKusuma',
+    name: 'Byoma Kusuma',
     email: 'placeholder@byomakusuma.com',
     avatar: '/avatars/byoma-kusuma.jpg',
   },
   teams: [
     {
-      name: 'ByomaKusuma',
+      name: 'Byoma Kusuma',
       logo: ByomaKusumaIcon,
       plan: 'ByomaKusuma UI',
     },
