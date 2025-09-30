@@ -58,7 +58,6 @@ export function PersonEmpowermentDialog({
       person_id: personId,
       empowerment_id: '',
       guru_id: '',
-      type: 'Wang',
       start_date: '',
       end_date: '',
     },
@@ -72,7 +71,6 @@ export function PersonEmpowermentDialog({
           person_id: personId,
           empowerment_id: empowerment.empowerment_id,
           guru_id: empowerment.guru_id,
-          type: empowerment.type,
           start_date: empowerment.start_date ? empowerment.start_date.split('T')[0] : '',
           end_date: empowerment.end_date ? empowerment.end_date.split('T')[0] : '',
         })
@@ -81,7 +79,6 @@ export function PersonEmpowermentDialog({
           person_id: personId,
           empowerment_id: '',
           guru_id: '',
-          type: 'Wang',
           start_date: '',
           end_date: '',
         })
@@ -181,31 +178,6 @@ export function PersonEmpowermentDialog({
                 </FormItem>
               )}
             />
-
-            <FormField
-              control={form.control}
-              name="type"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Type</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select type" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="Wang">Wang</SelectItem>
-                      <SelectItem value="Lung">Lung</SelectItem>
-                      <SelectItem value="Tri">Tri</SelectItem>
-                      <SelectItem value="Jenang">Jenang</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
             <FormField
               control={form.control}
               name="guru_id"

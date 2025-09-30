@@ -1,38 +1,22 @@
-import { EventRegistrationMode, EventStatus } from '../../types'
+export type EventRegistrationMode = 'PRE_REGISTRATION' | 'WALK_IN'
+export type EventStatus = 'DRAFT' | 'ACTIVE' | 'CLOSED'
 
-export type EventMetadata = Record<string, unknown>
-
-export interface EmpowermentEventMetadata extends EventMetadata {
-  type?: 'EMPOWERMENT'
-  empowermentId: string
-  guruId: string
-}
-
-export interface CreateEventInput {
-  name: string
-  description?: string | null
-  startDate: Date | string
-  endDate: Date | string
-  registrationMode: EventRegistrationMode
-  categoryId: string
-  empowermentId?: string | null
-  guruId?: string | null
-  metadata?: EventMetadata | null
-}
-
-export type UpdateEventInput = Partial<Omit<CreateEventInput, 'categoryId'>> & {
-  categoryId?: string
-  status?: EventStatus
-}
-
-export interface EventCategoryDto {
+export interface EventCategory {
   id: string
   code: string
   name: string
   requiresFullAttendance: boolean
 }
 
-export interface EventSummaryDto {
+export type EventMetadata = Record<string, unknown>
+
+export interface EmpowermentEventMetadata extends EventMetadata {
+  type: 'EMPOWERMENT'
+  empowermentId: string
+  guruId: string
+}
+
+export interface EventSummary {
   id: string
   name: string
   categoryCode: string
@@ -46,13 +30,13 @@ export interface EventSummaryDto {
   daysCount: number
 }
 
-export interface EventDayDto {
+export interface EventDay {
   id: string
   dayNumber: number
   eventDate: string
 }
 
-export interface AttendeeDayCheckInDto {
+export interface AttendeeDayCheckIn {
   dayId: string
   dayNumber: number
   eventDate: string
@@ -61,7 +45,7 @@ export interface AttendeeDayCheckInDto {
   checkedInBy?: string
 }
 
-export interface EventAttendeeDto {
+export interface EventAttendee {
   attendeeId: string
   personId: string
   firstName: string
@@ -72,12 +56,12 @@ export interface EventAttendeeDto {
   receivedEmpowerment: boolean
   empowermentRecordId?: string | null
   notes?: string | null
-  attendance: AttendeeDayCheckInDto[]
+  attendance: AttendeeDayCheckIn[]
   attendedAllDays: boolean
   metadata: EventMetadata
 }
 
-export interface EventDetailDto {
+export interface EventDetail {
   id: string
   name: string
   description: string | null
@@ -85,33 +69,49 @@ export interface EventDetailDto {
   endDate: string
   registrationMode: EventRegistrationMode
   status: EventStatus
-  category: EventCategoryDto
+  category: EventCategory
   empowermentId: string | null
   guruId: string | null
   closedAt: string | null
   closedBy: string | null
-  days: EventDayDto[]
-  attendees: EventAttendeeDto[]
-  metadata: EventMetadata
+  days: EventDay[]
+  attendees: EventAttendee[]
+  metadata: EventMetadata | null
 }
 
-export interface AddAttendeeInput {
+export interface CreateEventPayload {
+  name: string
+  description?: string | null
+  startDate: string
+  endDate: string
+  registrationMode: EventRegistrationMode
+  categoryId: string
+  empowermentId?: string | null
+  guruId?: string | null
+  metadata?: EventMetadata
+}
+
+export type UpdateEventPayload = Partial<CreateEventPayload> & {
+  status?: EventStatus
+}
+
+export interface AddAttendeePayload {
   personId: string
   notes?: string | null
-  metadata?: EventMetadata | null
+  metadata?: EventMetadata
 }
 
-export interface UpdateAttendeeInput {
+export interface UpdateAttendeePayload {
   notes?: string | null
-  metadata?: EventMetadata | null
+  metadata?: EventMetadata
 }
 
-export interface CheckInInput {
+export interface CheckInPayload {
   attendeeId: string
   dayId: string
   checkedIn: boolean
 }
 
-export interface CloseEventInput {
+export interface CloseEventPayload {
   attendeeIds: string[]
 }

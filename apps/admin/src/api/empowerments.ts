@@ -52,14 +52,24 @@ export const getEmpowerment = async (id: string) => {
 export const createEmpowerment = async (data: EmpowermentInput) => {
   return fetchWithCredentials(`${EMPOWERMENT_API_URL}`, {
     method: 'POST',
-    body: JSON.stringify(data),
+    body: JSON.stringify({
+      ...data,
+      class: data.class ?? null,
+      major_empowerment: data.major_empowerment ?? false,
+    }),
   })
 }
 
 export const updateEmpowerment = async (id: string, data: Partial<EmpowermentInput>) => {
   return fetchWithCredentials(`${EMPOWERMENT_API_URL}/${id}`, {
     method: 'PUT',
-    body: JSON.stringify(data),
+    body: JSON.stringify({
+      ...data,
+      class: data.class ?? null,
+      ...(data.major_empowerment !== undefined
+        ? { major_empowerment: data.major_empowerment }
+        : {}),
+    }),
   })
 }
 

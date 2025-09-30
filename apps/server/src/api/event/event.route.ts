@@ -1,192 +1,212 @@
-import { Hono } from "hono";
-import { 
-  getAllEvents, 
-  getEventById, 
-  createEvent, 
-  updateEvent, 
+import { Hono } from 'hono'
+import { HTTPException } from 'hono/http-exception'
+import { z } from 'zod'
+import { zValidator } from '@hono/zod-validator'
+
+import { auth } from '../../lib/auth'
+import { authenticated } from '../../middlewares/session'
+import {
+  addAttendee,
+  closeEvent,
+  createEvent,
   deleteEvent,
-  getEventsByType,
-  addParticipantToEvent,
-  removeParticipantFromEvent,
-  updateParticipantData,
-  getEventParticipants
-} from "./event.service";
-import { authenticated } from "../../middlewares/session";
-import { auth } from "../../lib/auth";
-import { z } from "zod";
-import { zValidator } from "@hono/zod-validator";
-import { HTTPException } from "hono/http-exception";
-import { EventType } from "./event.types";
+  getEventDetail,
+  listEventCategories,
+  listEvents,
+  removeAttendee,
+  setAttendeeCheckIn,
+  updateAttendee,
+  updateEvent,
+} from './event.service'
+
+const registrationModeSchema = z.enum(['PRE_REGISTRATION', 'WALK_IN'])
+const statusSchema = z.enum(['DRAFT', 'ACTIVE', 'CLOSED'])
+const metadataSchema = z.record(z.unknown())
+
+const createEventSchema = z.object({
+  name: z.string().min(1, 'Name is required'),
+  description: z.string().optional().nullable(),
+  startDate: z.union([z.string().min(1), z.date()]),
+  endDate: z.union([z.string().min(1), z.date()]),
+  registrationMode: registrationModeSchema,
+  categoryId: z.string().uuid('Category ID must be a valid UUID'),
+  empowermentId: z.string().uuid().optional().nullable(),
+  guruId: z.string().uuid().optional().nullable(),
+  metadata: metadataSchema.optional().nullable(),
+})
+
+const updateEventSchema = createEventSchema.partial().extend({
+  status: statusSchema.optional(),
+})
+
+const paramsSchema = z.object({
+  id: z.string().uuid('Event ID must be a valid UUID'),
+})
+
+const attendeeParamsSchema = z.object({
+  id: z.string().uuid('Event ID must be a valid UUID'),
+  attendeeId: z.string().uuid('Attendee ID must be a valid UUID'),
+})
+
+const addAttendeeSchema = z.object({
+  personId: z.string().uuid('Person ID must be a valid UUID'),
+  notes: z.string().max(2000).optional().nullable(),
+  metadata: metadataSchema.optional().nullable(),
+})
+
+const updateAttendeeSchema = z.object({
+  notes: z.string().max(2000).optional().nullable(),
+  metadata: metadataSchema.optional().nullable(),
+})
+
+const checkInSchema = z.object({
+  attendeeId: z.string().uuid('Attendee ID must be a valid UUID'),
+  dayId: z.string().uuid('Day ID must be a valid UUID'),
+  checkedIn: z.boolean(),
+})
+
+const closeEventSchema = z.object({
+  attendeeIds: z.array(z.string().uuid('Attendee ID must be a valid UUID')),
+})
 
 const events = new Hono<{
   Variables: {
-    user: typeof auth.$Infer.Session.user | null;
-    session: typeof auth.$Infer.Session.session | null;
-  };
-}>();
-
-// Create base schemas
-const eventTypeSchema = z.enum(["REFUGE", "BODHIPUSPANJALI"]);
-
-// Define the input schema for creating events
-const eventInputSchema = z.object({
-  name: z.string().min(1, "Name is required"),
-  description: z.string().optional().nullable().transform(val => val === "" ? null : val),
-  startDate: z.string().or(z.date()),
-  endDate: z.string().or(z.date()),
-  type: eventTypeSchema,
-  metadata: z.any().optional(),
-});
-
-const eventUpdateSchema = eventInputSchema.partial();
-
-const paramsSchema = z.object({
-  id: z.string().min(1, "ID is required"),
-});
-
-const addParticipantSchema = z.object({
-  personId: z.string().uuid("Invalid person ID"),
-  additionalData: z.record(z.any()).optional().default({}),
-});
-
-const updateParticipantSchema = z.object({
-  personId: z.string().uuid("Invalid person ID"),
-  data: z.record(z.any()),
-});
-
-events.onError((err, c) => {
-  console.error(`Event API Error: ${err}`);
-  
-  if (err instanceof z.ZodError) {
-    console.error('Validation errors:', err.errors);
-    return c.json({ 
-      success: false, 
-      message: "Validation error", 
-      errors: err.errors 
-    }, 400);
+    user: typeof auth.$Infer.Session.user | null
+    session: typeof auth.$Infer.Session.session | null
   }
-  
-  if (err instanceof HTTPException) {
-    return c.json({ 
-      success: false, 
-      message: err.message 
-    }, err.status);
+}>()
+
+const requireUser = (user: typeof auth.$Infer.Session.user | null) => {
+  if (!user) {
+    throw new HTTPException(401, { message: 'Authentication required' })
   }
-  
-  return c.json({ 
-    success: false, 
-    message: "Internal server error" 
-  }, 500);
-});
+  return user
+}
+
+const handleServiceError = (error: unknown) => {
+  if (error instanceof HTTPException) {
+    throw error
+  }
+  if (error instanceof Error) {
+    throw new HTTPException(400, { message: error.message })
+  }
+  throw new HTTPException(500, { message: 'An unexpected error occurred' })
+}
 
 export const eventsRoutes = events
   .use(authenticated)
-  // Get all events, optionally filtered by type
-  .get("/", async (c) => {
-    const type = c.req.query('type') as EventType | undefined;
-    
-    if (type && ['REFUGE', 'BODHIPUSPANJALI'].includes(type)) {
-      const events = await getEventsByType(type);
-      return c.json(events);
-    }
-    
-    const events = await getAllEvents();
-    return c.json(events);
-  })
-  // Get a specific event by ID
-  .get("/:id", zValidator("param", paramsSchema), async (c) => {
-    const { id } = c.req.valid("param");
-    const event = await getEventById(id);
-    return c.json(event);
-  })
-  // Create a new event
-  .post("/", zValidator("json", eventInputSchema), async (c) => {
-    const eventData = await c.req.valid("json");
-    const user = c.get("user");
-    if (!user) throw new Error("User not found");
-    
-    console.log('Creating event with data:', eventData);
-    const newEvent = await createEvent(eventData, user.id);
-    return c.json(newEvent, 201);
-  })
-  // Update an existing event
-  .put("/:id", zValidator("param", paramsSchema), zValidator("json", eventUpdateSchema), async (c) => {
-    const { id } = c.req.valid("param");
-    const updateData = await c.req.valid("json");
-    const user = c.get("user");
-    if (!user) throw new Error("User not found");
-    const updatedEvent = await updateEvent(id, updateData, user.id);
-    return c.json(updatedEvent);
-  })
-  // Delete an event
-  .delete("/:id", zValidator("param", paramsSchema), async (c) => {
-    const { id } = c.req.valid("param");
-    await deleteEvent(id);
-    return c.json({ success: true });
-  })
-  // Get all participants for an event
-  .get("/:id/participants", zValidator("param", paramsSchema), async (c) => {
-    const { id } = c.req.valid("param");
-    const participants = await getEventParticipants(id);
-    return c.json(participants);
-  })
-  // Add a participant to an event
-  .post("/:id/participants", zValidator("param", paramsSchema), zValidator("json", addParticipantSchema), async (c) => {
-    const { id } = c.req.valid("param");
-    const { personId, additionalData } = await c.req.valid("json");
-    const user = c.get("user");
-    if (!user) throw new Error("User not found");
-    
-    console.log("Adding participant to event:", {
-      eventId: id,
-      personId,
-      additionalData
-    });
-    
+  .get('/types', async (c) => {
     try {
-      const result = await addParticipantToEvent({ 
-        eventId: id, 
-        personId,
-        additionalData: additionalData || {}
-      }, user.id);
-      
-      return c.json(result, 201);
+      const categories = await listEventCategories()
+      return c.json(categories)
     } catch (error) {
-      console.error("Error adding participant:", error);
-      throw error;
+      handleServiceError(error)
     }
   })
-  // Update a participant's data
-  .put("/:id/participants/:personId", zValidator("param", z.object({
-    id: z.string().min(1, "Event ID is required"),
-    personId: z.string().min(1, "Person ID is required"),
-  })), zValidator("json", z.object({
-    data: z.record(z.any())
-  })), async (c) => {
-    const { id, personId } = c.req.valid("param");
-    const { data } = await c.req.valid("json");
-    const user = c.get("user");
-    if (!user) throw new Error("User not found");
-    
-    const result = await updateParticipantData({
-      eventId: id,
-      personId,
-      data
-    }, user.id);
-    
-    return c.json(result);
+  .get('/', async (c) => {
+    try {
+      const items = await listEvents()
+      return c.json(items)
+    } catch (error) {
+      handleServiceError(error)
+    }
   })
-  // Remove a participant from an event
-  .delete("/:id/participants/:personId", zValidator("param", z.object({
-    id: z.string().min(1, "Event ID is required"),
-    personId: z.string().min(1, "Person ID is required"),
-  })), async (c) => {
-    const { id, personId } = c.req.valid("param");
-    const user = c.get("user");
-    if (!user) throw new Error("User not found");
-    
-    await removeParticipantFromEvent(id, personId, user.id);
-    return c.json({ success: true });
-  });
+  .post('/', zValidator('json', createEventSchema), async (c) => {
+    try {
+      const user = requireUser(c.get('user'))
+      const payload = await c.req.valid('json')
+      const event = await createEvent(payload, user.id)
+      return c.json(event, 201)
+    } catch (error) {
+      handleServiceError(error)
+    }
+  })
+  .get('/:id', zValidator('param', paramsSchema), async (c) => {
+    try {
+      const { id } = c.req.valid('param')
+      const event = await getEventDetail(id)
+      return c.json(event)
+    } catch (error) {
+      handleServiceError(error)
+    }
+  })
+  .put('/:id', zValidator('param', paramsSchema), zValidator('json', updateEventSchema), async (c) => {
+    try {
+      const user = requireUser(c.get('user'))
+      const { id } = c.req.valid('param')
+      const payload = await c.req.valid('json')
+      const event = await updateEvent(id, payload, user.id)
+      return c.json(event)
+    } catch (error) {
+      handleServiceError(error)
+    }
+  })
+  .delete('/:id', zValidator('param', paramsSchema), async (c) => {
+    try {
+      const { id } = c.req.valid('param')
+      await deleteEvent(id)
+      return c.json({ success: true })
+    } catch (error) {
+      handleServiceError(error)
+    }
+  })
+  .post('/:id/attendees', zValidator('param', paramsSchema), zValidator('json', addAttendeeSchema), async (c) => {
+    try {
+      const user = requireUser(c.get('user'))
+      const { id } = c.req.valid('param')
+      const payload = await c.req.valid('json')
+      const attendee = await addAttendee(id, payload, user.id)
+      return c.json(attendee, 201)
+    } catch (error) {
+      handleServiceError(error)
+    }
+  })
+  .delete('/:id/attendees/:attendeeId', zValidator('param', attendeeParamsSchema), async (c) => {
+    try {
+      const { id, attendeeId } = c.req.valid('param')
+      await removeAttendee(id, attendeeId)
+      return c.json({ success: true })
+    } catch (error) {
+      handleServiceError(error)
+    }
+  })
+  .patch(
+    '/:id/attendees/:attendeeId',
+    zValidator('param', attendeeParamsSchema),
+    zValidator('json', updateAttendeeSchema),
+    async (c) => {
+      try {
+        const { id, attendeeId } = c.req.valid('param')
+        const payload = await c.req.valid('json')
+        const attendee = await updateAttendee(id, attendeeId, payload)
+        return c.json(attendee)
+      } catch (error) {
+        handleServiceError(error)
+      }
+    },
+  )
+  .post('/:id/check-ins', zValidator('param', paramsSchema), zValidator('json', checkInSchema), async (c) => {
+    try {
+      const user = requireUser(c.get('user'))
+      const { id } = c.req.valid('param')
+      const payload = await c.req.valid('json')
+      const result = await setAttendeeCheckIn(id, payload, user.id)
+      return c.json(result)
+    } catch (error) {
+      handleServiceError(error)
+    }
+  })
+  .post('/:id/close', zValidator('param', paramsSchema), zValidator('json', closeEventSchema), async (c) => {
+    try {
+      const user = requireUser(c.get('user'))
+      const { id } = c.req.valid('param')
+      const payload = await c.req.valid('json')
+      await closeEvent(id, payload, user.id)
+      const event = await getEventDetail(id)
+      return c.json(event)
+    } catch (error) {
+      handleServiceError(error)
+    }
+  })
 
-export type EventsType = typeof eventsRoutes;
+export type EventsType = typeof eventsRoutes

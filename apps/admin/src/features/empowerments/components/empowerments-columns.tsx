@@ -11,6 +11,9 @@ export interface Empowerment {
   class: string
   description?: string
   prerequisites?: string
+  type?: string
+  form?: string
+  major_empowerment: boolean
 }
 
 export const columns: ColumnDef<Empowerment>[] = [
@@ -57,31 +60,61 @@ export const columns: ColumnDef<Empowerment>[] = [
     },
   },
   {
+    accessorKey: 'major_empowerment',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title='Major Empowerment' />
+    ),
+    cell: ({ row }) => {
+      const isMajor = row.getValue<boolean>('major_empowerment')
+      return (
+        <Badge variant={isMajor ? 'default' : 'outline'}>
+          {isMajor ? 'Yes' : 'No'}
+        </Badge>
+      )
+    },
+  },
+  {
     accessorKey: 'class',
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Class" />
     ),
     cell: ({ row }) => {
-      const empowermentClass = row.getValue<string>('class')
-      
-      const badgeVariant = empowermentClass === 'Anuttarayoga Tantra' 
-        ? 'default' 
-        : empowermentClass === 'Yoga Tantra' 
-          ? 'secondary' 
+      const empowermentClass = row.getValue<string | null>('class')
+
+      if (!empowermentClass) {
+        return <span className='text-muted-foreground'>—</span>
+      }
+
+      const badgeVariant = empowermentClass === 'Anuttarayoga Tantra'
+        ? 'default'
+        : empowermentClass === 'Yoga Tantra'
+          ? 'secondary'
           : empowermentClass === 'Charyā Tantra'
             ? 'destructive'
             : 'outline'
-          
-      return (
-        <Badge variant={badgeVariant}>
-          {empowermentClass}
-        </Badge>
-      )
+
+      return <Badge variant={badgeVariant}>{empowermentClass}</Badge>
     },
     filterFn: (row, id, value) => {
-      return value.includes(row.getValue(id))
+      const cellValue = row.getValue<string | null>(id)
+      if (!cellValue) return false
+      return value.includes(cellValue)
     },
     enableColumnFilter: true,
+  },
+  {
+    accessorKey: 'type',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title='Type' />
+    ),
+    cell: ({ row }) => row.getValue<string>('type') ?? '-',
+  },
+  {
+    accessorKey: 'form',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title='Form' />
+    ),
+    cell: ({ row }) => row.getValue<string>('form') ?? '-',
   },
   {
     accessorKey: 'description',

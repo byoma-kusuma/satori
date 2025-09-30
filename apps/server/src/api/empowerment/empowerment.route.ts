@@ -6,9 +6,12 @@ import { authenticated } from '../../middlewares/session'
 
 const empowermentInputSchema = z.object({
   name: z.string().min(1, 'Name is required'),
-  class: z.enum(['Kriyā Tantra', 'Charyā Tantra', 'Yoga Tantra', 'Anuttarayoga Tantra']),
+  class: z.enum(['Kriyā Tantra', 'Charyā Tantra', 'Yoga Tantra', 'Anuttarayoga Tantra']).optional(),
   description: z.string().optional(),
   prerequisites: z.string().optional(),
+  type: z.enum(['Sutra', 'Tantra']),
+  form: z.enum(['Wang - empowerment', 'Lung - reading transmission', 'Tri - oral instructions']),
+  major_empowerment: z.boolean().optional(),
 })
 
 const empowermentUpdateSchema = empowermentInputSchema.partial()
@@ -47,6 +50,8 @@ export const empowermentRoute = new Hono()
       .insertInto('empowerment')
       .values({
         ...data,
+        class: data.class ?? null,
+        major_empowerment: data.major_empowerment ?? false,
         created_by: user.id,
         last_updated_by: user.id,
       })
@@ -59,14 +64,26 @@ export const empowermentRoute = new Hono()
     const id = c.req.param('id')
     const data = c.req.valid('json')
     const user = c.get('user')
-    
+
+    const { class: classValue, major_empowerment, ...rest } = data
+
+    const updatePayload: Record<string, unknown> = {
+      ...rest,
+      last_updated_by: user.id,
+      updated_at: new Date(),
+    }
+
+    if (classValue !== undefined) {
+      updatePayload.class = classValue ?? null
+    }
+
+    if (major_empowerment !== undefined) {
+      updatePayload.major_empowerment = major_empowerment
+    }
+
     const empowerment = await db
       .updateTable('empowerment')
-      .set({
-        ...data,
-        last_updated_by: user.id,
-        updated_at: new Date(),
-      })
+      .set(updatePayload)
       .where('id', '=', id)
       .returningAll()
       .executeTakeFirst()

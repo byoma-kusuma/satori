@@ -36,7 +36,7 @@ app.use(
       return null // no header -> browser blocks it
     },
     allowHeaders: ['Content-Type', 'Authorization'],
-    allowMethods: ['POST', 'GET', 'PUT', 'DELETE', 'OPTIONS'],
+    allowMethods: ['POST', 'GET', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     exposeHeaders: ['Content-Length'],
     credentials: true,
   })

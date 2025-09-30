@@ -7,7 +7,9 @@ import type { ColumnType } from "kysely";
 
 export type CenterLocation = "Australia" | "Nepal" | "UK" | "USA";
 
-export type EventType = "BODHIPUSPANJALI" | "REFUGE";
+export type EventRegistrationMode = "PRE_REGISTRATION" | "WALK_IN";
+
+export type EventStatus = "ACTIVE" | "CLOSED" | "DRAFT";
 
 export type GenderType = "female" | "male" | "other" | "prefer_not_to_say";
 
@@ -54,29 +56,77 @@ export interface Account {
 }
 
 export interface Empowerment {
-  class: string;
+  class: string | null;
   created_at: Generated<Timestamp | null>;
   created_by: string;
   description: string | null;
+  form: string | null;
   id: Generated<string>;
   last_updated_by: string;
+  major_empowerment: Generated<boolean>;
   name: string;
   prerequisites: string | null;
+  type: string | null;
   updated_at: Generated<Timestamp | null>;
 }
 
 export interface Event {
-  createdAt: Generated<Timestamp | null>;
-  createdBy: string;
+  category_id: string;
+  closed_at: Timestamp | null;
+  closed_by: string | null;
+  created_at: Generated<Timestamp | null>;
+  created_by: string;
   description: string | null;
-  endDate: Timestamp;
+  empowerment_id: string | null;
+  end_date: Timestamp;
+  guru_id: string | null;
   id: Generated<string>;
-  lastUpdatedBy: string;
-  metadata: Generated<Json | null>;
+  last_updated_by: string;
+  metadata: Generated<Json>;
   name: string;
-  startDate: Timestamp;
-  type: EventType;
-  updatedAt: Generated<Timestamp | null>;
+  registration_mode: EventRegistrationMode;
+  start_date: Timestamp;
+  status: Generated<EventStatus>;
+  updated_at: Generated<Timestamp | null>;
+}
+
+export interface EventAttendance {
+  checked_in_at: Generated<Timestamp>;
+  checked_in_by: string;
+  event_attendee_id: string;
+  event_day_id: string;
+  id: Generated<string>;
+}
+
+export interface EventAttendee {
+  empowerment_record_id: string | null;
+  event_id: string;
+  id: Generated<string>;
+  is_cancelled: Generated<boolean>;
+  metadata: Generated<Json>;
+  notes: string | null;
+  person_id: string;
+  received_empowerment: Generated<boolean>;
+  registered_at: Generated<Timestamp | null>;
+  registered_by: string;
+  registration_mode: EventRegistrationMode;
+}
+
+export interface EventCategory {
+  code: string;
+  created_at: Generated<Timestamp | null>;
+  id: Generated<string>;
+  name: string;
+  requires_full_attendance: Generated<boolean>;
+  updated_at: Generated<Timestamp | null>;
+}
+
+export interface EventDay {
+  created_at: Generated<Timestamp | null>;
+  day_number: number;
+  event_date: Timestamp;
+  event_id: string;
+  id: Generated<string>;
 }
 
 export interface Group {
@@ -205,7 +255,6 @@ export interface PersonEmpowerment {
   last_updated_by: string;
   person_id: string;
   start_date: Timestamp;
-  type: Generated<string>;
   updated_at: Generated<Timestamp | null>;
 }
 
@@ -259,6 +308,10 @@ export interface DB {
   account: Account;
   empowerment: Empowerment;
   event: Event;
+  event_attendance: EventAttendance;
+  event_attendee: EventAttendee;
+  event_category: EventCategory;
+  event_day: EventDay;
   group: Group;
   guru: Guru;
   person: Person;

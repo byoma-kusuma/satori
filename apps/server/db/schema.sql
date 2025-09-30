@@ -36,12 +36,23 @@ CREATE TYPE public.center_location AS ENUM (
 
 
 --
--- Name: event_type; Type: TYPE; Schema: public; Owner: -
+-- Name: event_registration_mode; Type: TYPE; Schema: public; Owner: -
 --
 
-CREATE TYPE public.event_type AS ENUM (
-    'REFUGE',
-    'BODHIPUSPANJALI'
+CREATE TYPE public.event_registration_mode AS ENUM (
+    'PRE_REGISTRATION',
+    'WALK_IN'
+);
+
+
+--
+-- Name: event_status; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.event_status AS ENUM (
+    'DRAFT',
+    'ACTIVE',
+    'CLOSED'
 );
 
 
@@ -95,6 +106,20 @@ END;
 $$;
 
 
+--
+-- Name: update_updated_at_column_snake(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.update_updated_at_column_snake() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    NEW.updated_at = CURRENT_TIMESTAMP;
+    RETURN NEW;
+END;
+$$;
+
+
 SET default_tablespace = '';
 
 SET default_table_access_method = heap;
@@ -121,6 +146,20 @@ CREATE TABLE public.account (
 
 
 --
+-- Name: event_category; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.event_category (
+    id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
+    code text NOT NULL,
+    name text NOT NULL,
+    requires_full_attendance boolean DEFAULT false NOT NULL,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP
+);
+
+
+--
 -- Name: event; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -128,14 +167,65 @@ CREATE TABLE public.event (
     id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
     name character varying(255) NOT NULL,
     description text,
-    "startDate" timestamp with time zone NOT NULL,
-    "endDate" timestamp with time zone NOT NULL,
-    "createdAt" timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
-    "createdBy" text NOT NULL,
-    "lastUpdatedBy" text NOT NULL,
-    type public.event_type NOT NULL,
-    metadata jsonb DEFAULT '{}'::jsonb
+    start_date timestamp with time zone NOT NULL,
+    end_date timestamp with time zone NOT NULL,
+    registration_mode public.event_registration_mode NOT NULL,
+    status public.event_status DEFAULT 'ACTIVE'::public.event_status NOT NULL,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+    created_by text NOT NULL,
+    last_updated_by text NOT NULL,
+    category_id uuid NOT NULL,
+    closed_at timestamp with time zone,
+    closed_by text,
+    empowerment_id uuid,
+    guru_id uuid,
+    CONSTRAINT event_date_range CHECK ((end_date >= start_date))
+);
+
+
+--
+-- Name: event_attendee; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.event_attendee (
+    id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
+    event_id uuid NOT NULL,
+    person_id uuid NOT NULL,
+    registration_mode public.event_registration_mode NOT NULL,
+    registered_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+    registered_by text NOT NULL,
+    is_cancelled boolean DEFAULT false NOT NULL,
+    notes text,
+    received_empowerment boolean DEFAULT false NOT NULL,
+    empowerment_record_id uuid
+);
+
+
+--
+-- Name: event_attendance; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.event_attendance (
+    id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
+    event_attendee_id uuid NOT NULL,
+    event_day_id uuid NOT NULL,
+    checked_in_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    checked_in_by text NOT NULL
+);
+
+
+--
+-- Name: event_day; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.event_day (
+    id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
+    event_id uuid NOT NULL,
+    day_number integer NOT NULL,
+    event_date date NOT NULL,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT event_day_number_check CHECK ((day_number > 0))
 );
 
 
@@ -320,11 +410,83 @@ ALTER TABLE ONLY public.account
 
 
 --
+-- Name: event_category event_category_code_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.event_category
+    ADD CONSTRAINT event_category_code_key UNIQUE (code);
+
+
+--
+-- Name: event_category event_category_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.event_category
+    ADD CONSTRAINT event_category_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: event event_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.event
     ADD CONSTRAINT event_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: event_attendance event_attendance_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.event_attendance
+    ADD CONSTRAINT event_attendance_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: event_attendance event_attendance_unique_attendee_day; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.event_attendance
+    ADD CONSTRAINT event_attendance_unique_attendee_day UNIQUE (event_attendee_id, event_day_id);
+
+
+--
+-- Name: event_attendee event_attendee_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.event_attendee
+    ADD CONSTRAINT event_attendee_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: event_attendee event_attendee_unique_person; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.event_attendee
+    ADD CONSTRAINT event_attendee_unique_person UNIQUE (event_id, person_id);
+
+
+--
+-- Name: event_day event_day_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.event_day
+    ADD CONSTRAINT event_day_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: event_day event_day_unique_date; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.event_day
+    ADD CONSTRAINT event_day_unique_date UNIQUE (event_id, event_date);
+
+
+--
+-- Name: event_day event_day_unique_number; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.event_day
+    ADD CONSTRAINT event_day_unique_number UNIQUE (event_id, day_number);
 
 
 --
@@ -408,38 +570,80 @@ ALTER TABLE ONLY public.verification
 
 
 --
--- Name: idx_event_createdby; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_event_attendance_attendee_id; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_event_createdby ON public.event USING btree (split_part("createdBy", '#'::text, 2));
-
-
---
--- Name: idx_event_dates; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_event_dates ON public.event USING btree ("startDate", "endDate");
+CREATE INDEX idx_event_attendance_attendee_id ON public.event_attendance USING btree (event_attendee_id);
 
 
 --
--- Name: idx_event_name; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_event_attendance_day_id; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_event_name ON public.event USING btree (name);
-
-
---
--- Name: idx_event_type; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_event_type ON public.event USING btree (type);
+CREATE INDEX idx_event_attendance_day_id ON public.event_attendance USING btree (event_day_id);
 
 
 --
--- Name: idx_event_updatedby; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_event_attendee_event_id; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_event_updatedby ON public.event USING btree (split_part("lastUpdatedBy", '#'::text, 2));
+CREATE INDEX idx_event_attendee_event_id ON public.event_attendee USING btree (event_id);
+
+
+--
+-- Name: idx_event_attendee_person_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_event_attendee_person_id ON public.event_attendee USING btree (person_id);
+
+
+--
+-- Name: idx_event_attendee_registration_mode; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_event_attendee_registration_mode ON public.event_attendee USING btree (registration_mode);
+
+
+--
+-- Name: idx_event_category_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_event_category_id ON public.event USING btree (category_id);
+
+
+--
+-- Name: idx_event_day_date; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_event_day_date ON public.event_day USING btree (event_date);
+
+
+--
+-- Name: idx_event_day_event_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_event_day_event_id ON public.event_day USING btree (event_id);
+
+
+--
+-- Name: idx_event_registration_mode; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_event_registration_mode ON public.event USING btree (registration_mode);
+
+
+--
+-- Name: idx_event_start_end; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_event_start_end ON public.event USING btree (start_date, end_date);
+
+
+--
+-- Name: idx_event_status; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_event_status ON public.event USING btree (status);
 
 
 --
@@ -562,10 +766,17 @@ CREATE INDEX idx_person_updated_by ON public.person USING btree (split_part("las
 
 
 --
--- Name: event update_event_updatedat; Type: TRIGGER; Schema: public; Owner: -
+-- Name: event update_event_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
-CREATE TRIGGER update_event_updatedat BEFORE UPDATE ON public.event FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+CREATE TRIGGER update_event_updated_at BEFORE UPDATE ON public.event FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column_snake();
+
+
+--
+-- Name: event_category update_event_category_updated_at; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER update_event_category_updated_at BEFORE UPDATE ON public.event_category FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column_snake();
 
 
 --
@@ -588,6 +799,78 @@ CREATE TRIGGER update_person_updated_at BEFORE UPDATE ON public.person FOR EACH 
 
 ALTER TABLE ONLY public.account
     ADD CONSTRAINT "account_userId_fkey" FOREIGN KEY ("userId") REFERENCES public."user"(id);
+
+
+--
+-- Name: event event_category_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.event
+    ADD CONSTRAINT event_category_id_fkey FOREIGN KEY (category_id) REFERENCES public.event_category(id);
+
+
+--
+-- Name: event event_empowerment_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.event
+    ADD CONSTRAINT event_empowerment_id_fkey FOREIGN KEY (empowerment_id) REFERENCES public.empowerment(id);
+
+
+--
+-- Name: event event_guru_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.event
+    ADD CONSTRAINT event_guru_id_fkey FOREIGN KEY (guru_id) REFERENCES public.guru(id);
+
+
+--
+-- Name: event_attendance event_attendance_event_attendee_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.event_attendance
+    ADD CONSTRAINT event_attendance_event_attendee_id_fkey FOREIGN KEY (event_attendee_id) REFERENCES public.event_attendee(id) ON DELETE CASCADE;
+
+
+--
+-- Name: event_attendance event_attendance_event_day_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.event_attendance
+    ADD CONSTRAINT event_attendance_event_day_id_fkey FOREIGN KEY (event_day_id) REFERENCES public.event_day(id) ON DELETE CASCADE;
+
+
+--
+-- Name: event_attendee event_attendee_empowerment_record_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.event_attendee
+    ADD CONSTRAINT event_attendee_empowerment_record_id_fkey FOREIGN KEY (empowerment_record_id) REFERENCES public.person_empowerment(id);
+
+
+--
+-- Name: event_attendee event_attendee_event_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.event_attendee
+    ADD CONSTRAINT event_attendee_event_id_fkey FOREIGN KEY (event_id) REFERENCES public.event(id) ON DELETE CASCADE;
+
+
+--
+-- Name: event_attendee event_attendee_person_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.event_attendee
+    ADD CONSTRAINT event_attendee_person_id_fkey FOREIGN KEY (person_id) REFERENCES public.person(id);
+
+
+--
+-- Name: event_day event_day_event_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.event_day
+    ADD CONSTRAINT event_day_event_id_fkey FOREIGN KEY (event_id) REFERENCES public.event(id) ON DELETE CASCADE;
 
 
 --
@@ -628,4 +911,5 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20250303000000'),
     ('20250311000000'),
     ('20250317213500'),
-    ('20250708084043');
+    ('20250708084043'),
+    ('20251001000000');

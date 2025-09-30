@@ -68,6 +68,9 @@ export function PersonEmpowermentTable({ personId }: PersonEmpowermentTableProps
       return {
         ...pe,
         empowerment_name: empowerment?.name || 'Unknown',
+        empowerment_type: empowerment?.type ?? null,
+        empowerment_form: empowerment?.form ?? null,
+        empowerment_major: empowerment?.major_empowerment ?? false,
         guru_name: guru?.name || 'Unknown'
       }
     })

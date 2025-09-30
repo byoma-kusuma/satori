@@ -23,6 +23,15 @@ export function DataTableToolbar<TData>({
     { label: 'Yoga Tantra', value: 'Yoga Tantra' },
     { label: 'Anuttarayoga Tantra', value: 'Anuttarayoga Tantra' },
   ]
+  const typeOptions = [
+    { label: 'Sutra', value: 'Sutra' },
+    { label: 'Tantra', value: 'Tantra' },
+  ]
+  const formOptions = [
+    { label: 'Wang – empowerment', value: 'Wang - empowerment' },
+    { label: 'Lung – reading transmission', value: 'Lung - reading transmission' },
+    { label: 'Tri – oral instructions', value: 'Tri - oral instructions' },
+  ]
 
   return (
     <div className="flex items-center justify-between">
@@ -40,6 +49,20 @@ export function DataTableToolbar<TData>({
             column={table.getColumn('class')}
             title="Class"
             options={classOptions}
+          />
+        )}
+        {table.getColumn('type') && (
+          <DataTableFacetedFilter
+            column={table.getColumn('type')}
+            title='Type'
+            options={typeOptions}
+          />
+        )}
+        {table.getColumn('form') && (
+          <DataTableFacetedFilter
+            column={table.getColumn('form')}
+            title='Form'
+            options={formOptions}
           />
         )}
         {isFiltered && (
