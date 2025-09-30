@@ -171,9 +171,9 @@ export function PersonEmpowermentDialog({
                           </SelectItem>
                         ))
                       ) : (
-                        <SelectItem value="" disabled>
+                        <div className="p-2 text-sm text-muted-foreground">
                           No empowerments available
-                        </SelectItem>
+                        </div>
                       )}
                     </SelectContent>
                   </Select>
@@ -226,9 +226,9 @@ export function PersonEmpowermentDialog({
                           </SelectItem>
                         ))
                       ) : (
-                        <SelectItem value="" disabled>
+                        <div className="p-2 text-sm text-muted-foreground">
                           No gurus available
-                        </SelectItem>
+                        </div>
                       )}
                     </SelectContent>
                   </Select>

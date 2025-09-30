@@ -16,7 +16,7 @@ export const gurusRoutes = new Hono()
     const gurus = await db
       .selectFrom('guru')
       .selectAll()
-      .orderBy('name', 'asc')
+      .orderBy('guruName', 'asc')
       .execute()
 
     return c.json(gurus)
@@ -43,9 +43,9 @@ export const gurusRoutes = new Hono()
     const guru = await db
       .insertInto('guru')
       .values({
-        name: data.name,
-        created_by: user?.id || 'system',
-        last_updated_by: user?.id || 'system',
+        guruName: data.name,
+        createdBy: user?.id || 'system',
+        lastUpdatedBy: user?.id || 'system',
       })
       .returningAll()
       .executeTakeFirstOrThrow()
@@ -58,11 +58,11 @@ export const gurusRoutes = new Hono()
     const user = c.get('user')
 
     const updateData: any = {
-      last_updated_by: user?.id || 'system',
+      lastUpdatedBy: user?.id || 'system',
     }
 
     if (data.name) {
-      updateData.name = data.name
+      updateData.guruName = data.name
     }
 
     const guru = await db

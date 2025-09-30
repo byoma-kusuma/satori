@@ -37,7 +37,15 @@ const fetchWithCredentials = async (url: string, options?: RequestInit) => {
 export const getGurus = async () => {
   try {
     const result = await fetchWithCredentials(`${GURU_API_URL}`)
-    return result
+    // Transform guruName to name for frontend compatibility
+    return result.map((guru: any) => ({
+      ...guru,
+      name: guru.guruName,
+      created_at: guru.createdAt,
+      updated_at: guru.updatedAt,
+      created_by: guru.createdBy,
+      last_updated_by: guru.lastUpdatedBy,
+    }))
   } catch (error) {
     console.error('Failed to fetch gurus:', error)
     throw error // Don't silently return empty array, let React Query handle the error
