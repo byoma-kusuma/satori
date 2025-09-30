@@ -25,6 +25,41 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 
+interface MetadataInputProps {
+  attendeeId: string
+  initialValue: string
+  onUpdate: (attendeeId: string, value: string) => Promise<void> | void
+  placeholder: string
+  disabled?: boolean
+}
+
+function MetadataInput({ attendeeId, initialValue, onUpdate, placeholder, disabled }: MetadataInputProps) {
+  const [value, setValue] = useState(initialValue)
+
+  useEffect(() => {
+    setValue(initialValue)
+  }, [initialValue])
+
+  const handleBlur = async () => {
+    const trimmed = value.trim()
+    if (trimmed !== initialValue.trim()) {
+      await onUpdate(attendeeId, trimmed)
+    }
+  }
+
+  return (
+    <Input
+      key={`metadata-${attendeeId}`}
+      value={value}
+      onChange={(event) => setValue(event.target.value)}
+      onBlur={handleBlur}
+      placeholder={placeholder}
+      disabled={disabled}
+      className='h-8 w-48'
+    />
+  )
+}
+
 import { EventDetail } from '../types'
 import { AttendeeTableToolbar } from './attendee-table-toolbar'
 import { DataTablePagination } from './data-table-pagination'
@@ -63,62 +98,23 @@ export function AttendeeTable({
   const isSingleDayWalkIn = event.registrationMode === 'WALK_IN' && event.days.length === 1
   const showCheckInControls = !isSingleDayWalkIn
 
-  const [metadataValues, setMetadataValues] = useState<Record<string, string>>({})
-
-  useEffect(() => {
-    if (!metadataField) {
-      setMetadataValues((previous) => (Object.keys(previous).length ? {} : previous))
-      return
-    }
-
-    const initialValues: Record<string, string> = {}
-    event.attendees.forEach((attendee) => {
-      const record = attendee.metadata as Record<string, unknown>
-      const rawValue = record?.[metadataField]
-      initialValues[attendee.attendeeId] = typeof rawValue === 'string' ? (rawValue as string) : ''
-    })
-
-    setMetadataValues((previous) => {
-      const sameLength = Object.keys(previous).length === Object.keys(initialValues).length
-      const sameEntries = sameLength && Object.entries(initialValues).every(([key, value]) => previous[key] === value)
-      if (sameEntries) {
-        return previous
-      }
-      return initialValues
-    })
-  }, [event.attendees, metadataField])
-
-  const handleMetadataChange = (attendeeId: string, value: string) => {
-    setMetadataValues((previous) => ({ ...previous, [attendeeId]: value }))
-  }
-
-  const handleMetadataBlur = async (attendeeId: string) => {
-    if (!metadataField || !onUpdateMetadataField) return
+  const renderMetadataInput = (attendeeId: string) => {
+    if (!metadataField || !onUpdateMetadataField) return null
 
     const attendee = event.attendees.find((item) => item.attendeeId === attendeeId)
-    if (!attendee) return
+    if (!attendee) return null
 
     const record = attendee.metadata as Record<string, unknown>
     const currentValue = typeof record?.[metadataField] === 'string' ? (record[metadataField] as string) : ''
-    const nextValue = (metadataValues[attendeeId] ?? '').trim()
-
-    if (nextValue === currentValue) return
-
-    await onUpdateMetadataField(attendeeId, nextValue)
-  }
-
-  const renderMetadataInput = (attendeeId: string, value: string) => {
-    if (!metadataField) return null
     const isUpdating = updatingAttendeeId === attendeeId
 
     return (
-      <Input
-        value={value}
-        onChange={(event) => handleMetadataChange(attendeeId, event.target.value)}
-        onBlur={() => handleMetadataBlur(attendeeId)}
+      <MetadataInput
+        attendeeId={attendeeId}
+        initialValue={currentValue}
+        onUpdate={onUpdateMetadataField}
         placeholder={`Enter ${metadataLabel.toLowerCase()}`}
         disabled={disabled || isUpdating}
-        className='h-8 w-48'
       />
     )
   }
@@ -159,7 +155,7 @@ export function AttendeeTable({
             </div>
             {metadataField && (
               <div className='sm:ml-4 flex items-center'>
-                {renderMetadataInput(row.original.attendeeId, metadataValues[row.original.attendeeId] ?? '')}
+                {renderMetadataInput(row.original.attendeeId)}
               </div>
             )}
          </div>
@@ -254,10 +250,11 @@ export function AttendeeTable({
     metadataLabel,
     disabled,
     updatingAttendeeId,
-    metadataValues,
     showCheckInControls,
     onToggleCheckIn,
     event.registrationMode,
+    event.attendees,
+    onUpdateMetadataField,
   ])
 
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])

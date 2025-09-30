@@ -1,6 +1,6 @@
 import { DotsHorizontalIcon } from '@radix-ui/react-icons'
 import { Row } from '@tanstack/react-table'
-import { Link } from '@tanstack/react-router'
+import { useNavigate } from '@tanstack/react-router'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -10,15 +10,30 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { useEvents } from '../hooks/use-events'
-import { Event } from '../data/schema'
+import { Event } from './events-columns'
 
 interface DataTableRowActionsProps {
   row: Row<Event>
 }
 
 export function DataTableRowActions({ row }: DataTableRowActionsProps) {
-  const { setOpen, setCurrentRow } = useEvents()
+  const navigate = useNavigate()
+  const event = row.original
+  const isClosed = event.status === 'CLOSED'
+
+  const handleView = () => {
+    navigate({ to: '/events/$eventId/view', params: { eventId: event.id } })
+  }
+
+  const handleEdit = () => {
+    if (!isClosed) {
+      // TODO: Implement edit functionality
+    }
+  }
+
+  const handleDelete = () => {
+    // TODO: Implement delete functionality
+  }
 
   return (
     <DropdownMenu>
@@ -32,26 +47,19 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-[160px]">
-        <DropdownMenuItem 
-          onClick={() => {
-            setCurrentRow(row.original)
-            setOpen('edit')
-          }}
+        <DropdownMenuItem onClick={handleView}>
+          View Event
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onClick={handleEdit}
+          disabled={isClosed}
         >
           Edit
-        </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <Link to="/events/$eventId/view" params={{ eventId: row.original.id }}>
-            View Event
-          </Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem
           className="text-destructive focus:text-destructive"
-          onClick={() => {
-            setCurrentRow(row.original)
-            setOpen('delete')
-          }}
+          onClick={handleDelete}
         >
           Delete
         </DropdownMenuItem>
