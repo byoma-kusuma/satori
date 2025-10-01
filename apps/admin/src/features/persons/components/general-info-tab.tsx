@@ -31,6 +31,7 @@ import PhoneInput from 'react-phone-number-input'
 import 'react-phone-number-input/style.css'
 import { PhotoIdPrintDialog } from './photo-id-print-dialog'
 import { countryToPhoneCode } from '@/utils/country-phone-codes'
+import { Badge } from '@/components/ui/badge'
 
 interface GeneralInfoTabProps {
   form: UseFormReturn<any>
@@ -154,6 +155,13 @@ export function GeneralInfoTab({ form, person, formRef, onSubmit }: GeneralInfoT
         onSubmit={form.handleSubmit(onSubmit)}
         className="space-y-6"
       >
+        {person.hasMajorEmpowerment && (
+          <div className='flex items-center gap-2 rounded-md border border-dashed border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-700'>
+            <Badge className='bg-amber-500 text-amber-950 uppercase tracking-wide hover:bg-amber-500/90'>Major Empowerment</Badge>
+            <span>At least one major empowerment recorded</span>
+          </div>
+        )}
+
         {/* Person Type */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <FormField

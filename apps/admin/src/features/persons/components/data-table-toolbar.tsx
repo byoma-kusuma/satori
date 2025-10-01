@@ -46,6 +46,16 @@ export function DataTableToolbar<TData>({
               ]}
             />
           )}
+          {table.getColumn('hasMajorEmpowerment') && (
+            <DataTableFacetedFilter
+              column={table.getColumn('hasMajorEmpowerment')}
+              title="Major Emp."
+              options={[
+                { label: 'Has major empowerment', value: 'true' },
+                { label: 'No major empowerment', value: 'false' },
+              ]}
+            />
+          )}
         </div>
         {isFiltered && (
           <Button

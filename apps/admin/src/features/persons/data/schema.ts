@@ -40,6 +40,7 @@ export const personSchema = z.object({
   is_krama_instructor: z.boolean().nullable(),
   krama_instructor_person_id: z.string().nullable(),
   referredBy: z.string().nullable(),
+  hasMajorEmpowerment: z.boolean().default(false),
 })
 
 export type Person = z.infer<typeof personSchema>

@@ -706,6 +706,36 @@ export async function updateAttendee(
   })
 }
 
+export async function bulkAddAttendees(
+  eventIds: string[],
+  personIds: string[],
+  userId: string,
+) {
+  const summary = {
+    added: 0,
+    skipped: 0,
+    errors: [] as { eventId: string; personId: string; reason: string }[],
+  }
+
+  for (const eventId of eventIds) {
+    for (const personId of personIds) {
+      try {
+        await addAttendee(eventId, { personId }, userId)
+        summary.added += 1
+      } catch (error) {
+        summary.skipped += 1
+        if (error instanceof Error) {
+          summary.errors.push({ eventId, personId, reason: error.message })
+        } else {
+          summary.errors.push({ eventId, personId, reason: 'Unknown error' })
+        }
+      }
+    }
+  }
+
+  return summary
+}
+
 export async function removeAttendee(eventId: string, attendeeId: string) {
   return db.transaction().execute(async (trx) => {
     const event = await trx

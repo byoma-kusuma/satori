@@ -17,6 +17,7 @@ import {
   setAttendeeCheckIn,
   updateAttendee,
   updateEvent,
+  bulkAddAttendees,
 } from './event.service'
 
 const registrationModeSchema = z.enum(['PRE_REGISTRATION', 'WALK_IN'])
@@ -69,6 +70,11 @@ const closeEventSchema = z.object({
   attendeeIds: z.array(z.string().uuid('Attendee ID must be a valid UUID')),
 })
 
+const bulkAddAttendeesSchema = z.object({
+  eventIds: z.array(z.string().uuid('Event ID must be a valid UUID')).min(1, 'Select at least one event'),
+  personIds: z.array(z.string().uuid('Person ID must be a valid UUID')).min(1, 'Select at least one person'),
+})
+
 const events = new Hono<{
   Variables: {
     user: typeof auth.$Infer.Session.user | null
@@ -117,6 +123,16 @@ export const eventsRoutes = events
       const payload = await c.req.valid('json')
       const event = await createEvent(payload, user.id)
       return c.json(event, 201)
+    } catch (error) {
+      handleServiceError(error)
+    }
+  })
+  .post('/bulk-attendees', zValidator('json', bulkAddAttendeesSchema), async (c) => {
+    try {
+      const user = requireUser(c.get('user'))
+      const payload = await c.req.valid('json')
+      const result = await bulkAddAttendees(payload.eventIds, payload.personIds, user.id)
+      return c.json(result)
     } catch (error) {
       handleServiceError(error)
     }

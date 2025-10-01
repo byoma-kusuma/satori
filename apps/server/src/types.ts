@@ -140,12 +140,12 @@ export interface Group {
 }
 
 export interface Guru {
-  created_at: Generated<Timestamp | null>;
-  created_by: string;
+  createdAt: Generated<Timestamp | null>;
+  createdBy: string;
+  guruName: string;
   id: Generated<string>;
-  last_updated_by: string;
-  name: string;
-  updated_at: Generated<Timestamp | null>;
+  lastUpdatedBy: string;
+  updatedAt: Generated<Timestamp | null>;
 }
 
 export interface Person {

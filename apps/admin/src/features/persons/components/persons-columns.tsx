@@ -112,13 +112,23 @@ export const columns: ColumnDef<Person>[] = [
     enableColumnFilter: true,
   },
   {
-    accessorKey: 'membershipCardNumber',
+    accessorKey: 'hasMajorEmpowerment',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Membership ID" />
+      <DataTableColumnHeader column={column} title="Major Emp." />
     ),
     cell: ({ row }) => {
-      const membershipId = row.getValue<string>('membershipCardNumber')
-      return membershipId || '-'
+      const hasMajor = row.original.hasMajorEmpowerment
+      return hasMajor ? (
+        <Badge className='bg-amber-500 text-amber-950 hover:bg-amber-500/90'>Major</Badge>
+      ) : (
+        <span className='text-muted-foreground'>—</span>
+      )
+    },
+    enableSorting: false,
+    filterFn: (row, id, value) => {
+      const hasMajor = row.getValue<boolean>(id)
+      const key = hasMajor ? 'true' : 'false'
+      return value.includes(key)
     },
   },
   {
@@ -128,9 +138,9 @@ export const columns: ColumnDef<Person>[] = [
     ),
   },
   {
-    accessorKey: 'phoneNumber',
+    accessorKey: 'primaryPhone',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Phone" />
+      <DataTableColumnHeader column={column} title="Primary Phone" />
     ),
   },
   {

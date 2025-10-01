@@ -28,16 +28,40 @@ const generatePersonCode = async (firstName: string, lastName: string): Promise<
 
 export async function getAllPersons() {
   return db
-    .selectFrom('person')
-    .selectAll()
+    .selectFrom('person as p')
+    .selectAll('p')
+    .select((eb) =>
+      eb
+        .exists(
+          eb
+            .selectFrom('person_empowerment as pe')
+            .innerJoin('empowerment as e', 'e.id', 'pe.empowerment_id')
+            .select('pe.id')
+            .whereRef('pe.person_id', '=', 'p.id')
+            .where('e.major_empowerment', '=', true),
+        )
+        .as('hasMajorEmpowerment'),
+    )
     .execute();
 }
 
 export async function getPersonById(id: string) {
   return db
-    .selectFrom('person')
-    .selectAll()
-    .where('id', '=', id)
+    .selectFrom('person as p')
+    .selectAll('p')
+    .select((eb) =>
+      eb
+        .exists(
+          eb
+            .selectFrom('person_empowerment as pe')
+            .innerJoin('empowerment as e', 'e.id', 'pe.empowerment_id')
+            .select('pe.id')
+            .whereRef('pe.person_id', '=', 'p.id')
+            .where('e.major_empowerment', '=', true),
+        )
+        .as('hasMajorEmpowerment'),
+    )
+    .where('p.id', '=', id)
     .executeTakeFirstOrThrow();
 }
 
@@ -78,18 +102,42 @@ export async function deletePerson(id: string) {
 // New functions to filter persons by type
 export async function getPersonsByType(type: PersonType) {
   return db
-    .selectFrom('person')
-    .selectAll()
-    .where('type', '=', type)
+    .selectFrom('person as p')
+    .selectAll('p')
+    .select((eb) =>
+      eb
+        .exists(
+          eb
+            .selectFrom('person_empowerment as pe')
+            .innerJoin('empowerment as e', 'e.id', 'pe.empowerment_id')
+            .select('pe.id')
+            .whereRef('pe.person_id', '=', 'p.id')
+            .where('e.major_empowerment', '=', true),
+        )
+        .as('hasMajorEmpowerment'),
+    )
+    .where('p.type', '=', type)
     .execute();
 }
 
 // Krama Instructor specific functions
 export async function getAllKramaInstructors() {
   return db
-    .selectFrom('person')
-    .selectAll()
-    .where('is_krama_instructor', '=', true)
+    .selectFrom('person as p')
+    .selectAll('p')
+    .select((eb) =>
+      eb
+        .exists(
+          eb
+            .selectFrom('person_empowerment as pe')
+            .innerJoin('empowerment as e', 'e.id', 'pe.empowerment_id')
+            .select('pe.id')
+            .whereRef('pe.person_id', '=', 'p.id')
+            .where('e.major_empowerment', '=', true),
+        )
+        .as('hasMajorEmpowerment'),
+    )
+    .where('p.is_krama_instructor', '=', true)
     .execute();
 }
 
@@ -114,7 +162,18 @@ export async function getPersonWithKramaInstructor(id: string) {
       'ki.lastName as kramaInstructorLastName',
       'ki.emailId as kramaInstructorEmail'
     ])
+    .select((eb) =>
+      eb
+        .exists(
+          eb
+            .selectFrom('person_empowerment as pe')
+            .innerJoin('empowerment as e', 'e.id', 'pe.empowerment_id')
+            .select('pe.id')
+            .whereRef('pe.person_id', '=', 'p.id')
+            .where('e.major_empowerment', '=', true),
+        )
+        .as('hasMajorEmpowerment'),
+    )
     .where('p.id', '=', id)
     .executeTakeFirstOrThrow();
 }
-

@@ -147,6 +147,12 @@ export const closeEvent = async (eventId: string, payload: CloseEventPayload) =>
     body: JSON.stringify(payload),
   })
 
+export const bulkAddAttendees = async (payload: { eventIds: string[]; personIds: string[] }) =>
+  fetchWithCredentials(`${EVENT_API_URL}/bulk-attendees`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+
 // React Query options
 export const getEventCategoriesQueryOptions = () =>
   queryOptions({
@@ -251,6 +257,19 @@ export const useCloseEvent = () => {
     onSuccess: (_, { eventId }) => {
       queryClient.invalidateQueries({ queryKey: ['events'] })
       queryClient.invalidateQueries({ queryKey: ['event', eventId] })
+    },
+  })
+}
+
+export const useBulkAddAttendees = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: bulkAddAttendees,
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['events'] })
+      variables.eventIds.forEach((eventId) => {
+        queryClient.invalidateQueries({ queryKey: ['event', eventId] })
+      })
     },
   })
 }
