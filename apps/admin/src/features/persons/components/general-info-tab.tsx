@@ -791,17 +791,15 @@ export function GeneralInfoTab({ form, person, formRef, onSubmit }: GeneralInfoT
               control={form.control}
               name="hasMembershipCard"
               render={({ field }) => (
-                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                  <FormControl>
-                    <Checkbox
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  </FormControl>
-                  <div className="space-y-1 leading-none">
-                    <FormLabel>
-                      Do you have a membership card?
-                    </FormLabel>
+                <FormItem className='flex flex-col gap-2 rounded-md border p-3 sm:flex-row sm:items-center'>
+                  <div className='flex items-center gap-2'>
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <FormLabel className='!mt-0'>Has membership card</FormLabel>
                   </div>
                 </FormItem>
               )}
@@ -810,17 +808,15 @@ export function GeneralInfoTab({ form, person, formRef, onSubmit }: GeneralInfoT
               control={form.control}
               name="is_krama_instructor"
               render={({ field }) => (
-                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                  <FormControl>
-                    <Checkbox
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  </FormControl>
-                  <div className="space-y-1 leading-none">
-                    <FormLabel>
-                      Is this person a Krama Instructor?
-                    </FormLabel>
+                <FormItem className='flex flex-col gap-2 rounded-md border p-3 sm:flex-row sm:items-center'>
+                  <div className='flex items-center gap-2'>
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <FormLabel className='!mt-0'>Is this person a Krama Instructor?</FormLabel>
                   </div>
                 </FormItem>
               )}

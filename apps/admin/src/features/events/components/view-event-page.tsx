@@ -1,4 +1,4 @@
-import { Suspense, useMemo, useState } from 'react'
+import React, { Suspense, useMemo, useRef, useState } from 'react'
 import { useParams } from '@tanstack/react-router'
 import { useQuery, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import { IconLoader } from '@tabler/icons-react'
@@ -8,6 +8,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/use-toast'
+import { useReactToPrint } from 'react-to-print'
+import { Header } from '@/components/layout/header'
+import { Main } from '@/components/layout/main'
+import { Search } from '@/components/search'
+import { ThemeSwitch } from '@/components/theme-switch'
+import { ProfileDropdown } from '@/components/profile-dropdown'
 
 import {
   getEventQueryOptions,
@@ -20,6 +26,7 @@ import { getPersonsQueryOptions, createPerson } from '@/api/persons'
 import { getEmpowermentsQueryOptions } from '@/api/empowerments'
 import { getGurusQueryOptions } from '@/features/gurus/data/api'
 import type { PersonInput } from '@/features/persons/data/schema'
+import { personTypeLabels } from '@/features/persons/data/schema'
 import { AttendeeTable } from './attendee-table'
 import { AddAttendeeControl, PendingPerson } from './add-attendee-control'
 import { CloseEventDialog } from './close-event-dialog'
@@ -37,6 +44,7 @@ const statusVariants = {
 
 function EventDetailContent({ eventId }: { eventId: string }) {
   const { toast } = useToast()
+  const printRef = useRef<HTMLDivElement | null>(null)
   const [closeDialogOpen, setCloseDialogOpen] = useState(false)
   const [updatingAttendeeId, setUpdatingAttendeeId] = useState<string | null>(null)
   const queryClient = useQueryClient()
@@ -203,11 +211,18 @@ function EventDetailContent({ eventId }: { eventId: string }) {
     }
   }
 
+  const handlePrint = useReactToPrint({
+    content: () => printRef.current,
+    contentRef: printRef,
+    documentTitle: `${event.name}-details`,
+  })
+
   const formatUtcDate = (value: string, options: Intl.DateTimeFormatOptions) =>
     new Intl.DateTimeFormat(undefined, { timeZone: 'UTC', ...options }).format(new Date(value))
 
   return (
     <div className='space-y-6'>
+      <div ref={printRef} className='space-y-6 print:space-y-4'>
       <Card>
         <CardHeader className='flex flex-col gap-4 border-b bg-muted/40 sm:flex-row sm:items-center sm:justify-between'>
           <div className='space-y-1'>
@@ -240,16 +255,19 @@ function EventDetailContent({ eventId }: { eventId: string }) {
             )}
           </div>
           <div className='flex flex-col items-end gap-2 sm:items-end'>
-            {!isClosed && (
-              <Button
-                variant='destructive'
-                size='sm'
-                className='shadow-md shadow-destructive/30'
-                onClick={() => setCloseDialogOpen(true)}
-              >
-                Close Event
-              </Button>
-            )}
+            <div className='flex gap-2 print:hidden'>
+              <Button variant='outline' size='sm' onClick={handlePrint}>Print</Button>
+              {!isClosed && (
+                <Button
+                  variant='destructive'
+                  size='sm'
+                  className='shadow-md shadow-destructive/30'
+                  onClick={() => setCloseDialogOpen(true)}
+                >
+                  Close Event
+                </Button>
+              )}
+            </div>
             {event.closedAt && (
               <p className='text-xs text-muted-foreground'>
                 Closed on {format(new Date(event.closedAt), 'PPpp')}
@@ -288,16 +306,73 @@ function EventDetailContent({ eventId }: { eventId: string }) {
         </CardContent>
       </Card>
 
-      <AttendeeTable
-        event={event}
-        onToggleCheckIn={handleToggleCheckIn}
-        onRemoveAttendee={handleRemoveAttendee}
-        disabled={isClosed || setCheckInMutation.isPending}
-        onUpdateMetadataField={attendeeMetadataField ? handleUpdateMetadataField : undefined}
-        updatingAttendeeId={updatingAttendeeId}
-      />
+      <div className='print:hidden'>
+        <AttendeeTable
+          event={event}
+          onToggleCheckIn={handleToggleCheckIn}
+          onRemoveAttendee={handleRemoveAttendee}
+          disabled={isClosed || setCheckInMutation.isPending}
+          onUpdateMetadataField={attendeeMetadataField ? handleUpdateMetadataField : undefined}
+          updatingAttendeeId={updatingAttendeeId}
+        />
+      </div>
+
+      <div className='hidden print:block space-y-3'>
+        <h3 className='text-lg font-semibold'>Attendees</h3>
+        <table className='w-full border border-border text-sm'>
+          <thead>
+            <tr className='bg-muted text-left'>
+              <th className='border border-border px-2 py-1'>Name</th>
+              <th className='border border-border px-2 py-1'>Type</th>
+              <th className='border border-border px-2 py-1'>Major Emp.</th>
+              <th className='border border-border px-2 py-1'>Registered</th>
+              {event.days.map((day) => (
+                <th key={day.id} className='border border-border px-2 py-1 text-center'>
+                  Day {day.dayNumber}
+                </th>
+              ))}
+              <th className='border border-border px-2 py-1 text-center'>Attended</th>
+            </tr>
+          </thead>
+          <tbody>
+            {event.attendees.map((attendee) => {
+              const attendedCount = attendee.attendance.filter((entry) => entry.checkedIn).length
+              const personTypeLabel = attendee.personType
+                ? personTypeLabels[attendee.personType as keyof typeof personTypeLabels] ?? attendee.personType
+                : '—'
+
+              return (
+                <tr key={attendee.attendeeId}>
+                  <td className='border border-border px-2 py-1'>{attendee.firstName} {attendee.lastName}</td>
+                  <td className='border border-border px-2 py-1'>{personTypeLabel}</td>
+                  <td className='border border-border px-2 py-1'>{attendee.hasMajorEmpowerment ? 'Yes' : 'No'}</td>
+                  <td className='border border-border px-2 py-1'>
+                    {format(new Date(attendee.registeredAt), 'PPpp')}
+                  </td>
+                  {event.days.map((day) => {
+                    const record = attendee.attendance.find((entry) => entry.dayId === day.id)
+                    return (
+                      <td key={day.id} className='border border-border px-2 py-1'>
+                        <div className='flex items-center justify-center'>
+                          <div className='flex h-4 w-4 items-center justify-center rounded-sm border border-muted-foreground'>
+                            {record?.checkedIn ? '✓' : ''}
+                          </div>
+                        </div>
+                      </td>
+                    )
+                  })}
+                  <td className='border border-border px-2 py-1 text-center'>
+                    {event.days.length ? `${attendedCount} / ${event.days.length}` : attendedCount}
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
 
       <CloseEventDialog event={event} open={closeDialogOpen} onOpenChange={setCloseDialogOpen} />
+      </div>
     </div>
   )
 }
@@ -306,15 +381,26 @@ function EventDetailPage() {
   const { eventId } = useParams({ from: '/_authenticated/events/$eventId/view' })
 
   return (
-    <Suspense
-      fallback={
-        <div className='flex h-full items-center justify-center'>
-          <IconLoader className='h-6 w-6 animate-spin' />
+    <>
+      <Header fixed>
+        <Search />
+        <div className='ml-auto flex items-center '>
+          <ThemeSwitch />
+          <ProfileDropdown />
         </div>
-      }
-    >
-      <EventDetailContent eventId={eventId} />
-    </Suspense>
+      </Header>
+      <Main>
+        <Suspense
+          fallback={
+            <div className='flex h-full items-center justify-center'>
+              <IconLoader className='h-6 w-6 animate-spin' />
+            </div>
+          }
+        >
+          <EventDetailContent eventId={eventId} />
+        </Suspense>
+      </Main>
+    </>
   )
 }
 

@@ -40,7 +40,9 @@ export const columns: ColumnDef<Person>[] = [
   },
   {
     id: 'photo',
-    header: 'Photo',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title='Photo' />
+    ),
     cell: ({ row }) => {
       const person = row.original
       return (
@@ -112,26 +114,6 @@ export const columns: ColumnDef<Person>[] = [
     enableColumnFilter: true,
   },
   {
-    accessorKey: 'hasMajorEmpowerment',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Major Emp." />
-    ),
-    cell: ({ row }) => {
-      const hasMajor = row.original.hasMajorEmpowerment
-      return hasMajor ? (
-        <Badge className='bg-amber-500 text-amber-950 hover:bg-amber-500/90'>Major</Badge>
-      ) : (
-        <span className='text-muted-foreground'>—</span>
-      )
-    },
-    enableSorting: false,
-    filterFn: (row, id, value) => {
-      const hasMajor = row.getValue<boolean>(id)
-      const key = hasMajor ? 'true' : 'false'
-      return value.includes(key)
-    },
-  },
-  {
     accessorKey: 'emailId',
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Email" />
@@ -152,6 +134,26 @@ export const columns: ColumnDef<Person>[] = [
       return value.includes(row.getValue(id))
     },
     enableColumnFilter: true,
+  },
+  {
+    accessorKey: 'hasMajorEmpowerment',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Major Emp." />
+    ),
+    cell: ({ row }) => {
+      const hasMajor = row.original.hasMajorEmpowerment
+      return hasMajor ? (
+        <Badge className='bg-amber-500 text-amber-950 hover:bg-amber-500/90'>Major</Badge>
+      ) : (
+        <span className='text-muted-foreground'>—</span>
+      )
+    },
+    enableSorting: false,
+    filterFn: (row, id, value) => {
+      const hasMajor = row.getValue<boolean>(id)
+      const key = hasMajor ? 'true' : 'false'
+      return value.includes(key)
+    },
   },
   {
     id: 'actions',

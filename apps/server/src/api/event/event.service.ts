@@ -201,6 +201,8 @@ export async function getEventDetail(eventId: string): Promise<EventDetailDto> {
       'ea.person_id as person_id',
       'p.firstName as first_name',
       'p.lastName as last_name',
+      'p.photo as photo',
+      'p.type as person_type',
       'ea.registration_mode as registration_mode',
       'ea.registered_at as registered_at',
       'ea.is_cancelled as is_cancelled',
@@ -209,6 +211,18 @@ export async function getEventDetail(eventId: string): Promise<EventDetailDto> {
       'ea.empowerment_record_id as empowerment_record_id',
       'ea.metadata as metadata',
     ])
+    .select((eb) =>
+      eb
+        .exists(
+          eb
+            .selectFrom('person_empowerment as pe')
+            .innerJoin('empowerment as e', 'e.id', 'pe.empowerment_id')
+            .select('pe.id')
+            .whereRef('pe.person_id', '=', 'p.id')
+            .where('e.major_empowerment', '=', true),
+        )
+        .as('has_major_empowerment'),
+    )
     .where('ea.event_id', '=', eventId)
     .orderBy('p.firstName')
     .orderBy('p.lastName')
@@ -272,6 +286,9 @@ export async function getEventDetail(eventId: string): Promise<EventDetailDto> {
       notes: attendee.notes ?? undefined,
       receivedEmpowerment: Boolean(attendee.received_empowerment),
       empowermentRecordId: attendee.empowerment_record_id ?? null,
+      photo: attendee.photo ?? null,
+      personType: attendee.person_type ?? null,
+      hasMajorEmpowerment: Boolean(attendee.has_major_empowerment),
       attendance: attendanceByDay,
       attendedAllDays,
       metadata: normalizeMetadata(attendee.metadata),

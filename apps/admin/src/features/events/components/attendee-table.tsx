@@ -24,6 +24,8 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { personTypeLabels } from '@/features/persons/data/schema'
 
 interface MetadataInputProps {
   attendeeId: string
@@ -136,30 +138,49 @@ export function AttendeeTable({
        accessorFn: (row) => `${row.firstName} ${row.lastName}`,
        header: 'Attendee Name',
        meta: { className: 'min-w-[220px]' },
-        cell: ({ row }) => (
-          <div className='flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between'>
-            <div>
-              <Link
-                to='/persons/$personId/edit'
-                params={{ personId: row.original.personId }}
-                className='font-medium text-primary hover:underline'
-              >
-                {row.original.firstName} {row.original.lastName}
-              </Link>
-              {event.registrationMode === 'PRE_REGISTRATION' && (
-                <div className='text-xs text-muted-foreground'>
-                  Registered {format(new Date(row.original.registeredAt), 'PPpp')}
+        cell: ({ row }) => {
+          const typeLabel = row.original.personType
+            ? personTypeLabels[row.original.personType as keyof typeof personTypeLabels] ?? row.original.personType
+            : null
+
+          return (
+            <div className='flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between'>
+              <div className='flex gap-3'>
+                <Avatar className='h-10 w-10'>
+                  <AvatarImage src={row.original.photo ?? undefined} alt={`${row.original.firstName} ${row.original.lastName}`} />
+                  <AvatarFallback>
+                    {row.original.firstName.charAt(0)}
+                    {row.original.lastName.charAt(0)}
+                  </AvatarFallback>
+                </Avatar>
+                <div className='space-y-1'>
+                  <Link
+                    to='/persons/$personId/edit'
+                    params={{ personId: row.original.personId }}
+                    className='font-medium text-primary hover:underline'
+                  >
+                    {row.original.firstName} {row.original.lastName}
+                  </Link>
+                  <div className='flex flex-wrap items-center gap-2 text-xs text-muted-foreground'>
+                    {typeLabel && <Badge variant='outline'>{typeLabel}</Badge>}
+                    {row.original.hasMajorEmpowerment && (
+                      <Badge className='bg-amber-500 text-amber-950 hover:bg-amber-500/90'>Major</Badge>
+                    )}
+                    {event.registrationMode === 'PRE_REGISTRATION' && (
+                      <span>Registered {format(new Date(row.original.registeredAt), 'PPpp')}</span>
+                    )}
+                  </div>
+                  {!metadataField && renderMetadataInfo(row.original.metadata)}
+                </div>
+              </div>
+              {metadataField && (
+                <div className='sm:ml-4 flex items-center'>
+                  {renderMetadataInput(row.original.attendeeId)}
                 </div>
               )}
-              {!metadataField && renderMetadataInfo(row.original.metadata)}
             </div>
-            {metadataField && (
-              <div className='sm:ml-4 flex items-center'>
-                {renderMetadataInput(row.original.attendeeId)}
-              </div>
-            )}
-         </div>
-      ),
+          )
+        },
     },
   ]
 

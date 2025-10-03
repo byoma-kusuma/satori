@@ -66,6 +66,9 @@ export interface EventAttendeeDto {
   personId: string
   firstName: string
   lastName: string
+  photo: string | null
+  personType: string | null
+  hasMajorEmpowerment: boolean
   registrationMode: EventRegistrationMode
   registeredAt: string
   isCancelled: boolean
