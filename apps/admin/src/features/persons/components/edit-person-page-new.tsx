@@ -1,0 +1,1 @@
+export { EditPersonPage } from './edit-person-form-tabbed'

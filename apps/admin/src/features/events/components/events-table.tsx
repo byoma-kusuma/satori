@@ -30,11 +30,13 @@ import { DataTableToolbar } from './data-table-toolbar'
 interface EventsTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[]
   data: TData[]
+  onAdd?: () => void
 }
 
 export function EventsTable<TData, TValue>({
   columns,
   data,
+  onAdd,
 }: EventsTableProps<TData, TValue>) {
   const navigate = useNavigate()
   const [rowSelection, setRowSelection] = React.useState({})
@@ -71,12 +73,12 @@ export function EventsTable<TData, TValue>({
       return
     }
     
-    navigate({ to: `/events/${eventId}/view` })
+    navigate({ to: '/events/$eventId/view', params: { eventId } })
   }
 
   return (
     <div className="space-y-4">
-      <DataTableToolbar table={table} />
+      <DataTableToolbar table={table} onAdd={onAdd} />
       <div className="rounded-md border">
         <Table>
           <TableHeader>
@@ -100,7 +102,7 @@ export function EventsTable<TData, TValue>({
           <TableBody>
             {table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => {
-                const eventId = (row.original as any).id
+                const eventId = (row.original as { id: string }).id
                 return (
                   <TableRow
                     key={row.id}

@@ -39,6 +39,16 @@ const fetchWithCredentials = async (url: string, options?: RequestInit) => {
     
     // Try to get detailed error from response
     const errorData = await response.json().catch(() => null)
+    
+    // Handle specific photo upload errors
+    if (response.status === 413 || (errorData?.message && errorData.message.includes('too large'))) {
+      throw new Error('Photo file is too large. Please compress the image and try again.')
+    }
+    
+    if (response.status === 400 && errorData?.message?.includes('Photo')) {
+      throw new Error(errorData.message)
+    }
+    
     throw new Error(
       errorData?.message || 
       `API error: ${response.status} ${response.statusText}`

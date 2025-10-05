@@ -1,59 +1,120 @@
-import { Event } from '../../types';
+import { EventRegistrationMode, EventStatus } from '../../types'
 
-// Define the event type enum
-export type EventType = 'REFUGE' | 'BODHIPUSPANJALI';
+export type EventMetadata = Record<string, unknown>
 
-// Define RefugeData structure
-export interface RefugePersonData {
-  personId: string;
-  firstName: string;
-  lastName: string;
-  refugeName?: string;
-  completed?: boolean;
+export interface EmpowermentEventMetadata extends EventMetadata {
+  type?: 'EMPOWERMENT'
+  empowermentId: string
+  guruId: string
 }
 
-// Define BodhipushpanjaliData structure
-export interface BodhipushpanjaliPersonData {
-  personId: string;
-  firstName: string;
-  lastName: string;
-  hasTakenRefuge?: boolean;
-  referralMedium?: string;
+export interface CreateEventInput {
+  name: string
+  description?: string | null
+  startDate: Date | string
+  endDate: Date | string
+  registrationMode: EventRegistrationMode
+  categoryId: string
+  empowermentId?: string | null
+  guruId?: string | null
+  metadata?: EventMetadata | null
 }
 
-// Define event metadata structure based on type
-export interface EventMetadata {
-  REFUGE: RefugePersonData[];
-  BODHIPUSPANJALI: BodhipushpanjaliPersonData[];
+export type UpdateEventInput = Partial<Omit<CreateEventInput, 'categoryId'>> & {
+  categoryId?: string
+  status?: EventStatus
 }
 
-// Extend the Event interface from the generated types
-export interface EventWithMetadata extends Event {
-  metadata: EventMetadata[keyof EventMetadata];
+export interface EventCategoryDto {
+  id: string
+  code: string
+  name: string
+  requiresFullAttendance: boolean
 }
 
-// Input type for creating/updating an event
-export type EventInput = Omit<
-  EventWithMetadata,
-  'id' | 'createdAt' | 'updatedAt' | 'createdBy' | 'lastUpdatedBy'
->;
-
-// Define human-readable labels for the event types
-export const eventTypeLabels: Record<EventType, string> = {
-  REFUGE: 'Refuge',
-  BODHIPUSPANJALI: 'Bodhipushpanjali'
-};
-
-// Define participant addition schema
-export interface AddParticipantInput {
-  personId: string;
-  eventId: string;
-  additionalData?: Record<string, any>;
+export interface EventSummaryDto {
+  id: string
+  name: string
+  categoryCode: string
+  categoryName: string
+  registrationMode: EventRegistrationMode
+  status: EventStatus
+  startDate: string
+  endDate: string
+  totalAttendees: number
+  checkedInAttendees: number
+  daysCount: number
 }
 
-// Define schema for updating participant data
-export interface UpdateParticipantDataInput {
-  eventId: string;
-  personId: string;
-  data: Partial<RefugePersonData | BodhipushpanjaliPersonData>;
+export interface EventDayDto {
+  id: string
+  dayNumber: number
+  eventDate: string
+}
+
+export interface AttendeeDayCheckInDto {
+  dayId: string
+  dayNumber: number
+  eventDate: string
+  checkedIn: boolean
+  checkedInAt?: string
+  checkedInBy?: string
+}
+
+export interface EventAttendeeDto {
+  attendeeId: string
+  personId: string
+  firstName: string
+  lastName: string
+  photo: string | null
+  personType: string | null
+  hasMajorEmpowerment: boolean
+  registrationMode: EventRegistrationMode
+  registeredAt: string
+  isCancelled: boolean
+  receivedEmpowerment: boolean
+  empowermentRecordId?: string | null
+  notes?: string | null
+  attendance: AttendeeDayCheckInDto[]
+  attendedAllDays: boolean
+  metadata: EventMetadata
+}
+
+export interface EventDetailDto {
+  id: string
+  name: string
+  description: string | null
+  startDate: string
+  endDate: string
+  registrationMode: EventRegistrationMode
+  status: EventStatus
+  category: EventCategoryDto
+  empowermentId: string | null
+  guruId: string | null
+  closedAt: string | null
+  closedBy: string | null
+  days: EventDayDto[]
+  attendees: EventAttendeeDto[]
+  metadata: EventMetadata
+}
+
+export interface AddAttendeeInput {
+  personId: string
+  notes?: string | null
+  metadata?: EventMetadata | null
+}
+
+export interface UpdateAttendeeInput {
+  notes?: string | null
+  metadata?: EventMetadata | null
+}
+
+export interface CheckInInput {
+  attendeeId: string
+  dayId: string
+  checkedIn: boolean
+}
+
+export interface CloseEventInput {
+  attendeeIds: string[]
 }

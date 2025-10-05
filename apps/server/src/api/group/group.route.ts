@@ -8,6 +8,7 @@ import {
   addPersonToGroup,
   removePersonFromGroup,
   getGroupMembers,
+  addPersonsToGroupsBulk,
   GroupInput
 } from "./group.service";
 import { authenticated } from "../../middlewares/session";
@@ -25,6 +26,18 @@ export const groupsRoutes = groups
   .get("/", async (c) => {
     const groups = await getAllGroups();
     return c.json(groups);
+  })
+  .post('/bulk-add', async (c) => {
+    const { personIds, groupIds } = await c.req.json<{ personIds?: string[]; groupIds?: string[] }>()
+    const user = c.get('user')
+    if (!user) throw new Error('User not found')
+
+    if (!Array.isArray(personIds) || personIds.length === 0 || !Array.isArray(groupIds) || groupIds.length === 0) {
+      return c.json({ error: 'personIds and groupIds are required' }, 400)
+    }
+
+    const result = await addPersonsToGroupsBulk(personIds, groupIds, user.id)
+    return c.json(result)
   })
   .get("/:id", async (c) => {
     const group = await getGroupById(c.req.param("id"));

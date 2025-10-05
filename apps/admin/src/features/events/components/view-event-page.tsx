@@ -1,568 +1,407 @@
-import { useState, useEffect } from 'react'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { useParams, Link } from '@tanstack/react-router'
+import React, { Suspense, useMemo, useRef, useState } from 'react'
+import { useParams } from '@tanstack/react-router'
+import { useQuery, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
+import { IconLoader } from '@tabler/icons-react'
 import { format } from 'date-fns'
-import { ArrowLeft, Search as SearchIcon } from 'lucide-react'
 
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Label } from '@/components/ui/label'
-import { Input } from '@/components/ui/input'
-import CreatableSelect from 'react-select/creatable'
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
-
+import { useToast } from '@/hooks/use-toast'
+import { useReactToPrint } from 'react-to-print'
 import { Header } from '@/components/layout/header'
 import { Main } from '@/components/layout/main'
 import { Search } from '@/components/search'
-import { ProfileDropdown } from '@/components/profile-dropdown'
 import { ThemeSwitch } from '@/components/theme-switch'
-import { useToast } from '@/hooks/use-toast'
+import { ProfileDropdown } from '@/components/profile-dropdown'
 
-import { eventTypeLabels, EventType } from '../data/schema'
-import { getEventQueryOptions, getEventParticipantsQueryOptions, addParticipantToEvent, removeParticipantFromEvent, updateParticipantData } from '@/api/events'
-import { getPersonsQueryOptions } from '@/api/persons'
-import { CreatePersonDialog } from './create-person-dialog'
-import { ViewRefugeParticipants } from './view-refuge-participants'
-import { ViewBodhipushpanjaliParticipants } from './view-bodhipushpanjali-participants'
+import {
+  getEventQueryOptions,
+  useAddAttendee,
+  useRemoveAttendee,
+  useSetCheckIn,
+  useUpdateAttendee,
+} from '@/api/events'
+import { getPersonsQueryOptions, createPerson } from '@/api/persons'
+import { getEmpowermentsQueryOptions } from '@/api/empowerments'
+import { getGurusQueryOptions } from '@/features/gurus/data/api'
+import type { PersonInput } from '@/features/persons/data/schema'
+import { personTypeLabels } from '@/features/persons/data/schema'
+import { AttendeeTable } from './attendee-table'
+import { AddAttendeeControl, PendingPerson } from './add-attendee-control'
+import { CloseEventDialog } from './close-event-dialog'
 
-export default function ViewEventPage() {
-  const { eventId } = useParams({ from: '/_authenticated/events/$eventId/view' })
-  const [selectedPersonId, setSelectedPersonId] = useState('')
-  const [participants, setParticipants] = useState<Array<{ id: string, name: string, firstName?: string, lastName?: string }>>([])
-  const [searchQuery, setSearchQuery] = useState('')
-  const [filteredParticipants, setFilteredParticipants] = useState<Array<{ id: string, name: string }>>([])
-  const [showCreateDialog, setShowCreateDialog] = useState(false)
-  const [newPersonName, setNewPersonName] = useState('')
-  const [isSaving] = useState(false)
+const registrationLabels = {
+  PRE_REGISTRATION: 'Pre-Registration',
+  WALK_IN: 'Walk-In',
+} as const
+
+const statusVariants = {
+  ACTIVE: 'default',
+  DRAFT: 'secondary',
+  CLOSED: 'outline',
+} as const
+
+function EventDetailContent({ eventId }: { eventId: string }) {
   const { toast } = useToast()
+  const printRef = useRef<HTMLDivElement | null>(null)
+  const [closeDialogOpen, setCloseDialogOpen] = useState(false)
+  const [updatingAttendeeId, setUpdatingAttendeeId] = useState<string | null>(null)
   const queryClient = useQueryClient()
 
-  // Fetch event data
-  const { data: event, isLoading: isLoadingEvent } = useQuery({
-    ...getEventQueryOptions(eventId),
-    enabled: !!eventId
+  const { data: event } = useSuspenseQuery(getEventQueryOptions(eventId))
+  const { data: persons = [], isLoading: personsLoading } = useQuery(getPersonsQueryOptions())
+  const isEmpowermentEvent = event.category.code === 'EMPOWERMENT'
+  const isRefugeEvent = event.category.code === 'REFUGE'
+  const isBodhipushpanjaliEvent = event.category.code === 'BODHIPUSPANJALI'
+  const attendeeMetadataField = isRefugeEvent ? 'refugeName' : isBodhipushpanjaliEvent ? 'referredBy' : null
+  const { data: empowerments = [] } = useQuery({
+    ...getEmpowermentsQueryOptions(),
+    enabled: isEmpowermentEvent,
   })
-
-  // Fetch existing participants
-  const { data: existingParticipants } = useQuery({
-    ...getEventParticipantsQueryOptions(eventId),
-    enabled: !!eventId
+  const { data: gurus = [] } = useQuery({
+    ...getGurusQueryOptions(),
+    enabled: isEmpowermentEvent,
   })
+  const addAttendeeMutation = useAddAttendee()
+  const setCheckInMutation = useSetCheckIn()
+  const removeAttendeeMutation = useRemoveAttendee()
+  const updateAttendeeMutation = useUpdateAttendee()
 
-  // Use existing participants to initialize the local state
-  useEffect(() => {
-    if (existingParticipants && Array.isArray(existingParticipants) && existingParticipants.length > 0) {
-      // Convert to our local format, preserving all properties
-      const formattedParticipants = existingParticipants.map((p: { personId: string; firstName: string; lastName: string; refugeName?: string; referralMedium?: string }) => ({
-        id: p.personId,
-        name: `${p.firstName} ${p.lastName}`,
-        firstName: p.firstName,
-        lastName: p.lastName,
-        refugeName: p.refugeName,
-        referralMedium: p.referralMedium
-      }));
+  const isClosed = event.status === 'CLOSED'
 
-      setParticipants(formattedParticipants);
-      setFilteredParticipants(formattedParticipants);
-    }
-  }, [existingParticipants]);
+  const eligiblePersons = useMemo(() => {
+    const existingPersonIds = new Set(event.attendees.map((attendee) => attendee.personId))
+    return persons.filter((person) => !existingPersonIds.has(person.id))
+  }, [event.attendees, persons])
 
-  // Fetch persons data for the select dropdown
-  const { data: persons = [] } = useQuery(getPersonsQueryOptions())
+  const empowermentName = isEmpowermentEvent
+    ? empowerments.find((item) => item.id === event.empowermentId)?.name
+    : undefined
+  const guruName = isEmpowermentEvent
+    ? gurus.find((item) => item.id === event.guruId)?.name
+    : undefined
 
-  // Filter participants based on search query
-  useEffect(() => {
-    if (!searchQuery.trim()) {
-      setFilteredParticipants(participants)
-      return
-    }
-
-    const filtered = participants.filter(p =>
-      p.name.toLowerCase().includes(searchQuery.toLowerCase())
-    )
-    setFilteredParticipants(filtered)
-  }, [searchQuery, participants])
-
-  const handleAddPerson = async () => {
-    if (!selectedPersonId || !eventId || !event) return
-
-    const selectedPerson = persons.find(person => person.id === selectedPersonId)
-    if (!selectedPerson) return
-
-    // Check if person is already added
-    if (participants.some(p => p.id === selectedPersonId)) {
-      toast({
-        title: 'Already added',
-        description: 'This person is already a participant',
-        variant: 'default',
-      })
-      setSelectedPersonId('')
-      return
-    }
-
-    // Create new participant object with appropriate fields based on event type
-    const newParticipant: { id: string; name: string; firstName: string; lastName: string; refugeName?: string; referralMedium?: string } = {
-      id: selectedPerson.id,
-      name: `${selectedPerson.firstName} ${selectedPerson.lastName}`,
-      firstName: selectedPerson.firstName,
-      lastName: selectedPerson.lastName
-    };
-
-    // Add type-specific fields
-    if (event.type === 'REFUGE') {
-      newParticipant.refugeName = '';
-    } else if (event.type === 'BODHIPUSHPANJALI') {
-      newParticipant.referralMedium = '';
-    }
-
-    // Prepare type-specific additional data
-    const additionalData: Record<string, string> = {
-      firstName: selectedPerson.firstName,
-      lastName: selectedPerson.lastName
-    }
-
-    // Add type-specific fields
-    if (event.type === 'REFUGE') {
-      additionalData.refugeName = ''
-    } else if (event.type === 'BODHIPUSPANJALI') {
-      additionalData.referralMedium = ''
-    }
-
-    // Optimistically update UI
-    setParticipants(prevParticipants => [...prevParticipants, newParticipant])
-
-    // Reset selection
-    setSelectedPersonId('')
-
+  const handleToggleCheckIn = async (attendeeId: string, dayId: string, checked: boolean) => {
+    if (isClosed) return
     try {
-      // Actually add participant to the event through API
-      await addParticipantToEvent(eventId, selectedPerson.id, additionalData)
-
-      // Invalidate queries to ensure data consistency
-      queryClient.invalidateQueries({ queryKey: ['event', eventId] })
-      queryClient.invalidateQueries({ queryKey: ['event', eventId, 'participants'] })
-
-      toast({
-        title: 'Success',
-        description: `${selectedPerson.firstName} ${selectedPerson.lastName} added as participant`,
+      await setCheckInMutation.mutateAsync({
+        eventId: event.id,
+        payload: { attendeeId, dayId, checkedIn: checked },
       })
     } catch (error) {
-
-      // Revert optimistic update if API call fails
-      setParticipants(prevParticipants =>
-        prevParticipants.filter(p => p.id !== selectedPerson.id)
-      )
-
       toast({
-        title: 'Error',
-        description: error instanceof Error
-          ? error.message
-          : 'Failed to add participant. Please try again.',
+        title: 'Unable to update check-in',
+        description: error instanceof Error ? error.message : 'Please try again later.',
         variant: 'destructive',
       })
     }
   }
 
-  const handleRemovePerson = async (id: string) => {
-    if (!eventId) return
-
-    if (!confirm('Are you sure you want to remove this participant?')) {
-      return
-    }
-
-    // Store the participant to restore if needed
-    const removedParticipant = participants.find(p => p.id === id)
-
-    // Optimistically update UI
-    setParticipants(prevParticipants => prevParticipants.filter(p => p.id !== id))
-    setFilteredParticipants(prevParticipants => prevParticipants.filter(p => p.id !== id))
-
+  const handleRemoveAttendee = async (attendeeId: string) => {
+    if (isClosed) return
     try {
-      // Actually remove participant from the event through API
-      await removeParticipantFromEvent(eventId, id)
-
-      // Invalidate queries to ensure data consistency
-      queryClient.invalidateQueries({ queryKey: ['event', eventId] })
-      queryClient.invalidateQueries({ queryKey: ['event', eventId, 'participants'] })
-
-      toast({
-        title: 'Success',
-        description: 'Participant removed successfully',
-      })
+      await removeAttendeeMutation.mutateAsync({ eventId: event.id, attendeeId })
+      toast({ title: 'Attendee removed' })
     } catch (error) {
+      toast({
+        title: 'Unable to remove attendee',
+        description: error instanceof Error ? error.message : 'Please try again later.',
+        variant: 'destructive',
+      })
+    }
+  }
 
-      // Revert optimistic update if API call fails
-      if (removedParticipant) {
-        setParticipants(prevParticipants => [...prevParticipants, removedParticipant])
+  const handleAddExistingAttendee = async (personId: string) => {
+    if (isClosed) throw new Error('Event is closed')
+    try {
+      await addAttendeeMutation.mutateAsync({
+        eventId: event.id,
+        payload: { personId },
+      })
+      toast({
+        title: 'Attendee added',
+        description: 'The person has been added to the event.',
+      })
+      queryClient.invalidateQueries({ queryKey: ['persons'] })
+    } catch (error) {
+      toast({
+        title: 'Unable to add attendee',
+        description: error instanceof Error ? error.message : 'Please try again later.',
+        variant: 'destructive',
+      })
+      throw error
+    }
+  }
+
+  const handleCreatePerson = async (pending: PendingPerson) => {
+    try {
+      const payload: PersonInput = {
+        firstName: pending.firstName.trim(),
+        lastName: pending.lastName.trim(),
+        address: pending.address?.trim() || 'N/A',
+        center: pending.center as PersonInput['center'],
+        type: pending.type as PersonInput['type'],
+        emailId: pending.email?.trim() || undefined,
+        primaryPhone: pending.primaryPhone?.trim() || undefined,
+        secondaryPhone: undefined,
+        yearOfBirth: undefined,
+        photo: undefined,
+        gender: undefined,
+        middleName: undefined,
+        country: pending.country?.trim() || undefined,
+        nationality: undefined,
+        languagePreference: undefined,
+        occupation: undefined,
+        notes: undefined,
+        refugeName: undefined,
+        yearOfRefuge: undefined,
+        title: undefined,
+        membershipType: undefined,
+        hasMembershipCard: undefined,
+        membershipCardNumber: undefined,
+        emergencyContactName: undefined,
+        emergencyContactRelationship: undefined,
+        emergencyContactPhone: undefined,
+        yearOfRefugeCalendarType: undefined,
+        is_krama_instructor: false,
+        krama_instructor_person_id: undefined,
+        referredBy: undefined,
       }
 
+      const person = await createPerson(payload)
+      queryClient.invalidateQueries({ queryKey: ['persons'] })
+      return person.id as string
+    } catch (error) {
       toast({
-        title: 'Error',
-        description: error instanceof Error
-          ? error.message
-          : 'Failed to remove participant. Please try again.',
+        title: 'Unable to create person',
+        description: error instanceof Error ? error.message : 'Please try again later.',
         variant: 'destructive',
       })
+      throw error
     }
   }
 
-  const handleUpdateParticipant = async (id: string, updateData: { refugeName?: string; referralMedium?: string }) => {
-    if (!eventId) return
+  const handleAddAttendee = async (personId: string) => {
+    await handleAddExistingAttendee(personId)
+  }
 
-    // Find the participant to update
-    const participantToUpdate = participants.find(p => p.id === id)
-    if (!participantToUpdate) return
+  const disableAddControls = isClosed || personsLoading || addAttendeeMutation.isPending
 
-    // Create an optimistic update
-    const updatedParticipant = {
-      ...participantToUpdate,
-      ...updateData
-    }
-
-    // Optimistically update UI
-    setParticipants(prevParticipants =>
-      prevParticipants.map(p => p.id === id ? updatedParticipant : p)
-    )
-    setFilteredParticipants(prevParticipants =>
-      prevParticipants.map(p => p.id === id ? updatedParticipant : p)
-    )
-
+  const handleUpdateMetadataField = async (attendeeId: string, value: string) => {
+    if (!attendeeMetadataField) return
+    const trimmed = value.trim()
+    const field = attendeeMetadataField
+    const metadataPayload = trimmed ? { [field]: trimmed } : {}
     try {
-      // Actually update participant in the database
-      await updateParticipantData(eventId, id, updateData)
-
-      // Invalidate queries to ensure data consistency
-      queryClient.invalidateQueries({ queryKey: ['event', eventId] })
-      queryClient.invalidateQueries({ queryKey: ['event', eventId, 'participants'] })
-
-      toast({
-        title: 'Success',
-        description: 'Participant updated successfully',
+      setUpdatingAttendeeId(attendeeId)
+      await updateAttendeeMutation.mutateAsync({
+        eventId: event.id,
+        attendeeId,
+        payload: { metadata: metadataPayload },
       })
     } catch (error) {
-
-      // Revert optimistic update if API call fails
-      setParticipants(prevParticipants =>
-        prevParticipants.map(p => p.id === id ? participantToUpdate : p)
-      )
-      setFilteredParticipants(prevParticipants =>
-        prevParticipants.map(p => p.id === id ? participantToUpdate : p)
-      )
-
       toast({
-        title: 'Error',
-        description: error instanceof Error
-          ? error.message
-          : 'Failed to update participant. Please try again.',
+        title: `Unable to update ${attendeeMetadataField === 'refugeName' ? 'refuge name' : 'referred by'}`,
+        description: error instanceof Error ? error.message : 'Please try again later.',
         variant: 'destructive',
       })
+    } finally {
+      setUpdatingAttendeeId(null)
     }
   }
 
-  // Handle the creation of a new person
-  const handlePersonCreated = async (createdPerson: { id: string; firstName: string; lastName: string }) => {
-    if (!eventId || !event) return
+  const handlePrint = useReactToPrint({
+    content: () => printRef.current,
+    contentRef: printRef,
+    documentTitle: `${event.name}-details`,
+  })
 
-    // Create new participant object with appropriate fields based on event type
-    const newParticipant: { id: string; name: string; firstName: string; lastName: string; refugeName?: string; referralMedium?: string } = {
-      id: createdPerson.id,
-      name: `${createdPerson.firstName} ${createdPerson.lastName}`,
-      firstName: createdPerson.firstName,
-      lastName: createdPerson.lastName
-    };
+  const formatUtcDate = (value: string, options: Intl.DateTimeFormatOptions) =>
+    new Intl.DateTimeFormat(undefined, { timeZone: 'UTC', ...options }).format(new Date(value))
 
-    // Add type-specific fields
-    if (event.type === 'REFUGE') {
-      newParticipant.refugeName = '';
-    } else if (event.type === 'BODHIPUSHPANJALI') {
-      newParticipant.referralMedium = '';
-    }
+  return (
+    <div className='space-y-6'>
+      <div ref={printRef} className='space-y-6 print:space-y-4'>
+      <Card>
+        <CardHeader className='flex flex-col gap-4 border-b bg-muted/40 sm:flex-row sm:items-center sm:justify-between'>
+          <div className='space-y-1'>
+            <div className='flex flex-wrap items-center gap-3'>
+              <CardTitle className='text-2xl font-semibold'>{event.name}</CardTitle>
+              <Badge variant={statusVariants[event.status]}>{event.status}</Badge>
+            </div>
+            <div className='flex flex-wrap items-center gap-3 text-sm text-muted-foreground'>
+              <span>
+                {formatUtcDate(event.startDate, { dateStyle: 'medium' })} –{' '}
+                {formatUtcDate(event.endDate, { dateStyle: 'medium' })}
+              </span>
+              <span>•</span>
+              <span>{event.category.name}</span>
+              <span>•</span>
+              <span>{registrationLabels[event.registrationMode]}</span>
+            </div>
+            {isEmpowermentEvent && (
+              <div className='flex flex-wrap items-center gap-3 text-sm text-muted-foreground'>
+                <span>
+                  <strong className='text-foreground'>Empowerment:</strong>{' '}
+                  {empowermentName ?? '—'}
+                </span>
+                <span>•</span>
+                <span>
+                  <strong className='text-foreground'>Guru:</strong>{' '}
+                  {guruName ?? '—'}
+                </span>
+              </div>
+            )}
+          </div>
+          <div className='flex flex-col items-end gap-2 sm:items-end'>
+            <div className='flex gap-2 print:hidden'>
+              <Button variant='outline' size='sm' onClick={handlePrint}>Print</Button>
+              {!isClosed && (
+                <Button
+                  variant='destructive'
+                  size='sm'
+                  className='shadow-md shadow-destructive/30'
+                  onClick={() => setCloseDialogOpen(true)}
+                >
+                  Close Event
+                </Button>
+              )}
+            </div>
+            {event.closedAt && (
+              <p className='text-xs text-muted-foreground'>
+                Closed on {format(new Date(event.closedAt), 'PPpp')}
+              </p>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent className='space-y-3 pt-6'>
+          {event.description && <p className='text-sm text-muted-foreground'>{event.description}</p>}
+          <div className='flex flex-wrap gap-4 text-sm text-muted-foreground'>
+            <span>
+              <strong className='text-foreground'>Days:</strong> {event.days.length}
+            </span>
+            <span>
+              <strong className='text-foreground'>Attendees:</strong> {event.attendees.length}
+            </span>
+            {event.category.requiresFullAttendance && (
+              <span className='text-amber-600 dark:text-amber-500'>Full attendance required for empowerment credit</span>
+            )}
+          </div>
+          <div className='flex flex-wrap gap-3'>
+            {!isClosed && (
+              <AddAttendeeControl
+                persons={eligiblePersons.map((person) => ({
+                  id: person.id,
+                  firstName: person.firstName,
+                  lastName: person.lastName,
+                }))}
+                isLoading={personsLoading}
+                onCreatePerson={handleCreatePerson}
+                onAddExisting={handleAddAttendee}
+                disabled={disableAddControls}
+              />
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
-    // Prepare type-specific additional data
-    const additionalData: Record<string, string> = {
-      firstName: createdPerson.firstName,
-      lastName: createdPerson.lastName
-    }
+      <div className='print:hidden'>
+        <AttendeeTable
+          event={event}
+          onToggleCheckIn={handleToggleCheckIn}
+          onRemoveAttendee={handleRemoveAttendee}
+          disabled={isClosed || setCheckInMutation.isPending}
+          onUpdateMetadataField={attendeeMetadataField ? handleUpdateMetadataField : undefined}
+          updatingAttendeeId={updatingAttendeeId}
+        />
+      </div>
 
-    // Add type-specific fields
-    if (event.type === 'REFUGE') {
-      additionalData.refugeName = ''
-    } else if (event.type === 'BODHIPUSPANJALI') {
-      additionalData.referralMedium = ''
-    }
+      <div className='hidden print:block space-y-3'>
+        <h3 className='text-lg font-semibold'>Attendees</h3>
+        <table className='w-full border border-border text-sm'>
+          <thead>
+            <tr className='bg-muted text-left'>
+              <th className='border border-border px-2 py-1'>Name</th>
+              <th className='border border-border px-2 py-1'>Type</th>
+              <th className='border border-border px-2 py-1'>Major Emp.</th>
+              <th className='border border-border px-2 py-1'>Registered</th>
+              {event.days.map((day) => (
+                <th key={day.id} className='border border-border px-2 py-1 text-center'>
+                  Day {day.dayNumber}
+                </th>
+              ))}
+              <th className='border border-border px-2 py-1 text-center'>Attended</th>
+            </tr>
+          </thead>
+          <tbody>
+            {event.attendees.map((attendee) => {
+              const attendedCount = attendee.attendance.filter((entry) => entry.checkedIn).length
+              const personTypeLabel = attendee.personType
+                ? personTypeLabels[attendee.personType as keyof typeof personTypeLabels] ?? attendee.personType
+                : '—'
 
-    // Optimistically update UI
-    setParticipants(prevParticipants => [...prevParticipants, newParticipant])
+              return (
+                <tr key={attendee.attendeeId}>
+                  <td className='border border-border px-2 py-1'>{attendee.firstName} {attendee.lastName}</td>
+                  <td className='border border-border px-2 py-1'>{personTypeLabel}</td>
+                  <td className='border border-border px-2 py-1'>{attendee.hasMajorEmpowerment ? 'Yes' : 'No'}</td>
+                  <td className='border border-border px-2 py-1'>
+                    {format(new Date(attendee.registeredAt), 'PPpp')}
+                  </td>
+                  {event.days.map((day) => {
+                    const record = attendee.attendance.find((entry) => entry.dayId === day.id)
+                    return (
+                      <td key={day.id} className='border border-border px-2 py-1'>
+                        <div className='flex items-center justify-center'>
+                          <div className='flex h-4 w-4 items-center justify-center rounded-sm border border-muted-foreground'>
+                            {record?.checkedIn ? '✓' : ''}
+                          </div>
+                        </div>
+                      </td>
+                    )
+                  })}
+                  <td className='border border-border px-2 py-1 text-center'>
+                    {event.days.length ? `${attendedCount} / ${event.days.length}` : attendedCount}
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
 
-    try {
-      // Actually add participant to the event through API
-      await addParticipantToEvent(eventId, createdPerson.id, additionalData)
-
-      // Invalidate queries to ensure data consistency
-      queryClient.invalidateQueries({ queryKey: ['event', eventId] })
-      queryClient.invalidateQueries({ queryKey: ['event', eventId, 'participants'] })
-
-      toast({
-        title: 'Person created successfully',
-        description: `${createdPerson.firstName} ${createdPerson.lastName} has been added to the event.`,
-      })
-    } catch {
-
-      // Revert optimistic update if API call fails
-      setParticipants(prevParticipants =>
-        prevParticipants.filter(p => p.id !== createdPerson.id)
-      )
-
-      toast({
-        title: 'Error',
-        description: 'Person was created but could not be added as participant. Please try adding them manually.',
-        variant: 'destructive',
-      })
-    }
-  }
-
-  // Check if there are any available persons to add
-  // Helper to check if there are available persons - used for UI display
-  persons.some((person) =>
-    !participants.some(p => p.id === person.id)
+      <CloseEventDialog event={event} open={closeDialogOpen} onOpenChange={setCloseDialogOpen} />
+      </div>
+    </div>
   )
+}
 
-  if (isLoadingEvent) {
-    return (
-      <div className="container mx-auto p-6">
-        <div className="flex items-center justify-center h-48">
-          <p>Loading event details...</p>
-        </div>
-      </div>
-    )
-  }
-
-  if (!event) {
-    return (
-      <div className="container mx-auto p-6">
-        <div className="flex items-center justify-center h-48">
-          <p>Event not found</p>
-        </div>
-      </div>
-    )
-  }
+function EventDetailPage() {
+  const { eventId } = useParams({ from: '/_authenticated/events/$eventId/view' })
 
   return (
     <>
       <Header fixed>
         <Search />
-        <div className='ml-auto flex items-center space-x-4'>
+        <div className='ml-auto flex items-center '>
           <ThemeSwitch />
           <ProfileDropdown />
         </div>
       </Header>
       <Main>
-        <div className="w-full space-y-4">
-          <div className="flex justify-between items-center mb-2">
-            <Button variant="outline" size="sm" asChild>
-              <Link to="/events">
-                <ArrowLeft className="mr-2 h-3 w-3" />
-                Back to Events
-              </Link>
-            </Button>
-          </div>
-
-          {/* Event Details Card - Full Width */}
-          <Card className="mb-4">
-            <CardHeader className="py-2">
-              <CardTitle>Event Details</CardTitle>
-            </CardHeader>
-            <CardContent className="py-1">
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2">
-                <div>
-                  <Label className="text-xs">Name</Label>
-                  <div className="text-sm mt-0.5">{event.name}</div>
-                </div>
-
-                <div>
-                  <Label className="text-xs">Type</Label>
-                  <div className="text-sm mt-0.5">
-                    {eventTypeLabels[event.type as EventType]}
-                  </div>
-                </div>
-
-                <div>
-                  <Label className="text-xs">Start Date</Label>
-                  <div className="text-sm mt-0.5">
-                    {format(new Date(event.startDate), 'PPP')}
-                  </div>
-                </div>
-
-                <div>
-                  <Label className="text-xs">End Date</Label>
-                  <div className="text-sm mt-0.5">
-                    {format(new Date(event.endDate), 'PPP')}
-                  </div>
-                </div>
-
-                {event.description && (
-                  <div className="col-span-full">
-                    <Label className="text-xs">Description</Label>
-                    <div className="text-sm mt-0.5">{event.description}</div>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Combined Participants Card */}
-          <Card>
-            <CardHeader className="py-2">
-              <CardTitle>Event Participants</CardTitle>
-            </CardHeader>
-            <CardContent className="py-2 space-y-3">
-              {/* Person autocomplete and add button */}
-              <div className="flex gap-2 items-end">
-                <div style={{ width: '300px' }}>
-                  <Label htmlFor="person-autocomplete" className="text-xs mb-1 block">Add Participant</Label>
-                  <CreatableSelect
-                    id="person-autocomplete"
-                    isClearable
-                    options={persons
-                      .filter(person => !participants.some(p => p.id === person.id))
-                      .map((person) => ({
-                        value: person.id,
-                        label: `${person.firstName} ${person.lastName}`
-                      }))}
-                    value={selectedPersonId ? {
-                      value: selectedPersonId,
-                      label: persons.find((p) => p.id === selectedPersonId)
-                        ? `${persons.find((p) => p.id === selectedPersonId)?.firstName} ${persons.find((p) => p.id === selectedPersonId)?.lastName}`
-                        : ""
-                    } : null}
-                    onChange={(newValue) => {
-                      setSelectedPersonId(newValue?.value || "")
-                    }}
-                    onCreateOption={(inputValue) => {
-                      setNewPersonName(inputValue)
-                      setShowCreateDialog(true)
-                    }}
-                    placeholder="Select or create a person..."
-                    formatCreateLabel={(inputValue) => `Create "${inputValue}"`}
-                    classNames={{
-                      control: () => "px-1 py-1 border rounded-md bg-background h-9",
-                      menu: () => "bg-background border rounded-md mt-1",
-                      option: (state) =>
-                        state.isFocused
-                          ? "bg-primary/10 cursor-pointer"
-                          : "cursor-pointer hover:bg-primary/5",
-                    }}
-                  />
-                </div>
-                <Button
-                  onClick={handleAddPerson}
-                  disabled={!selectedPersonId || isSaving}
-                  size="sm"
-                >
-                  {isSaving ? 'Adding...' : 'Add'}
-                </Button>
-              </div>
-
-              {/* Participants list with search */}
-              <div>
-                <div className="flex justify-between items-center mb-1">
-                  <Label className="text-xs block">Participants</Label>
-                  <div className="relative w-64">
-                    <SearchIcon className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-                    <Input
-                      placeholder="Search participants..."
-                      value={searchQuery}
-                      onChange={e => setSearchQuery(e.target.value)}
-                      className="pl-8 h-8 text-sm"
-                    />
-                  </div>
-                </div>
-
-                {participants.length > 0 ? (
-                  <>
-                    {event?.type === 'REFUGE' ? (
-                      <ViewRefugeParticipants
-                        participants={participants}
-                        filteredParticipants={filteredParticipants}
-                        onRemove={handleRemovePerson}
-                        onUpdate={handleUpdateParticipant}
-                      />
-                    ) : event?.type === 'BODHIPUSPANJALI' ? (
-                      <ViewBodhipushpanjaliParticipants
-                        participants={participants}
-                        filteredParticipants={filteredParticipants}
-                        onRemove={handleRemovePerson}
-                        onUpdate={handleUpdateParticipant}
-                      />
-                    ) : (
-                      <div className="border rounded-md overflow-hidden">
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead>Name</TableHead>
-                              <TableHead className="w-[80px] text-right">Actions</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {filteredParticipants.length > 0 ? (
-                              filteredParticipants.map(participant => (
-                                <TableRow key={participant.id}>
-                                  <TableCell className="py-1.5">{participant.name}</TableCell>
-                                  <TableCell className="text-right py-1.5">
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => handleRemovePerson(participant.id)}
-                                      className="h-7 px-2"
-                                    >
-                                      Remove
-                                    </Button>
-                                  </TableCell>
-                                </TableRow>
-                              ))
-                            ) : (
-                              <TableRow>
-                                <TableCell colSpan={2} className="text-center py-3 text-sm text-muted-foreground">
-                                  No matching participants found
-                                </TableCell>
-                              </TableRow>
-                            )}
-                          </TableBody>
-                        </Table>
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <div className="text-sm text-muted-foreground p-3 border rounded-md text-center">
-                    No participants added
-                  </div>
-                )}
-              </div>
-            </CardContent>
-            {/* Footer removed as we're saving immediately */}
-          </Card>
-        </div>
+        <Suspense
+          fallback={
+            <div className='flex h-full items-center justify-center'>
+              <IconLoader className='h-6 w-6 animate-spin' />
+            </div>
+          }
+        >
+          <EventDetailContent eventId={eventId} />
+        </Suspense>
       </Main>
-
-      {/* Create Person Dialog */}
-      <CreatePersonDialog
-        open={showCreateDialog}
-        onClose={() => setShowCreateDialog(false)}
-        onSuccess={handlePersonCreated}
-        initialName={newPersonName}
-      />
     </>
   )
 }
+
+export default EventDetailPage

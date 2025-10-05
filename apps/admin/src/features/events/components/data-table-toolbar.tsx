@@ -5,14 +5,21 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { DataTableViewOptions } from './data-table-view-options'
 import { DataTableFacetedFilter } from './data-table-faceted-filter'
-import { eventTypeLabels } from '../data/schema'
 
 interface DataTableToolbarProps<TData> {
   table: Table<TData>
+  onAdd?: () => void
 }
+
+const statusOptions = [
+  { label: 'Active', value: 'ACTIVE' },
+  { label: 'Draft', value: 'DRAFT' },
+  { label: 'Closed', value: 'CLOSED' },
+]
 
 export function DataTableToolbar<TData>({
   table,
+  onAdd,
 }: DataTableToolbarProps<TData>) {
   const isFiltered = table.getState().columnFilters.length > 0
 
@@ -27,14 +34,18 @@ export function DataTableToolbar<TData>({
           }
           className="h-8 w-[150px] lg:w-[250px]"
         />
-        {table.getColumn('type') && (
+        {table.getColumn('categoryName') && (
           <DataTableFacetedFilter
-            column={table.getColumn('type')}
-            title="Type"
-            options={Object.entries(eventTypeLabels).map(([value, label]) => ({
-              value,
-              label,
-            }))}
+            column={table.getColumn('categoryName')}
+            title="Category"
+            options={[]}
+          />
+        )}
+        {table.getColumn('status') && (
+          <DataTableFacetedFilter
+            column={table.getColumn('status')}
+            title="Status"
+            options={statusOptions}
           />
         )}
         {isFiltered && (
@@ -48,7 +59,14 @@ export function DataTableToolbar<TData>({
           </Button>
         )}
       </div>
-      <DataTableViewOptions table={table} />
+      <div className="flex items-center space-x-2">
+        <DataTableViewOptions table={table} />
+        {onAdd && (
+          <Button size="sm" onClick={onAdd}>
+            Create Event
+          </Button>
+        )}
+      </div>
     </div>
   )
 }

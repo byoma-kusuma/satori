@@ -61,6 +61,13 @@ export const addPersonToGroup = async (groupId: string, personId: string) => {
   })
 }
 
+export const bulkAddPersonsToGroups = async (payload: { groupIds: string[]; personIds: string[] }) => {
+  return fetchWithCredentials(`${GROUP_API_URL}/bulk-add`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+}
+
 export const removePersonFromGroup = async (groupId: string, personId: string) => {
   return fetchWithCredentials(`${GROUP_API_URL}/${groupId}/persons/${personId}`, {
     method: 'DELETE',
@@ -164,6 +171,28 @@ export const useRemovePersonFromGroup = () => {
       // Also invalidate the general lists
       queryClient.invalidateQueries({ queryKey: ['groups'] })
       queryClient.invalidateQueries({ queryKey: ['persons'] })
+    },
+  })
+}
+
+export const useBulkAddPersonsToGroups = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: bulkAddPersonsToGroups,
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['groups'] })
+      queryClient.invalidateQueries({ queryKey: ['persons'] })
+      if (variables.groupIds) {
+        variables.groupIds.forEach((groupId) =>
+          queryClient.invalidateQueries({ queryKey: ['group-members', groupId] }),
+        )
+      }
+      if (variables.personIds) {
+        variables.personIds.forEach((personId) =>
+          queryClient.invalidateQueries({ queryKey: ['person-groups', personId] }),
+        )
+      }
     },
   })
 }

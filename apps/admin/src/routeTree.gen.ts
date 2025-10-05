@@ -49,11 +49,17 @@ const AuthenticatedPersonsIndexLazyImport = createFileRoute(
 const AuthenticatedHelpCenterIndexLazyImport = createFileRoute(
   '/_authenticated/help-center/',
 )()
+const AuthenticatedGurusIndexLazyImport = createFileRoute(
+  '/_authenticated/gurus/',
+)()
 const AuthenticatedGroupsIndexLazyImport = createFileRoute(
   '/_authenticated/groups/',
 )()
 const AuthenticatedEventsIndexLazyImport = createFileRoute(
   '/_authenticated/events/',
+)()
+const AuthenticatedEmpowermentsIndexLazyImport = createFileRoute(
+  '/_authenticated/empowerments/',
 )()
 const AuthenticatedChatsIndexLazyImport = createFileRoute(
   '/_authenticated/chats/',
@@ -239,6 +245,15 @@ const AuthenticatedHelpCenterIndexLazyRoute =
     ),
   )
 
+const AuthenticatedGurusIndexLazyRoute =
+  AuthenticatedGurusIndexLazyImport.update({
+    id: '/gurus/',
+    path: '/gurus/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any).lazy(() =>
+    import('./routes/_authenticated/gurus/index.lazy').then((d) => d.Route),
+  )
+
 const AuthenticatedGroupsIndexLazyRoute =
   AuthenticatedGroupsIndexLazyImport.update({
     id: '/groups/',
@@ -255,6 +270,17 @@ const AuthenticatedEventsIndexLazyRoute =
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any).lazy(() =>
     import('./routes/_authenticated/events/index.lazy').then((d) => d.Route),
+  )
+
+const AuthenticatedEmpowermentsIndexLazyRoute =
+  AuthenticatedEmpowermentsIndexLazyImport.update({
+    id: '/empowerments/',
+    path: '/empowerments/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any).lazy(() =>
+    import('./routes/_authenticated/empowerments/index.lazy').then(
+      (d) => d.Route,
+    ),
   )
 
 const AuthenticatedChatsIndexLazyRoute =
@@ -513,6 +539,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedChatsIndexLazyImport
       parentRoute: typeof AuthenticatedRouteImport
     }
+    '/_authenticated/empowerments/': {
+      id: '/_authenticated/empowerments/'
+      path: '/empowerments'
+      fullPath: '/empowerments'
+      preLoaderRoute: typeof AuthenticatedEmpowermentsIndexLazyImport
+      parentRoute: typeof AuthenticatedRouteImport
+    }
     '/_authenticated/events/': {
       id: '/_authenticated/events/'
       path: '/events'
@@ -525,6 +558,13 @@ declare module '@tanstack/react-router' {
       path: '/groups'
       fullPath: '/groups'
       preLoaderRoute: typeof AuthenticatedGroupsIndexLazyImport
+      parentRoute: typeof AuthenticatedRouteImport
+    }
+    '/_authenticated/gurus/': {
+      id: '/_authenticated/gurus/'
+      path: '/gurus'
+      fullPath: '/gurus'
+      preLoaderRoute: typeof AuthenticatedGurusIndexLazyImport
       parentRoute: typeof AuthenticatedRouteImport
     }
     '/_authenticated/help-center/': {
@@ -620,8 +660,10 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedPersonsCreateLazyRoute: typeof AuthenticatedPersonsCreateLazyRoute
   AuthenticatedAppsIndexLazyRoute: typeof AuthenticatedAppsIndexLazyRoute
   AuthenticatedChatsIndexLazyRoute: typeof AuthenticatedChatsIndexLazyRoute
+  AuthenticatedEmpowermentsIndexLazyRoute: typeof AuthenticatedEmpowermentsIndexLazyRoute
   AuthenticatedEventsIndexLazyRoute: typeof AuthenticatedEventsIndexLazyRoute
   AuthenticatedGroupsIndexLazyRoute: typeof AuthenticatedGroupsIndexLazyRoute
+  AuthenticatedGurusIndexLazyRoute: typeof AuthenticatedGurusIndexLazyRoute
   AuthenticatedHelpCenterIndexLazyRoute: typeof AuthenticatedHelpCenterIndexLazyRoute
   AuthenticatedPersonsIndexLazyRoute: typeof AuthenticatedPersonsIndexLazyRoute
   AuthenticatedTasksIndexLazyRoute: typeof AuthenticatedTasksIndexLazyRoute
@@ -638,8 +680,11 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedPersonsCreateLazyRoute: AuthenticatedPersonsCreateLazyRoute,
   AuthenticatedAppsIndexLazyRoute: AuthenticatedAppsIndexLazyRoute,
   AuthenticatedChatsIndexLazyRoute: AuthenticatedChatsIndexLazyRoute,
+  AuthenticatedEmpowermentsIndexLazyRoute:
+    AuthenticatedEmpowermentsIndexLazyRoute,
   AuthenticatedEventsIndexLazyRoute: AuthenticatedEventsIndexLazyRoute,
   AuthenticatedGroupsIndexLazyRoute: AuthenticatedGroupsIndexLazyRoute,
+  AuthenticatedGurusIndexLazyRoute: AuthenticatedGurusIndexLazyRoute,
   AuthenticatedHelpCenterIndexLazyRoute: AuthenticatedHelpCenterIndexLazyRoute,
   AuthenticatedPersonsIndexLazyRoute: AuthenticatedPersonsIndexLazyRoute,
   AuthenticatedTasksIndexLazyRoute: AuthenticatedTasksIndexLazyRoute,
@@ -675,8 +720,10 @@ export interface FileRoutesByFullPath {
   '/settings/notifications': typeof AuthenticatedSettingsNotificationsLazyRoute
   '/apps': typeof AuthenticatedAppsIndexLazyRoute
   '/chats': typeof AuthenticatedChatsIndexLazyRoute
+  '/empowerments': typeof AuthenticatedEmpowermentsIndexLazyRoute
   '/events': typeof AuthenticatedEventsIndexLazyRoute
   '/groups': typeof AuthenticatedGroupsIndexLazyRoute
+  '/gurus': typeof AuthenticatedGurusIndexLazyRoute
   '/help-center': typeof AuthenticatedHelpCenterIndexLazyRoute
   '/persons': typeof AuthenticatedPersonsIndexLazyRoute
   '/settings/': typeof AuthenticatedSettingsIndexLazyRoute
@@ -706,8 +753,10 @@ export interface FileRoutesByTo {
   '/settings/notifications': typeof AuthenticatedSettingsNotificationsLazyRoute
   '/apps': typeof AuthenticatedAppsIndexLazyRoute
   '/chats': typeof AuthenticatedChatsIndexLazyRoute
+  '/empowerments': typeof AuthenticatedEmpowermentsIndexLazyRoute
   '/events': typeof AuthenticatedEventsIndexLazyRoute
   '/groups': typeof AuthenticatedGroupsIndexLazyRoute
+  '/gurus': typeof AuthenticatedGurusIndexLazyRoute
   '/help-center': typeof AuthenticatedHelpCenterIndexLazyRoute
   '/persons': typeof AuthenticatedPersonsIndexLazyRoute
   '/settings': typeof AuthenticatedSettingsIndexLazyRoute
@@ -741,8 +790,10 @@ export interface FileRoutesById {
   '/_authenticated/settings/notifications': typeof AuthenticatedSettingsNotificationsLazyRoute
   '/_authenticated/apps/': typeof AuthenticatedAppsIndexLazyRoute
   '/_authenticated/chats/': typeof AuthenticatedChatsIndexLazyRoute
+  '/_authenticated/empowerments/': typeof AuthenticatedEmpowermentsIndexLazyRoute
   '/_authenticated/events/': typeof AuthenticatedEventsIndexLazyRoute
   '/_authenticated/groups/': typeof AuthenticatedGroupsIndexLazyRoute
+  '/_authenticated/gurus/': typeof AuthenticatedGurusIndexLazyRoute
   '/_authenticated/help-center/': typeof AuthenticatedHelpCenterIndexLazyRoute
   '/_authenticated/persons/': typeof AuthenticatedPersonsIndexLazyRoute
   '/_authenticated/settings/': typeof AuthenticatedSettingsIndexLazyRoute
@@ -776,8 +827,10 @@ export interface FileRouteTypes {
     | '/settings/notifications'
     | '/apps'
     | '/chats'
+    | '/empowerments'
     | '/events'
     | '/groups'
+    | '/gurus'
     | '/help-center'
     | '/persons'
     | '/settings/'
@@ -806,8 +859,10 @@ export interface FileRouteTypes {
     | '/settings/notifications'
     | '/apps'
     | '/chats'
+    | '/empowerments'
     | '/events'
     | '/groups'
+    | '/gurus'
     | '/help-center'
     | '/persons'
     | '/settings'
@@ -839,8 +894,10 @@ export interface FileRouteTypes {
     | '/_authenticated/settings/notifications'
     | '/_authenticated/apps/'
     | '/_authenticated/chats/'
+    | '/_authenticated/empowerments/'
     | '/_authenticated/events/'
     | '/_authenticated/groups/'
+    | '/_authenticated/gurus/'
     | '/_authenticated/help-center/'
     | '/_authenticated/persons/'
     | '/_authenticated/settings/'
@@ -914,8 +971,10 @@ export const routeTree = rootRoute
         "/_authenticated/persons/create",
         "/_authenticated/apps/",
         "/_authenticated/chats/",
+        "/_authenticated/empowerments/",
         "/_authenticated/events/",
         "/_authenticated/groups/",
+        "/_authenticated/gurus/",
         "/_authenticated/help-center/",
         "/_authenticated/persons/",
         "/_authenticated/tasks/",
@@ -1001,12 +1060,20 @@ export const routeTree = rootRoute
       "filePath": "_authenticated/chats/index.lazy.tsx",
       "parent": "/_authenticated"
     },
+    "/_authenticated/empowerments/": {
+      "filePath": "_authenticated/empowerments/index.lazy.tsx",
+      "parent": "/_authenticated"
+    },
     "/_authenticated/events/": {
       "filePath": "_authenticated/events/index.lazy.tsx",
       "parent": "/_authenticated"
     },
     "/_authenticated/groups/": {
       "filePath": "_authenticated/groups/index.lazy.tsx",
+      "parent": "/_authenticated"
+    },
+    "/_authenticated/gurus/": {
+      "filePath": "_authenticated/gurus/index.lazy.tsx",
       "parent": "/_authenticated"
     },
     "/_authenticated/help-center/": {

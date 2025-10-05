@@ -1,3 +1,6 @@
+import { config } from "dotenv";
+config({ override: true }); // Load environment variables from .env file, overriding existing ones
+
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { auth } from "./lib/auth";
@@ -6,6 +9,9 @@ import { usersRoutes } from "./api/user/user.route";
 import { personsRoutes } from "./api/person/person.route";
 import { groupsRoutes } from "./api/group/group.route";
 import { eventsRoutes } from "./api/event/event.route";
+import { empowermentRoute } from "./api/empowerment/empowerment.route";
+import { gurusRoutes } from "./api/guru/guru.route";
+import { personEmpowermentRoute } from "./api/person-empowerment/person-empowerment.route";
 
 const app = new Hono();
 
@@ -30,7 +36,7 @@ app.use(
       return null // no header -> browser blocks it
     },
     allowHeaders: ['Content-Type', 'Authorization'],
-    allowMethods: ['POST', 'GET', 'PUT', 'DELETE', 'OPTIONS'],
+    allowMethods: ['POST', 'GET', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     exposeHeaders: ['Content-Length'],
     credentials: true,
   })
@@ -49,6 +55,9 @@ app.route("/api/user", usersRoutes);
 app.route("/api/person", personsRoutes);
 app.route("/api/group", groupsRoutes);
 app.route("/api/event", eventsRoutes);
+app.route("/api/empowerment", empowermentRoute);
+app.route("/api/guru", gurusRoutes);
+app.route("/api/person-empowerment", personEmpowermentRoute);
 
 export default {
   port: process.env.PORT || 3000,
