@@ -5,24 +5,26 @@ import { useForm } from 'react-hook-form'
 import { useRef, useState } from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useNavigate, useParams } from '@tanstack/react-router'
-import { useSuspenseQuery, useQuery } from '@tanstack/react-query'
+import { useSuspenseQuery } from '@tanstack/react-query'
 import { toast } from '@/hooks/use-toast'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { personInputSchema } from '../data/schema'
-import { useUpdatePerson, getPersonQueryOptions, getKramaInstructorsQueryOptions } from '../data/api'
+import { useUpdatePerson, getPersonQueryOptions } from '../data/api'
 import { Header } from '@/components/layout/header'
 import { Main } from '@/components/layout/main'
 import { ProfileDropdown } from '@/components/profile-dropdown'
 import { Search } from '@/components/search'
 import { ThemeSwitch } from '@/components/theme-switch'
-import { IconChevronLeft } from '@tabler/icons-react'
+import { IconChevronLeft, IconUserCircle, IconUsers, IconSparkles, IconCalendarPlus, IconUsersGroup } from '@tabler/icons-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Suspense } from 'react'
-import React from 'react'
 import { GeneralInfoTab } from './general-info-tab'
 import { EmpowermentsTab } from './empowerments-tab'
+import { FamilyRelationshipsTab } from './family-relationships-tab'
+import { PersonsAddToEventsDialog } from './persons-add-to-events-dialog'
+import { PersonsAddToGroupsDialog } from './persons-add-to-groups-dialog'
 
 type PersonForm = z.infer<typeof personInputSchema>
 
@@ -30,6 +32,8 @@ function EditPersonForm({ personId }: { personId: string }) {
   const navigate = useNavigate()
   const formRef = useRef<HTMLFormElement>(null)
   const updatePersonMutation = useUpdatePerson()
+  const [addToEventsOpen, setAddToEventsOpen] = useState(false)
+  const [addToGroupsOpen, setAddToGroupsOpen] = useState(false)
   
   // Fetch the person data
   const { data: person } = useSuspenseQuery(getPersonQueryOptions(personId))
@@ -131,14 +135,50 @@ function EditPersonForm({ personId }: { personId: string }) {
   return (
     <Card className="w-full">
       <CardContent>
+        <div className="mb-4 flex flex-wrap items-center justify-end gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setAddToGroupsOpen(true)}
+            className="space-x-1"
+          >
+            <IconUsersGroup className="h-4 w-4" />
+            <span>Add to Group</span>
+          </Button>
+          <Button
+            size="sm"
+            onClick={() => setAddToEventsOpen(true)}
+            className="space-x-1"
+          >
+            <IconCalendarPlus className="h-4 w-4" />
+            <span>Add to Event</span>
+          </Button>
+        </div>
         <Tabs defaultValue="general" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="general">General Info</TabsTrigger>
-            <TabsTrigger value="empowerments" disabled={personType !== 'sangha_member'}>
-              Empowerments
+          <TabsList className="mb-6 flex w-full items-center justify-start gap-2 rounded-2xl bg-muted/60 p-2 shadow-sm">
+            <TabsTrigger
+              value="general"
+              className="group flex flex-1 items-center gap-2 rounded-xl border border-transparent bg-transparent px-4 py-3 text-sm font-semibold text-muted-foreground transition-all hover:bg-muted/40 hover:text-foreground focus-visible:ring-offset-0 ring-2 ring-inset ring-primary data-[state=active]:border-primary data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:ring-primary data-[state=active]:shadow-md sm:flex-none"
+            >
+              <IconUserCircle className="h-4 w-4 shrink-0 text-muted-foreground transition-colors group-data-[state=active]:text-primary" />
+              <span>General Info</span>
+            </TabsTrigger>
+            <TabsTrigger
+              value="relationships"
+              className="group flex flex-1 items-center gap-2 rounded-xl border border-transparent bg-transparent px-4 py-3 text-sm font-semibold text-muted-foreground transition-all hover:bg-muted/40 hover:text-foreground focus-visible:ring-offset-0 ring-2 ring-inset ring-primary data-[state=active]:border-primary data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:ring-primary data-[state=active]:shadow-md sm:flex-none"
+            >
+              <IconUsers className="h-4 w-4 shrink-0 text-muted-foreground transition-colors group-data-[state=active]:text-primary" />
+              <span>Family / Relationships</span>
+            </TabsTrigger>
+            <TabsTrigger
+              value="empowerments"
+              disabled={personType !== 'sangha_member'}
+              className="group flex flex-1 items-center gap-2 rounded-xl border border-transparent bg-transparent px-4 py-3 text-sm font-semibold text-muted-foreground transition-all hover:bg-muted/40 hover:text-foreground focus-visible:ring-offset-0 ring-2 ring-inset ring-primary data-[state=active]:border-primary data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:ring-primary data-[state=active]:shadow-md disabled:opacity-60 sm:flex-none"
+            >
+              <IconSparkles className="h-4 w-4 shrink-0 text-muted-foreground transition-colors group-data-[state=active]:text-primary" />
+              <span>Empowerments</span>
             </TabsTrigger>
           </TabsList>
-          
           <TabsContent value="general" className="mt-6">
             <GeneralInfoTab 
               form={form} 
@@ -162,11 +202,25 @@ function EditPersonForm({ personId }: { personId: string }) {
               </Button>
             </div>
           </TabsContent>
-          
+
+          <TabsContent value="relationships" className="mt-6">
+            <FamilyRelationshipsTab personId={personId} />
+          </TabsContent>
+
           <TabsContent value="empowerments" className="mt-6">
             <EmpowermentsTab personId={personId} />
           </TabsContent>
         </Tabs>
+        <PersonsAddToEventsDialog
+          open={addToEventsOpen}
+          onOpenChange={setAddToEventsOpen}
+          personIds={[personId]}
+        />
+        <PersonsAddToGroupsDialog
+          open={addToGroupsOpen}
+          onOpenChange={setAddToGroupsOpen}
+          personIds={[personId]}
+        />
       </CardContent>
     </Card>
   )
@@ -201,13 +255,6 @@ function EditPersonHeader({ personId }: { personId: string }) {
 
   return (
     <div className='mb-6'>
-      <Button
-        variant="outline"
-        className="mb-4"
-        onClick={() => navigate({ to: '/persons' })}
-      >
-        <IconChevronLeft className="mr-2 h-4 w-4" /> Back to Person List
-      </Button>
       <div className='flex items-center gap-2'>
          <h3 className='text-2xl font-bold tracking-tight'>
           Edit Person -
@@ -228,7 +275,6 @@ function EditPersonHeader({ personId }: { personId: string }) {
 }
 
 export function EditPersonPage() {
-  const navigate = useNavigate()
   const { personId } = useParams({ from: '/_authenticated/persons/$personId/edit' })
 
   return (

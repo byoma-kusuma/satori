@@ -311,13 +311,6 @@ export function EditPersonPageOld() {
       </Header>
       <Main>
         <div className='mb-6'>
-          <Button
-            variant="outline"
-            className="mb-4"
-            onClick={() => navigate({ to: '/persons' })}
-          >
-            <IconChevronLeft className="mr-2 h-4 w-4" /> Back to Person List
-          </Button>
           <h2 className='text-2xl font-bold tracking-tight'>Edit Person</h2>
           <p className='text-muted-foreground'>
             Update the person's information.

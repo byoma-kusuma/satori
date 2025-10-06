@@ -283,6 +283,17 @@ export interface PersonGroup {
   personId: string;
 }
 
+export interface PersonRelationship {
+  created_at: Generated<Timestamp | null>;
+  created_by: string;
+  id: Generated<string>;
+  last_updated_by: string;
+  person_id: string;
+  related_person_id: string;
+  relationship_type: string;
+  updated_at: Generated<Timestamp | null>;
+}
+
 export interface SchemaMigrations {
   version: string;
 }
@@ -336,6 +347,7 @@ export interface DB {
   person: Person;
   person_empowerment: PersonEmpowerment;
   person_group: PersonGroup;
+  person_relationship: PersonRelationship;
   schema_migrations: SchemaMigrations;
   session: Session;
   user: User;
