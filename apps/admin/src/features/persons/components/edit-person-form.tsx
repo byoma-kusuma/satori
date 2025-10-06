@@ -30,6 +30,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { personInputSchema, personTypeLabels, titleLabels, membershipTypeLabels, countries } from '../data/schema'
 import { useUpdatePerson, getPersonQueryOptions, getKramaInstructorsQueryOptions } from '../data/api'
 import { SearchableNationalitySelect } from '@/components/ui/searchable-nationality-select'
+import { CenterSelect } from '@/components/ui/center-select'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { Header } from '@/components/layout/header'
 import { Main } from '@/components/layout/main'
@@ -142,7 +143,7 @@ function EditPersonForm({ personId }: { personId: string }) {
       yearOfBirth: person.yearOfBirth || undefined,
       photo: person.photo || undefined,
       gender: person.gender || undefined,
-      center: person.center,
+      centerId: person.center_id,
       type: person.type,
       country: person.country || undefined,
       nationality: person.nationality || undefined,
@@ -204,12 +205,13 @@ function EditPersonForm({ personId }: { personId: string }) {
   })
 
   const onSubmit = (vals: PersonForm) => {
+
     const processedVals: any = {
       firstName: vals.firstName,
       middleName: vals.middleName || null,
       lastName: vals.lastName,
       address: vals.address,
-      center: vals.center,
+      centerId: vals.centerId === undefined || vals.centerId === '' ? null : vals.centerId,
       type: vals.type,
       emailId: vals.emailId || null,
       primaryPhone: vals.primaryPhone || null,
@@ -235,7 +237,8 @@ function EditPersonForm({ personId }: { personId: string }) {
       krama_instructor_person_id: vals.krama_instructor_person_id === "none" ? null : vals.krama_instructor_person_id || null,
       referredBy: vals.referredBy || null,
     };
-    
+
+
     // Handle photo field
     if (vals.photo && vals.photo !== '' && vals.photo.startsWith('data:')) {
       processedVals.photo = vals.photo;
@@ -486,23 +489,17 @@ function EditPersonForm({ personId }: { personId: string }) {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
-                  name="center"
+                  name="centerId"
                   render={({ field }) => (
                     <FormItem className="space-y-1">
                       <FormLabel>Center</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value as string}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select center" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="Nepal">Nepal</SelectItem>
-                          <SelectItem value="USA">USA</SelectItem>
-                          <SelectItem value="Australia">Australia</SelectItem>
-                          <SelectItem value="UK">UK</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <FormControl>
+                        <CenterSelect
+                          value={field.value ?? undefined}
+                          onValueChange={(value) => field.onChange(value)}
+                          placeholder="Select center"
+                        />
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -650,8 +647,7 @@ function EditPersonForm({ personId }: { personId: string }) {
                             placeholder="Enter primary phone"
                             value={field.value || ''}
                             onChange={(value) => field.onChange(value || '')}
-                            className="h-10 w-full"
-                            inputClassName="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                            className="phone-input h-10 w-full"
                           />
                         </div>
                       </FormControl>
@@ -674,8 +670,7 @@ function EditPersonForm({ personId }: { personId: string }) {
                             placeholder="Enter secondary phone"
                             value={field.value || ''}
                             onChange={(value) => field.onChange(value || '')}
-                            className="h-10 w-full"
-                            inputClassName="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                            className="phone-input h-10 w-full"
                           />
                         </div>
                       </FormControl>
@@ -783,16 +778,15 @@ function EditPersonForm({ personId }: { personId: string }) {
                     <FormLabel>Emergency Contact Phone</FormLabel>
                     <FormControl>
                       <div className="relative">
-                        <PhoneInput
-                          international
-                          countryCallingCodeEditable={true}
-                          defaultCountry="NP"
-                          placeholder="Enter emergency contact phone"
-                          value={field.value || ''}
-                          onChange={(value) => field.onChange(value || '')}
-                          className="h-10 w-full"
-                          inputClassName="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                        />
+                          <PhoneInput
+                            international
+                            countryCallingCodeEditable={true}
+                            defaultCountry="NP"
+                            placeholder="Enter emergency contact phone"
+                            value={field.value || ''}
+                            onChange={(value) => field.onChange(value || '')}
+                            className="phone-input h-10 w-full"
+                          />
                       </div>
                     </FormControl>
                     <FormMessage />

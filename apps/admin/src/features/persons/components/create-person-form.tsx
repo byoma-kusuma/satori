@@ -31,6 +31,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { personInputSchema, personTypeLabels, titleLabels, membershipTypeLabels, countries } from '../data/schema'
 import { useCreatePerson, getKramaInstructorsQueryOptions } from '../data/api'
 import { SearchableNationalitySelect } from '@/components/ui/searchable-nationality-select'
+import { CenterSelect } from '@/components/ui/center-select'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { Header } from '@/components/layout/header'
 import { Main } from '@/components/layout/main'
@@ -135,7 +136,7 @@ export function CreatePersonPage() {
       yearOfBirth: undefined,
       photo: undefined,
       gender: undefined,
-      center: 'Nepal',
+      centerId: undefined,
       type: 'interested',
       country: undefined,
       nationality: undefined,
@@ -192,7 +193,7 @@ export function CreatePersonPage() {
       middleName: vals.middleName || null,
       lastName: vals.lastName,
       address: vals.address,
-      center: vals.center,
+      centerId: vals.centerId === undefined || vals.centerId === "" ? null : vals.centerId,
       type: vals.type,
       emailId: vals.emailId || null,
       primaryPhone: vals.primaryPhone || null,
@@ -499,23 +500,17 @@ export function CreatePersonPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
-                    name="center"
+                    name="centerId"
                     render={({ field }) => (
                       <FormItem className="space-y-1">
                         <FormLabel>Center</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value as string}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select center" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="Nepal">Nepal</SelectItem>
-                            <SelectItem value="USA">USA</SelectItem>
-                            <SelectItem value="Australia">Australia</SelectItem>
-                            <SelectItem value="UK">UK</SelectItem>
-                          </SelectContent>
-                        </Select>
+                        <FormControl>
+                          <CenterSelect
+                            value={field.value ?? undefined}
+                            onValueChange={(newValue) => field.onChange(newValue)}
+                            placeholder="Select center"
+                          />
+                        </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -630,8 +625,7 @@ export function CreatePersonPage() {
                               placeholder="Enter primary phone"
                               value={field.value || ''}
                               onChange={(value) => field.onChange(value || '')}
-                              className="h-10 w-full"
-                              inputClassName="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                              className="phone-input h-10 w-full"
                             />
                           </div>
                         </FormControl>
@@ -654,8 +648,7 @@ export function CreatePersonPage() {
                               placeholder="Enter secondary phone"
                               value={field.value || ''}
                               onChange={(value) => field.onChange(value || '')}
-                              className="h-10 w-full"
-                              inputClassName="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                              className="phone-input h-10 w-full"
                             />
                           </div>
                         </FormControl>
@@ -770,8 +763,7 @@ export function CreatePersonPage() {
                               placeholder="Enter emergency contact phone"
                               value={field.value || ''}
                               onChange={(value) => field.onChange(value || '')}
-                              className="h-10 w-full"
-                              inputClassName="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                              className="phone-input h-10 w-full"
                             />
                           </div>
                         </FormControl>

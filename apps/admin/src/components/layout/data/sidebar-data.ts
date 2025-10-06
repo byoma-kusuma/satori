@@ -1,4 +1,5 @@
 import {
+  IconBuilding,
   IconCalendar,
   IconHelp,
   IconPalette,
@@ -44,6 +45,11 @@ const baseSidebarData = {
           title: 'Persons',
           url: '/persons',
           icon: IconUsers,
+        },
+        {
+          title: 'Centers',
+          url: '/centers',
+          icon: IconBuilding,
         },
         {
           title: 'Groups',

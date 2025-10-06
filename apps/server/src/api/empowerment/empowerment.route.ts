@@ -1,7 +1,9 @@
 import { Hono } from 'hono'
+import { HTTPException } from 'hono/http-exception'
 import { zValidator } from '@hono/zod-validator'
 import { z } from 'zod'
 import { db } from '../../database'
+import { auth } from '../../lib/auth'
 import { authenticated } from '../../middlewares/session'
 
 const empowermentInputSchema = z.object({
@@ -16,7 +18,21 @@ const empowermentInputSchema = z.object({
 
 const empowermentUpdateSchema = empowermentInputSchema.partial()
 
-export const empowermentRoute = new Hono()
+const app = new Hono<{
+  Variables: {
+    user: typeof auth.$Infer.Session.user | null
+    session: typeof auth.$Infer.Session.session | null
+  }
+}>()
+
+const requireUser = (user: typeof auth.$Infer.Session.user | null) => {
+  if (!user) {
+    throw new HTTPException(401, { message: 'Authentication required' })
+  }
+  return user
+}
+
+export const empowermentRoute = app
   .use('*', authenticated)
   .get('/', async (c) => {
     const empowerments = await db
@@ -44,8 +60,8 @@ export const empowermentRoute = new Hono()
   })
   .post('/', zValidator('json', empowermentInputSchema), async (c) => {
     const data = c.req.valid('json')
-    const user = c.get('user')
-    
+    const user = requireUser(c.get('user'))
+
     const empowerment = await db
       .insertInto('empowerment')
       .values({
@@ -57,13 +73,13 @@ export const empowermentRoute = new Hono()
       })
       .returningAll()
       .executeTakeFirstOrThrow()
-    
+
     return c.json(empowerment, 201)
   })
   .put('/:id', zValidator('json', empowermentUpdateSchema), async (c) => {
     const id = c.req.param('id')
     const data = c.req.valid('json')
-    const user = c.get('user')
+    const user = requireUser(c.get('user'))
 
     const { class: classValue, major_empowerment, ...rest } = data
 

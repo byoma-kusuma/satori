@@ -29,7 +29,9 @@ const generatePersonCode = async (firstName: string, lastName: string): Promise<
 export async function getAllPersons() {
   return db
     .selectFrom('person as p')
+    .leftJoin('center as c', 'c.id', 'p.center_id')
     .selectAll('p')
+    .select(['c.id as centerId', 'c.name as centerName'])
     .select((eb) =>
       eb
         .exists(
@@ -48,7 +50,15 @@ export async function getAllPersons() {
 export async function getPersonById(id: string) {
   return db
     .selectFrom('person as p')
+    .leftJoin('center as c', 'c.id', 'p.center_id')
     .selectAll('p')
+    .select([
+      'c.id as centerId',
+      'c.name as centerName',
+      'c.address as centerAddress',
+      'c.country as centerCountry',
+      'c.notes as centerNotes',
+    ])
     .select((eb) =>
       eb
         .exists(
@@ -66,30 +76,86 @@ export async function getPersonById(id: string) {
 }
 
 export async function createPerson(personData: PersonInput, createdBy: string) {
-  const personCode = await generatePersonCode(personData.firstName, personData.lastName);
-  
-  return db
-    .insertInto('person')
-    .values({
-      ...personData,
-      personCode,
-      createdBy,
-      lastUpdatedBy: createdBy,
-    })
-    .returningAll()
-    .executeTakeFirstOrThrow();
+  const personCode = await generatePersonCode(personData.firstName, personData.lastName)
+  const { centerId, ...rest } = personData
+
+  return db.transaction().execute(async (trx) => {
+    const inserted = await trx
+      .insertInto('person')
+      .values({
+        ...rest,
+        center_id: centerId ?? null,
+        personCode,
+        createdBy,
+        lastUpdatedBy: createdBy,
+      })
+      .returningAll()
+      .executeTakeFirstOrThrow()
+
+    if (centerId) {
+      await trx
+        .insertInto('center_person')
+        .values({
+          center_id: centerId,
+          person_id: inserted.id,
+          position: null,
+        })
+        .onConflict((oc) => oc.columns(['center_id', 'person_id']).doNothing())
+        .execute()
+    }
+
+    return inserted
+  })
 }
 
 export async function updatePerson(id: string, updateData: Partial<PersonInput>, lastUpdatedBy: string) {
-  return db
-    .updateTable('person')
-    .set({
-      ...updateData,
+  const { centerId, ...rest } = updateData
+
+  return db.transaction().execute(async (trx) => {
+    const existing = await trx
+      .selectFrom('person')
+      .select(['center_id'])
+      .where('id', '=', id)
+      .executeTakeFirst()
+
+    const dataToUpdate: Record<string, unknown> = {
+      ...rest,
       lastUpdatedBy,
-    })
-    .where('id', '=', id)
-    .returningAll()
-    .executeTakeFirstOrThrow();
+    }
+
+    if (centerId !== undefined) {
+      dataToUpdate.center_id = centerId ?? null
+    }
+
+    const updated = await trx
+      .updateTable('person')
+      .set(dataToUpdate)
+      .where('id', '=', id)
+      .returningAll()
+      .executeTakeFirstOrThrow()
+
+    if (centerId) {
+      await trx
+        .insertInto('center_person')
+        .values({
+          center_id: centerId,
+          person_id: updated.id,
+          position: null,
+        })
+        .onConflict((oc) => oc.columns(['center_id', 'person_id']).doNothing())
+        .execute()
+    }
+
+    if (centerId !== undefined && (centerId === null || centerId !== existing?.center_id) && existing?.center_id) {
+      await trx
+        .deleteFrom('center_person')
+        .where('center_id', '=', existing.center_id)
+        .where('person_id', '=', id)
+        .execute()
+    }
+
+    return updated
+  })
 }
 
 export async function deletePerson(id: string) {
@@ -103,7 +169,9 @@ export async function deletePerson(id: string) {
 export async function getPersonsByType(type: PersonType) {
   return db
     .selectFrom('person as p')
+    .leftJoin('center as c', 'c.id', 'p.center_id')
     .selectAll('p')
+    .select(['c.id as centerId', 'c.name as centerName'])
     .select((eb) =>
       eb
         .exists(
@@ -124,7 +192,9 @@ export async function getPersonsByType(type: PersonType) {
 export async function getAllKramaInstructors() {
   return db
     .selectFrom('person as p')
+    .leftJoin('center as c', 'c.id', 'p.center_id')
     .selectAll('p')
+    .select(['c.id as centerId', 'c.name as centerName'])
     .select((eb) =>
       eb
         .exists(
@@ -145,6 +215,7 @@ export async function getPersonWithKramaInstructor(id: string) {
   return db
     .selectFrom('person as p')
     .leftJoin('person as ki', 'p.krama_instructor_person_id', 'ki.id')
+    .leftJoin('center as c', 'c.id', 'p.center_id')
     .select([
       'p.id',
       'p.firstName',
@@ -160,7 +231,9 @@ export async function getPersonWithKramaInstructor(id: string) {
       'ki.id as kramaInstructorId',
       'ki.firstName as kramaInstructorFirstName',
       'ki.lastName as kramaInstructorLastName',
-      'ki.emailId as kramaInstructorEmail'
+      'ki.emailId as kramaInstructorEmail',
+      'c.id as centerId',
+      'c.name as centerName'
     ])
     .select((eb) =>
       eb

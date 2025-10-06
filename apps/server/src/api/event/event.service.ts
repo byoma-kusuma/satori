@@ -366,7 +366,7 @@ export async function createEvent(input: CreateEventInput, userId: string): Prom
         category_id: category.id,
         empowerment_id: empowermentId,
         guru_id: guruId,
-        metadata: metadataToStore,
+        metadata: metadataToStore as any,
       })
       .returning(['id'])
       .executeTakeFirstOrThrow()
@@ -531,7 +531,19 @@ export async function addAttendee(eventId: string, input: AddAttendeeInput, user
 
     const person = await trx
       .selectFrom('person')
-      .select(['id', 'firstName', 'lastName'])
+      .select(['id', 'firstName', 'lastName', 'photo', 'type'])
+      .select((eb) =>
+        eb
+          .exists(
+            eb
+              .selectFrom('person_empowerment as pe')
+              .innerJoin('empowerment as e', 'e.id', 'pe.empowerment_id')
+              .select('pe.id')
+              .whereRef('pe.person_id', '=', 'person.id')
+              .where('e.major_empowerment', '=', true),
+          )
+          .as('hasMajorEmpowerment'),
+      )
       .where('id', '=', input.personId)
       .executeTakeFirst()
 
@@ -567,7 +579,7 @@ export async function addAttendee(eventId: string, input: AddAttendeeInput, user
         registration_mode: event.registration_mode,
         registered_by: userId,
         notes: input.notes ?? null,
-        metadata,
+        metadata: metadata as any,
       })
       .returningAll()
       .executeTakeFirstOrThrow()
@@ -606,6 +618,9 @@ export async function addAttendee(eventId: string, input: AddAttendeeInput, user
       personId: attendee.person_id,
       firstName: person.firstName,
       lastName: person.lastName,
+      photo: person.photo ?? null,
+      personType: person.type ?? null,
+      hasMajorEmpowerment: Boolean(person.hasMajorEmpowerment),
       registrationMode: attendee.registration_mode as EventRegistrationMode,
       registeredAt: toIsoString(attendee.registered_at)!,
       isCancelled: Boolean(attendee.is_cancelled),
@@ -692,6 +707,8 @@ export async function updateAttendee(
         'ea.person_id as person_id',
         'p.firstName as first_name',
         'p.lastName as last_name',
+        'p.photo as photo',
+        'p.type as person_type',
         'ea.registration_mode as registration_mode',
         'ea.registered_at as registered_at',
         'ea.is_cancelled as is_cancelled',
@@ -700,6 +717,18 @@ export async function updateAttendee(
         'ea.empowerment_record_id as empowerment_record_id',
         'ea.metadata as metadata',
       ])
+      .select((eb) =>
+        eb
+          .exists(
+            eb
+              .selectFrom('person_empowerment as pe')
+              .innerJoin('empowerment as e', 'e.id', 'pe.empowerment_id')
+              .select('pe.id')
+              .whereRef('pe.person_id', '=', 'p.id')
+              .where('e.major_empowerment', '=', true),
+          )
+          .as('has_major_empowerment'),
+      )
       .where('ea.id', '=', attendeeId)
       .executeTakeFirstOrThrow()
 
@@ -708,6 +737,9 @@ export async function updateAttendee(
       personId: updated.person_id,
       firstName: updated.first_name,
       lastName: updated.last_name,
+      photo: updated.photo ?? null,
+      personType: updated.person_type,
+      hasMajorEmpowerment: Boolean(updated.has_major_empowerment),
       registrationMode: updated.registration_mode as EventRegistrationMode,
       registeredAt: toIsoString(updated.registered_at)!,
       isCancelled: Boolean(updated.is_cancelled),

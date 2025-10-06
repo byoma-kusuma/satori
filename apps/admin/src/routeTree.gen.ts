@@ -64,6 +64,9 @@ const AuthenticatedEmpowermentsIndexLazyImport = createFileRoute(
 const AuthenticatedChatsIndexLazyImport = createFileRoute(
   '/_authenticated/chats/',
 )()
+const AuthenticatedCentersIndexLazyImport = createFileRoute(
+  '/_authenticated/centers/',
+)()
 const AuthenticatedAppsIndexLazyImport = createFileRoute(
   '/_authenticated/apps/',
 )()
@@ -81,6 +84,9 @@ const AuthenticatedSettingsAccountLazyImport = createFileRoute(
 )()
 const AuthenticatedPersonsCreateLazyImport = createFileRoute(
   '/_authenticated/persons/create',
+)()
+const AuthenticatedCentersCenterIdIndexLazyImport = createFileRoute(
+  '/_authenticated/centers/$centerId/',
 )()
 const AuthenticatedUsersUserIdEditLazyImport = createFileRoute(
   '/_authenticated/users/$userId/edit',
@@ -292,6 +298,15 @@ const AuthenticatedChatsIndexLazyRoute =
     import('./routes/_authenticated/chats/index.lazy').then((d) => d.Route),
   )
 
+const AuthenticatedCentersIndexLazyRoute =
+  AuthenticatedCentersIndexLazyImport.update({
+    id: '/centers/',
+    path: '/centers/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any).lazy(() =>
+    import('./routes/_authenticated/centers/index.lazy').then((d) => d.Route),
+  )
+
 const AuthenticatedAppsIndexLazyRoute = AuthenticatedAppsIndexLazyImport.update(
   {
     id: '/apps/',
@@ -353,6 +368,17 @@ const AuthenticatedPersonsCreateLazyRoute =
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any).lazy(() =>
     import('./routes/_authenticated/persons/create.lazy').then((d) => d.Route),
+  )
+
+const AuthenticatedCentersCenterIdIndexLazyRoute =
+  AuthenticatedCentersCenterIdIndexLazyImport.update({
+    id: '/centers/$centerId/',
+    path: '/centers/$centerId/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any).lazy(() =>
+    import('./routes/_authenticated/centers/$centerId/index.lazy').then(
+      (d) => d.Route,
+    ),
   )
 
 const AuthenticatedUsersUserIdEditLazyRoute =
@@ -532,6 +558,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppsIndexLazyImport
       parentRoute: typeof AuthenticatedRouteImport
     }
+    '/_authenticated/centers/': {
+      id: '/_authenticated/centers/'
+      path: '/centers'
+      fullPath: '/centers'
+      preLoaderRoute: typeof AuthenticatedCentersIndexLazyImport
+      parentRoute: typeof AuthenticatedRouteImport
+    }
     '/_authenticated/chats/': {
       id: '/_authenticated/chats/'
       path: '/chats'
@@ -623,6 +656,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedUsersUserIdEditLazyImport
       parentRoute: typeof AuthenticatedRouteImport
     }
+    '/_authenticated/centers/$centerId/': {
+      id: '/_authenticated/centers/$centerId/'
+      path: '/centers/$centerId'
+      fullPath: '/centers/$centerId'
+      preLoaderRoute: typeof AuthenticatedCentersCenterIdIndexLazyImport
+      parentRoute: typeof AuthenticatedRouteImport
+    }
   }
 }
 
@@ -659,6 +699,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedPersonsCreateLazyRoute: typeof AuthenticatedPersonsCreateLazyRoute
   AuthenticatedAppsIndexLazyRoute: typeof AuthenticatedAppsIndexLazyRoute
+  AuthenticatedCentersIndexLazyRoute: typeof AuthenticatedCentersIndexLazyRoute
   AuthenticatedChatsIndexLazyRoute: typeof AuthenticatedChatsIndexLazyRoute
   AuthenticatedEmpowermentsIndexLazyRoute: typeof AuthenticatedEmpowermentsIndexLazyRoute
   AuthenticatedEventsIndexLazyRoute: typeof AuthenticatedEventsIndexLazyRoute
@@ -671,6 +712,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedEventsEventIdViewLazyRoute: typeof AuthenticatedEventsEventIdViewLazyRoute
   AuthenticatedPersonsPersonIdEditLazyRoute: typeof AuthenticatedPersonsPersonIdEditLazyRoute
   AuthenticatedUsersUserIdEditLazyRoute: typeof AuthenticatedUsersUserIdEditLazyRoute
+  AuthenticatedCentersCenterIdIndexLazyRoute: typeof AuthenticatedCentersCenterIdIndexLazyRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -679,6 +721,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedPersonsCreateLazyRoute: AuthenticatedPersonsCreateLazyRoute,
   AuthenticatedAppsIndexLazyRoute: AuthenticatedAppsIndexLazyRoute,
+  AuthenticatedCentersIndexLazyRoute: AuthenticatedCentersIndexLazyRoute,
   AuthenticatedChatsIndexLazyRoute: AuthenticatedChatsIndexLazyRoute,
   AuthenticatedEmpowermentsIndexLazyRoute:
     AuthenticatedEmpowermentsIndexLazyRoute,
@@ -694,6 +737,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedPersonsPersonIdEditLazyRoute:
     AuthenticatedPersonsPersonIdEditLazyRoute,
   AuthenticatedUsersUserIdEditLazyRoute: AuthenticatedUsersUserIdEditLazyRoute,
+  AuthenticatedCentersCenterIdIndexLazyRoute:
+    AuthenticatedCentersCenterIdIndexLazyRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
@@ -719,6 +764,7 @@ export interface FileRoutesByFullPath {
   '/settings/display': typeof AuthenticatedSettingsDisplayLazyRoute
   '/settings/notifications': typeof AuthenticatedSettingsNotificationsLazyRoute
   '/apps': typeof AuthenticatedAppsIndexLazyRoute
+  '/centers': typeof AuthenticatedCentersIndexLazyRoute
   '/chats': typeof AuthenticatedChatsIndexLazyRoute
   '/empowerments': typeof AuthenticatedEmpowermentsIndexLazyRoute
   '/events': typeof AuthenticatedEventsIndexLazyRoute
@@ -732,6 +778,7 @@ export interface FileRoutesByFullPath {
   '/events/$eventId/view': typeof AuthenticatedEventsEventIdViewLazyRoute
   '/persons/$personId/edit': typeof AuthenticatedPersonsPersonIdEditLazyRoute
   '/users/$userId/edit': typeof AuthenticatedUsersUserIdEditLazyRoute
+  '/centers/$centerId': typeof AuthenticatedCentersCenterIdIndexLazyRoute
 }
 
 export interface FileRoutesByTo {
@@ -752,6 +799,7 @@ export interface FileRoutesByTo {
   '/settings/display': typeof AuthenticatedSettingsDisplayLazyRoute
   '/settings/notifications': typeof AuthenticatedSettingsNotificationsLazyRoute
   '/apps': typeof AuthenticatedAppsIndexLazyRoute
+  '/centers': typeof AuthenticatedCentersIndexLazyRoute
   '/chats': typeof AuthenticatedChatsIndexLazyRoute
   '/empowerments': typeof AuthenticatedEmpowermentsIndexLazyRoute
   '/events': typeof AuthenticatedEventsIndexLazyRoute
@@ -765,6 +813,7 @@ export interface FileRoutesByTo {
   '/events/$eventId/view': typeof AuthenticatedEventsEventIdViewLazyRoute
   '/persons/$personId/edit': typeof AuthenticatedPersonsPersonIdEditLazyRoute
   '/users/$userId/edit': typeof AuthenticatedUsersUserIdEditLazyRoute
+  '/centers/$centerId': typeof AuthenticatedCentersCenterIdIndexLazyRoute
 }
 
 export interface FileRoutesById {
@@ -789,6 +838,7 @@ export interface FileRoutesById {
   '/_authenticated/settings/display': typeof AuthenticatedSettingsDisplayLazyRoute
   '/_authenticated/settings/notifications': typeof AuthenticatedSettingsNotificationsLazyRoute
   '/_authenticated/apps/': typeof AuthenticatedAppsIndexLazyRoute
+  '/_authenticated/centers/': typeof AuthenticatedCentersIndexLazyRoute
   '/_authenticated/chats/': typeof AuthenticatedChatsIndexLazyRoute
   '/_authenticated/empowerments/': typeof AuthenticatedEmpowermentsIndexLazyRoute
   '/_authenticated/events/': typeof AuthenticatedEventsIndexLazyRoute
@@ -802,6 +852,7 @@ export interface FileRoutesById {
   '/_authenticated/events/$eventId/view': typeof AuthenticatedEventsEventIdViewLazyRoute
   '/_authenticated/persons/$personId/edit': typeof AuthenticatedPersonsPersonIdEditLazyRoute
   '/_authenticated/users/$userId/edit': typeof AuthenticatedUsersUserIdEditLazyRoute
+  '/_authenticated/centers/$centerId/': typeof AuthenticatedCentersCenterIdIndexLazyRoute
 }
 
 export interface FileRouteTypes {
@@ -826,6 +877,7 @@ export interface FileRouteTypes {
     | '/settings/display'
     | '/settings/notifications'
     | '/apps'
+    | '/centers'
     | '/chats'
     | '/empowerments'
     | '/events'
@@ -839,6 +891,7 @@ export interface FileRouteTypes {
     | '/events/$eventId/view'
     | '/persons/$personId/edit'
     | '/users/$userId/edit'
+    | '/centers/$centerId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/500'
@@ -858,6 +911,7 @@ export interface FileRouteTypes {
     | '/settings/display'
     | '/settings/notifications'
     | '/apps'
+    | '/centers'
     | '/chats'
     | '/empowerments'
     | '/events'
@@ -871,6 +925,7 @@ export interface FileRouteTypes {
     | '/events/$eventId/view'
     | '/persons/$personId/edit'
     | '/users/$userId/edit'
+    | '/centers/$centerId'
   id:
     | '__root__'
     | '/_authenticated'
@@ -893,6 +948,7 @@ export interface FileRouteTypes {
     | '/_authenticated/settings/display'
     | '/_authenticated/settings/notifications'
     | '/_authenticated/apps/'
+    | '/_authenticated/centers/'
     | '/_authenticated/chats/'
     | '/_authenticated/empowerments/'
     | '/_authenticated/events/'
@@ -906,6 +962,7 @@ export interface FileRouteTypes {
     | '/_authenticated/events/$eventId/view'
     | '/_authenticated/persons/$personId/edit'
     | '/_authenticated/users/$userId/edit'
+    | '/_authenticated/centers/$centerId/'
   fileRoutesById: FileRoutesById
 }
 
@@ -970,6 +1027,7 @@ export const routeTree = rootRoute
         "/_authenticated/",
         "/_authenticated/persons/create",
         "/_authenticated/apps/",
+        "/_authenticated/centers/",
         "/_authenticated/chats/",
         "/_authenticated/empowerments/",
         "/_authenticated/events/",
@@ -981,7 +1039,8 @@ export const routeTree = rootRoute
         "/_authenticated/users/",
         "/_authenticated/events/$eventId/view",
         "/_authenticated/persons/$personId/edit",
-        "/_authenticated/users/$userId/edit"
+        "/_authenticated/users/$userId/edit",
+        "/_authenticated/centers/$centerId/"
       ]
     },
     "/(auth)/500": {
@@ -1056,6 +1115,10 @@ export const routeTree = rootRoute
       "filePath": "_authenticated/apps/index.lazy.tsx",
       "parent": "/_authenticated"
     },
+    "/_authenticated/centers/": {
+      "filePath": "_authenticated/centers/index.lazy.tsx",
+      "parent": "/_authenticated"
+    },
     "/_authenticated/chats/": {
       "filePath": "_authenticated/chats/index.lazy.tsx",
       "parent": "/_authenticated"
@@ -1106,6 +1169,10 @@ export const routeTree = rootRoute
     },
     "/_authenticated/users/$userId/edit": {
       "filePath": "_authenticated/users/$userId/edit.lazy.tsx",
+      "parent": "/_authenticated"
+    },
+    "/_authenticated/centers/$centerId/": {
+      "filePath": "_authenticated/centers/$centerId/index.lazy.tsx",
       "parent": "/_authenticated"
     }
   }

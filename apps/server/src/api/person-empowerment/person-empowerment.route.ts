@@ -1,7 +1,9 @@
 import { Hono } from 'hono'
+import { HTTPException } from 'hono/http-exception'
 import { zValidator } from '@hono/zod-validator'
 import { z } from 'zod'
 import { db } from '../../database'
+import { auth } from '../../lib/auth'
 import { authenticated } from '../../middlewares/session'
 
 const personEmpowermentInputSchema = z.object({
@@ -14,7 +16,21 @@ const personEmpowermentInputSchema = z.object({
 
 const personEmpowermentUpdateSchema = personEmpowermentInputSchema.partial()
 
-export const personEmpowermentRoute = new Hono()
+const app = new Hono<{
+  Variables: {
+    user: typeof auth.$Infer.Session.user | null
+    session: typeof auth.$Infer.Session.session | null
+  }
+}>()
+
+const requireUser = (user: typeof auth.$Infer.Session.user | null) => {
+  if (!user) {
+    throw new HTTPException(401, { message: 'Authentication required' })
+  }
+  return user
+}
+
+export const personEmpowermentRoute = app
   .use('*', authenticated)
   .get('/', async (c) => {
     const personEmpowerments = await db
@@ -44,7 +60,7 @@ export const personEmpowermentRoute = new Hono()
     try {
       const rawData = await c.req.json()
       const data = personEmpowermentInputSchema.parse(rawData)
-      const user = c.get('user')
+      const user = requireUser(c.get('user'))
 
       const personEmpowerment = await db
         .insertInto('person_empowerment')
@@ -70,7 +86,7 @@ export const personEmpowermentRoute = new Hono()
   .put('/:id', zValidator('json', personEmpowermentUpdateSchema), async (c) => {
     const id = c.req.param('id')
     const data = c.req.valid('json')
-    const user = c.get('user')
+    const user = requireUser(c.get('user'))
     
     const updateData: any = {
       ...data,
@@ -106,7 +122,7 @@ export const personEmpowermentRoute = new Hono()
       .where('id', '=', id)
       .executeTakeFirst()
     
-    if (result.numDeletedRows === 0n) {
+    if (result.numDeletedRows === BigInt(0)) {
       return c.json({ error: 'Person empowerment not found' }, 404)
     }
     

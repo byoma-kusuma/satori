@@ -1,7 +1,9 @@
 import { Hono } from 'hono'
+import { HTTPException } from 'hono/http-exception'
 import { zValidator } from '@hono/zod-validator'
 import { z } from 'zod'
 import { db } from '../../database'
+import { auth } from '../../lib/auth'
 import { authenticated } from '../../middlewares/session'
 
 const guruInputSchema = z.object({
@@ -10,7 +12,21 @@ const guruInputSchema = z.object({
 
 const guruUpdateSchema = guruInputSchema.partial()
 
-export const gurusRoutes = new Hono()
+const app = new Hono<{
+  Variables: {
+    user: typeof auth.$Infer.Session.user | null
+    session: typeof auth.$Infer.Session.session | null
+  }
+}>()
+
+const requireUser = (user: typeof auth.$Infer.Session.user | null) => {
+  if (!user) {
+    throw new HTTPException(401, { message: 'Authentication required' })
+  }
+  return user
+}
+
+export const gurusRoutes = app
   .use('*', authenticated)
   .get('/', async (c) => {
     const gurus = await db
@@ -38,14 +54,14 @@ export const gurusRoutes = new Hono()
   })
   .post('/', zValidator('json', guruInputSchema), async (c) => {
     const data = c.req.valid('json')
-    const user = c.get('user')
+    const user = requireUser(c.get('user'))
 
     const guru = await db
       .insertInto('guru')
       .values({
         guruName: data.name,
-        createdBy: user?.id || 'system',
-        lastUpdatedBy: user?.id || 'system',
+        createdBy: user.id,
+        lastUpdatedBy: user.id,
       })
       .returningAll()
       .executeTakeFirstOrThrow()
@@ -55,10 +71,10 @@ export const gurusRoutes = new Hono()
   .put('/:id', zValidator('json', guruUpdateSchema), async (c) => {
     const id = c.req.param('id')
     const data = c.req.valid('json')
-    const user = c.get('user')
+    const user = requireUser(c.get('user'))
 
     const updateData: any = {
-      lastUpdatedBy: user?.id || 'system',
+      lastUpdatedBy: user.id,
     }
 
     if (data.name) {

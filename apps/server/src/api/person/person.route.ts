@@ -39,7 +39,16 @@ const personInputSchema = z.object({
   middleName: z.string().nullable().optional().default(null),
   lastName: z.string().min(1, "Last name is required"),
   address: z.string().optional().or(z.literal('')).default(''),
-  center: z.enum(["Nepal", "USA", "Australia", "UK"]).default("Nepal"),
+  centerId: z.string().optional().nullable().transform((val) => {
+    // Convert empty strings to null, otherwise validate UUID
+    if (val === '' || val === null || val === undefined) return null;
+    // Validate UUID format
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(val)) {
+      throw new Error('Center ID must be a valid UUID');
+    }
+    return val;
+  }),
   emailId: z.string().email().nullable().optional().default(null),
   gender: z.enum(["male", "female", "other", "prefer_not_to_say"]).nullable().optional().default(null),
   primaryPhone: z.string().nullable().optional().default(null),
@@ -148,10 +157,11 @@ export const personsRoutes = persons
     const updateData = await c.req.valid("json");
     const user = c.get("user");
     if (!user) throw new Error("User not found");
-    
 
-    
+
     const updatedPerson = await updatePerson(id, updateData, user.id);
+
+
     return c.json(updatedPerson);
   })
   .delete("/:id", zValidator("param", paramsSchema), requirePermission("canDeletePersons"), async (c) => {
@@ -160,4 +170,4 @@ export const personsRoutes = persons
     return c.json({ success: true });
   });
 
-export type PersonType = typeof personsRoutes;
+export type PersonRouteType = typeof personsRoutes;

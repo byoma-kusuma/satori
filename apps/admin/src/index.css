@@ -156,3 +156,13 @@
     @apply min-h-svh w-full bg-background text-foreground;
   }
 }
+
+@layer components {
+  .phone-input {
+    @apply flex h-10 w-full items-center rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background transition focus-within:outline-none focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .phone-input .PhoneInputInput {
+    @apply w-full border-none bg-transparent text-sm outline-none focus:outline-none;
+  }
+}

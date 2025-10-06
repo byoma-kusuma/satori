@@ -32,9 +32,9 @@ export function DataTableToolbar<TData>({
             options={personTypes}
           />
         )}
-        {table.getColumn('center') && (
+        {table.getColumn('centerName') && (
           <DataTableFacetedFilter
-            column={table.getColumn('center')}
+            column={table.getColumn('centerName')}
             title='Center'
             options={[
               { label: 'Nepal', value: 'Nepal' },

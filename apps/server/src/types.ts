@@ -5,8 +5,6 @@
 
 import type { ColumnType } from "kysely";
 
-export type CenterLocation = "Australia" | "Nepal" | "UK" | "USA";
-
 export type EventRegistrationMode = "PRE_REGISTRATION" | "WALK_IN";
 
 export type EventStatus = "ACTIVE" | "CLOSED" | "DRAFT";
@@ -53,6 +51,25 @@ export interface Account {
   scope: string | null;
   updatedAt: Timestamp;
   userId: string;
+}
+
+export interface Center {
+  address: string | null;
+  country: string | null;
+  created_at: Generated<Timestamp | null>;
+  id: Generated<string>;
+  name: string;
+  notes: string | null;
+  updated_at: Generated<Timestamp | null>;
+}
+
+export interface CenterPerson {
+  center_id: string;
+  created_at: Generated<Timestamp | null>;
+  id: Generated<string>;
+  person_id: string;
+  position: string | null;
+  updated_at: Generated<Timestamp | null>;
 }
 
 export interface Empowerment {
@@ -150,7 +167,7 @@ export interface Guru {
 
 export interface Person {
   address: string;
-  center: CenterLocation;
+  center_id: string | null;
   /**
    * Country of residence
    */
@@ -306,6 +323,8 @@ export interface Verification {
 
 export interface DB {
   account: Account;
+  center: Center;
+  center_person: CenterPerson;
   empowerment: Empowerment;
   event: Event;
   event_attendance: EventAttendance;

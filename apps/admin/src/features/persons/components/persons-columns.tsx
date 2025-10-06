@@ -126,12 +126,17 @@ export const columns: ColumnDef<Person>[] = [
     ),
   },
   {
-    accessorKey: 'center',
+    accessorKey: 'centerName',
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Center" />
     ),
+    cell: ({ row }) => {
+      const name = row.getValue<string | null>('centerName')
+      return name ? name : <span className='text-muted-foreground'>—</span>
+    },
     filterFn: (row, id, value) => {
-      return value.includes(row.getValue(id))
+      const cellValue = row.getValue<string | null>(id) ?? ''
+      return value.includes(cellValue)
     },
     enableColumnFilter: true,
   },

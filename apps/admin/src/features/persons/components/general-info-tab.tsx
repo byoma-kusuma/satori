@@ -32,6 +32,7 @@ import 'react-phone-number-input/style.css'
 import { PhotoIdPrintDialog } from './photo-id-print-dialog'
 import { countryToPhoneCode } from '@/utils/country-phone-codes'
 import { Badge } from '@/components/ui/badge'
+import { CenterSelect } from '@/components/ui/center-select'
 
 interface GeneralInfoTabProps {
   form: UseFormReturn<any>
@@ -359,23 +360,17 @@ export function GeneralInfoTab({ form, person, formRef, onSubmit }: GeneralInfoT
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField
             control={form.control}
-            name="center"
+            name="centerId"
             render={({ field }) => (
               <FormItem className="space-y-1">
                 <FormLabel>Center</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value as string}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select center" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="Nepal">Nepal</SelectItem>
-                    <SelectItem value="USA">USA</SelectItem>
-                    <SelectItem value="Australia">Australia</SelectItem>
-                    <SelectItem value="UK">UK</SelectItem>
-                  </SelectContent>
-                </Select>
+                <FormControl>
+                  <CenterSelect
+                    value={field.value ?? undefined}
+                    onValueChange={(value) => field.onChange(value)}
+                    placeholder="Select center"
+                  />
+                </FormControl>
                 <FormMessage />
               </FormItem>
             )}
@@ -523,8 +518,7 @@ export function GeneralInfoTab({ form, person, formRef, onSubmit }: GeneralInfoT
                       placeholder="Enter primary phone"
                       value={field.value || ''}
                       onChange={(value) => field.onChange(value || '')}
-                      className="h-10 w-full"
-                      inputClassName="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="phone-input h-10 w-full"
                     />
                   </div>
                 </FormControl>
@@ -547,8 +541,7 @@ export function GeneralInfoTab({ form, person, formRef, onSubmit }: GeneralInfoT
                       placeholder="Enter secondary phone"
                       value={field.value || ''}
                       onChange={(value) => field.onChange(value || '')}
-                      className="h-10 w-full"
-                      inputClassName="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="phone-input h-10 w-full"
                     />
                   </div>
                 </FormControl>
@@ -663,8 +656,7 @@ export function GeneralInfoTab({ form, person, formRef, onSubmit }: GeneralInfoT
                       placeholder="Enter emergency contact phone"
                       value={field.value || ''}
                       onChange={(value) => field.onChange(value || '')}
-                      className="h-10 w-full"
-                      inputClassName="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="phone-input h-10 w-full"
                     />
                   </div>
                 </FormControl>
