@@ -1,4 +1,6 @@
 import { db } from '../../database'
+import type { Transaction, Kysely } from 'kysely'
+import type { DB } from '../../types'
 
 export interface CenterInput {
   name: string
@@ -150,8 +152,32 @@ export interface CenterPersonPivotRow {
   updated_at: Date | null
 }
 
-export async function addPersonToCenter(centerId: string, input: CenterPersonInput): Promise<CenterPersonPivotRow> {
-  return db
+type CenterDb = Kysely<DB> | Transaction<DB>
+
+export async function addPersonToCenter(centerId: string, input: CenterPersonInput, updatedBy: string): Promise<CenterPersonPivotRow> {
+  return db.transaction().execute(async (trx) => {
+    const assignment = await insertOrUpdateCenterPerson(trx, centerId, input)
+
+    await trx
+      .updateTable('person')
+      .set({
+        center_id: centerId,
+        lastUpdatedBy: updatedBy,
+      })
+      .where('id', '=', input.personId)
+      .where('center_id', 'is', null)
+      .executeTakeFirst()
+
+    return assignment
+  })
+}
+
+const insertOrUpdateCenterPerson = async (
+  client: CenterDb,
+  centerId: string,
+  input: CenterPersonInput,
+): Promise<CenterPersonPivotRow> => {
+  return client
     .insertInto('center_person')
     .values({
       center_id: centerId,

@@ -1,4 +1,5 @@
 import { Hono } from 'hono'
+import { HTTPException } from 'hono/http-exception'
 import { z } from 'zod'
 import { zValidator } from '@hono/zod-validator'
 
@@ -97,7 +98,13 @@ centers.post('/:id/persons', zValidator('json', assignPersonSchema), async (c) =
     return c.json({ error: 'Center not found' }, 404)
   }
   const input = c.req.valid('json')
-  const result = await addPersonToCenter(centerId, input)
+  const user = c.get('user')
+
+  if (!user) {
+    throw new HTTPException(401, { message: 'Authentication required' })
+  }
+
+  const result = await addPersonToCenter(centerId, input, user.id)
   return c.json(result, 201)
 })
 
