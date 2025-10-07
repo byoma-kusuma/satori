@@ -165,6 +165,35 @@ export interface Guru {
   updatedAt: Generated<Timestamp | null>;
 }
 
+export interface MahakramaHistory {
+  completion_notes: string | null;
+  created_at: Generated<Timestamp | null>;
+  created_by: string;
+  end_date: Timestamp | null;
+  id: Generated<string>;
+  last_updated_by: string;
+  mahakrama_instructor_id: string | null;
+  mahakrama_step_id: string;
+  person_id: string;
+  start_date: Timestamp;
+  status: string;
+  updated_at: Generated<Timestamp | null>;
+}
+
+export interface MahakramaStep {
+  created_at: Generated<Timestamp | null>;
+  created_by: string;
+  description: string | null;
+  group_id: string;
+  group_name: string;
+  id: Generated<string>;
+  last_updated_by: string;
+  sequence_number: number;
+  step_id: string;
+  step_name: string;
+  updated_at: Generated<Timestamp | null>;
+}
+
 export interface Person {
   address: string;
   center_id: string | null;
@@ -344,6 +373,8 @@ export interface DB {
   event_day: EventDay;
   group: Group;
   guru: Guru;
+  mahakrama_history: MahakramaHistory;
+  mahakrama_step: MahakramaStep;
   person: Person;
   person_empowerment: PersonEmpowerment;
   person_group: PersonGroup;

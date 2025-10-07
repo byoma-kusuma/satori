@@ -46,6 +46,9 @@ const AuthenticatedSettingsIndexLazyImport = createFileRoute(
 const AuthenticatedPersonsIndexLazyImport = createFileRoute(
   '/_authenticated/persons/',
 )()
+const AuthenticatedMahakramaIndexLazyImport = createFileRoute(
+  '/_authenticated/mahakrama/',
+)()
 const AuthenticatedHelpCenterIndexLazyImport = createFileRoute(
   '/_authenticated/help-center/',
 )()
@@ -238,6 +241,15 @@ const AuthenticatedPersonsIndexLazyRoute =
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any).lazy(() =>
     import('./routes/_authenticated/persons/index.lazy').then((d) => d.Route),
+  )
+
+const AuthenticatedMahakramaIndexLazyRoute =
+  AuthenticatedMahakramaIndexLazyImport.update({
+    id: '/mahakrama/',
+    path: '/mahakrama/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any).lazy(() =>
+    import('./routes/_authenticated/mahakrama/index.lazy').then((d) => d.Route),
   )
 
 const AuthenticatedHelpCenterIndexLazyRoute =
@@ -607,6 +619,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedHelpCenterIndexLazyImport
       parentRoute: typeof AuthenticatedRouteImport
     }
+    '/_authenticated/mahakrama/': {
+      id: '/_authenticated/mahakrama/'
+      path: '/mahakrama'
+      fullPath: '/mahakrama'
+      preLoaderRoute: typeof AuthenticatedMahakramaIndexLazyImport
+      parentRoute: typeof AuthenticatedRouteImport
+    }
     '/_authenticated/persons/': {
       id: '/_authenticated/persons/'
       path: '/persons'
@@ -706,6 +725,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedGroupsIndexLazyRoute: typeof AuthenticatedGroupsIndexLazyRoute
   AuthenticatedGurusIndexLazyRoute: typeof AuthenticatedGurusIndexLazyRoute
   AuthenticatedHelpCenterIndexLazyRoute: typeof AuthenticatedHelpCenterIndexLazyRoute
+  AuthenticatedMahakramaIndexLazyRoute: typeof AuthenticatedMahakramaIndexLazyRoute
   AuthenticatedPersonsIndexLazyRoute: typeof AuthenticatedPersonsIndexLazyRoute
   AuthenticatedTasksIndexLazyRoute: typeof AuthenticatedTasksIndexLazyRoute
   AuthenticatedUsersIndexLazyRoute: typeof AuthenticatedUsersIndexLazyRoute
@@ -729,6 +749,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedGroupsIndexLazyRoute: AuthenticatedGroupsIndexLazyRoute,
   AuthenticatedGurusIndexLazyRoute: AuthenticatedGurusIndexLazyRoute,
   AuthenticatedHelpCenterIndexLazyRoute: AuthenticatedHelpCenterIndexLazyRoute,
+  AuthenticatedMahakramaIndexLazyRoute: AuthenticatedMahakramaIndexLazyRoute,
   AuthenticatedPersonsIndexLazyRoute: AuthenticatedPersonsIndexLazyRoute,
   AuthenticatedTasksIndexLazyRoute: AuthenticatedTasksIndexLazyRoute,
   AuthenticatedUsersIndexLazyRoute: AuthenticatedUsersIndexLazyRoute,
@@ -771,6 +792,7 @@ export interface FileRoutesByFullPath {
   '/groups': typeof AuthenticatedGroupsIndexLazyRoute
   '/gurus': typeof AuthenticatedGurusIndexLazyRoute
   '/help-center': typeof AuthenticatedHelpCenterIndexLazyRoute
+  '/mahakrama': typeof AuthenticatedMahakramaIndexLazyRoute
   '/persons': typeof AuthenticatedPersonsIndexLazyRoute
   '/settings/': typeof AuthenticatedSettingsIndexLazyRoute
   '/tasks': typeof AuthenticatedTasksIndexLazyRoute
@@ -806,6 +828,7 @@ export interface FileRoutesByTo {
   '/groups': typeof AuthenticatedGroupsIndexLazyRoute
   '/gurus': typeof AuthenticatedGurusIndexLazyRoute
   '/help-center': typeof AuthenticatedHelpCenterIndexLazyRoute
+  '/mahakrama': typeof AuthenticatedMahakramaIndexLazyRoute
   '/persons': typeof AuthenticatedPersonsIndexLazyRoute
   '/settings': typeof AuthenticatedSettingsIndexLazyRoute
   '/tasks': typeof AuthenticatedTasksIndexLazyRoute
@@ -845,6 +868,7 @@ export interface FileRoutesById {
   '/_authenticated/groups/': typeof AuthenticatedGroupsIndexLazyRoute
   '/_authenticated/gurus/': typeof AuthenticatedGurusIndexLazyRoute
   '/_authenticated/help-center/': typeof AuthenticatedHelpCenterIndexLazyRoute
+  '/_authenticated/mahakrama/': typeof AuthenticatedMahakramaIndexLazyRoute
   '/_authenticated/persons/': typeof AuthenticatedPersonsIndexLazyRoute
   '/_authenticated/settings/': typeof AuthenticatedSettingsIndexLazyRoute
   '/_authenticated/tasks/': typeof AuthenticatedTasksIndexLazyRoute
@@ -884,6 +908,7 @@ export interface FileRouteTypes {
     | '/groups'
     | '/gurus'
     | '/help-center'
+    | '/mahakrama'
     | '/persons'
     | '/settings/'
     | '/tasks'
@@ -918,6 +943,7 @@ export interface FileRouteTypes {
     | '/groups'
     | '/gurus'
     | '/help-center'
+    | '/mahakrama'
     | '/persons'
     | '/settings'
     | '/tasks'
@@ -955,6 +981,7 @@ export interface FileRouteTypes {
     | '/_authenticated/groups/'
     | '/_authenticated/gurus/'
     | '/_authenticated/help-center/'
+    | '/_authenticated/mahakrama/'
     | '/_authenticated/persons/'
     | '/_authenticated/settings/'
     | '/_authenticated/tasks/'
@@ -1034,6 +1061,7 @@ export const routeTree = rootRoute
         "/_authenticated/groups/",
         "/_authenticated/gurus/",
         "/_authenticated/help-center/",
+        "/_authenticated/mahakrama/",
         "/_authenticated/persons/",
         "/_authenticated/tasks/",
         "/_authenticated/users/",
@@ -1141,6 +1169,10 @@ export const routeTree = rootRoute
     },
     "/_authenticated/help-center/": {
       "filePath": "_authenticated/help-center/index.lazy.tsx",
+      "parent": "/_authenticated"
+    },
+    "/_authenticated/mahakrama/": {
+      "filePath": "_authenticated/mahakrama/index.lazy.tsx",
       "parent": "/_authenticated"
     },
     "/_authenticated/persons/": {

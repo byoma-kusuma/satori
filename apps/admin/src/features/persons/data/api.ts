@@ -14,6 +14,14 @@ import {
   getKramaInstructorsQueryOptions,
   getPersonWithKramaInstructorQueryOptions
 } from '@/api/persons'
+import {
+  getMahakramaSteps,
+  getMahakramaHistory,
+  addInitialMahakramaStep,
+  completeMahakramaStep,
+  getMahakramaStepsQueryOptions,
+  getMahakramaHistoryQueryOptions,
+} from '@/api/mahakrama'
 
 // Re-export all the hooks and functions for use within the persons feature
 export {
@@ -30,7 +38,13 @@ export {
   getKramaInstructors,
   getPersonWithKramaInstructor,
   getKramaInstructorsQueryOptions,
-  getPersonWithKramaInstructorQueryOptions
+  getPersonWithKramaInstructorQueryOptions,
+  getMahakramaSteps,
+  getMahakramaHistory,
+  addInitialMahakramaStep,
+  completeMahakramaStep,
+  getMahakramaStepsQueryOptions,
+  getMahakramaHistoryQueryOptions,
 }
 
 // Add any person-specific API utilities or extensions here 

@@ -23,6 +23,7 @@ import { Suspense } from 'react'
 import { GeneralInfoTab } from './general-info-tab'
 import { EmpowermentsTab } from './empowerments-tab'
 import { FamilyRelationshipsTab } from './family-relationships-tab'
+import { MahakramaTab } from './mahakrama-tab'
 import { PersonsAddToEventsDialog } from './persons-add-to-events-dialog'
 import { PersonsAddToGroupsDialog } from './persons-add-to-groups-dialog'
 
@@ -164,6 +165,13 @@ function EditPersonForm({ personId }: { personId: string }) {
               <span>General Info</span>
             </TabsTrigger>
             <TabsTrigger
+              value="mahakrama"
+              className="group flex flex-1 items-center gap-2 rounded-xl border border-transparent bg-transparent px-4 py-3 text-sm font-semibold text-muted-foreground transition-all hover:bg-muted/40 hover:text-foreground focus-visible:ring-offset-0 ring-2 ring-inset ring-primary data-[state=active]:border-primary data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:ring-primary data-[state=active]:shadow-md sm:flex-none"
+            >
+              <IconSparkles className="h-4 w-4 shrink-0 text-muted-foreground transition-colors group-data-[state=active]:text-primary" />
+              <span>Mahakrama</span>
+            </TabsTrigger>
+            <TabsTrigger
               value="relationships"
               className="group flex flex-1 items-center gap-2 rounded-xl border border-transparent bg-transparent px-4 py-3 text-sm font-semibold text-muted-foreground transition-all hover:bg-muted/40 hover:text-foreground focus-visible:ring-offset-0 ring-2 ring-inset ring-primary data-[state=active]:border-primary data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:ring-primary data-[state=active]:shadow-md sm:flex-none"
             >
@@ -201,6 +209,10 @@ function EditPersonForm({ personId }: { personId: string }) {
                 Update Person
               </Button>
             </div>
+          </TabsContent>
+
+          <TabsContent value="mahakrama" className="mt-6">
+            <MahakramaTab personId={personId} />
           </TabsContent>
 
           <TabsContent value="relationships" className="mt-6">
