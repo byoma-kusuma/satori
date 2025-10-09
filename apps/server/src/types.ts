@@ -340,11 +340,13 @@ export interface Session {
 
 export interface User {
   createdAt: Timestamp;
+  deletedAt: Timestamp | null;
   email: string;
   emailVerified: boolean;
   id: string;
   image: string | null;
   name: string;
+  person_id: string | null;
   /**
    * Role of the user for access control (admin, krama_instructor, viewer)
    */

@@ -1,5 +1,6 @@
 import { db } from '../../database';
 import { PersonInput, PersonType } from './person.types';
+import { UserRole } from '../../types/user-roles';
 
 // Generate person code from first and last name initials + 4 digit number
 const generatePersonCode = async (firstName: string, lastName: string): Promise<string> => {
@@ -26,8 +27,8 @@ const generatePersonCode = async (firstName: string, lastName: string): Promise<
   return `${initials}${nextNumber}`;
 };
 
-export async function getAllPersons() {
-  return db
+export async function getAllPersons(userRole?: UserRole, userPersonId?: string | null) {
+  let query = db
     .selectFrom('person as p')
     .leftJoin('center as c', 'c.id', 'p.center_id')
     .selectAll('p')
@@ -44,11 +45,22 @@ export async function getAllPersons() {
         )
         .as('hasMajorEmpowerment'),
     )
-    .execute();
+
+  // Apply role-based filtering
+  if (userRole === 'krama_instructor' && userPersonId) {
+    // Krama Instructor can only see persons assigned to them
+    query = query.where('p.krama_instructor_person_id', '=', userPersonId)
+  } else if (userRole === 'viewer' && userPersonId) {
+    // Viewer can only see their own record
+    query = query.where('p.id', '=', userPersonId)
+  }
+  // Admin has no restrictions
+
+  return query.execute();
 }
 
-export async function getPersonById(id: string) {
-  return db
+export async function getPersonById(id: string, userRole?: UserRole, userPersonId?: string | null) {
+  let query = db
     .selectFrom('person as p')
     .leftJoin('center as c', 'c.id', 'p.center_id')
     .selectAll('p')
@@ -72,7 +84,18 @@ export async function getPersonById(id: string) {
         .as('hasMajorEmpowerment'),
     )
     .where('p.id', '=', id)
-    .executeTakeFirstOrThrow();
+
+  // Apply role-based filtering
+  if (userRole === 'krama_instructor' && userPersonId) {
+    // Krama Instructor can only see persons assigned to them
+    query = query.where('p.krama_instructor_person_id', '=', userPersonId)
+  } else if (userRole === 'viewer' && userPersonId) {
+    // Viewer can only see their own record
+    query = query.where('p.id', '=', userPersonId)
+  }
+  // Admin has no restrictions
+
+  return query.executeTakeFirstOrThrow();
 }
 
 export async function createPerson(personData: PersonInput, createdBy: string) {

@@ -44,7 +44,13 @@ export function MahakramaTab({ personId }: MahakramaTabProps) {
   }, [rawHistory])
 
   const sortedHistory: MahakramaHistory[] = useMemo(() => {
-    return [...history].sort((a, b) => a.stepSequenceNumber - b.stepSequenceNumber)
+    return [...history].sort((a, b) => {
+      const startDateDiff = b.startDate.getTime() - a.startDate.getTime()
+      if (startDateDiff !== 0) {
+        return startDateDiff
+      }
+      return a.stepSequenceNumber - b.stepSequenceNumber
+    })
   }, [history])
 
   const currentRecord = sortedHistory.find((item) => item.status === 'current') || null
@@ -175,8 +181,6 @@ export function MahakramaTab({ personId }: MahakramaTabProps) {
                   <TableHead>End Date</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Instructor</TableHead>
-                  <TableHead>Updated By</TableHead>
-                  <TableHead>Updated Date</TableHead>
                   <TableHead></TableHead>
                 </TableRow>
               </TableHeader>
@@ -199,8 +203,6 @@ export function MahakramaTab({ personId }: MahakramaTabProps) {
                         </Badge>
                       </TableCell>
                       <TableCell>{record.instructorName || '—'}</TableCell>
-                      <TableCell>{record.updatedBy}</TableCell>
-                      <TableCell>{record.updatedAt ? format(record.updatedAt, 'MMM d, yyyy') : '—'}</TableCell>
                       <TableCell className='text-right'>
                         {isCurrent ? (
                           <Button size='sm' onClick={() => setCompleteDialogOpen(true)} disabled={completeMutation.isPending}>

@@ -11,6 +11,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Event } from './events-columns'
+import { useEvents } from '../hooks/use-events'
 
 interface DataTableRowActionsProps {
   row: Row<Event>
@@ -18,6 +19,7 @@ interface DataTableRowActionsProps {
 
 export function DataTableRowActions({ row }: DataTableRowActionsProps) {
   const navigate = useNavigate()
+  const { setOpen, setCurrentRow } = useEvents()
   const event = row.original
   const isClosed = event.status === 'CLOSED'
 
@@ -31,8 +33,11 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
     }
   }
 
-  const handleDelete = () => {
-    // TODO: Implement delete functionality
+  const handleDelete = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setCurrentRow(event)
+    setOpen('delete')
   }
 
   return (

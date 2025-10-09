@@ -1,9 +1,9 @@
 import { Hono } from "hono";
-import { 
-  getAllPersons, 
-  getPersonById, 
-  createPerson, 
-  updatePerson, 
+import {
+  getAllPersons,
+  getPersonById,
+  createPerson,
+  updatePerson,
   deletePerson,
   getPersonsByType,
   getAllKramaInstructors,
@@ -17,6 +17,7 @@ import { zValidator } from "@hono/zod-validator";
 import { HTTPException } from "hono/http-exception";
 import { getPersonGroups } from "../group/group.service";
 import { PersonType } from "./person.types";
+import { getUserById } from "../user/user.service";
 
 // Pre-compiled regex for better performance
 const PHOTO_DATA_URL_REGEX = /^data:image\/(jpeg|jpg|png|webp);base64,/;
@@ -115,14 +116,20 @@ persons.onError((err, c) => {
 export const personsRoutes = persons
   .use(authenticated)
   .get("/", requirePermission("canViewPersons"), async (c) => {
+    const user = c.get("user");
+    if (!user) throw new HTTPException(401, { message: "User not authenticated" });
+
+    // Get full user data including role and personId
+    const userData = await getUserById(user.id);
+
     const type = c.req.query('type') as PersonType | undefined;
-    
+
     if (type && ['interested', 'contact', 'sangha_member', 'attended_orientation'].includes(type)) {
       const persons = await getPersonsByType(type);
       return c.json(persons);
     }
-    
-    const persons = await getAllPersons();
+
+    const persons = await getAllPersons(userData.role, userData.personId);
     return c.json(persons);
   })
   // Krama Instructor routes - MUST be before /:id routes
@@ -132,7 +139,13 @@ export const personsRoutes = persons
   })
   .get("/:id", zValidator("param", paramsSchema), requirePermission("canViewPersons"), async (c) => {
     const { id } = c.req.valid("param");
-    const person = await getPersonById(id);
+    const user = c.get("user");
+    if (!user) throw new HTTPException(401, { message: "User not authenticated" });
+
+    // Get full user data including role and personId
+    const userData = await getUserById(user.id);
+
+    const person = await getPersonById(id, userData.role, userData.personId);
     return c.json(person);
   })
   .get("/:id/groups", requirePermission("canViewGroups"), async (c) => {

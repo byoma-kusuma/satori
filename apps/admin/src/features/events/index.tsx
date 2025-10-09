@@ -12,15 +12,14 @@ import { getEventsQueryOptions } from '@/api/events'
 import { EventsTable } from './components/events-table'
 import { CreateEventDialog } from './components/create-event-dialog'
 import { EditEventDialog } from './components/edit-event-dialog'
-import { DeleteEventDialog } from './components/delete-event-dialog'
+import { EventsDeleteDialog } from './components/events-delete-dialog'
 import { columns } from './components/events-columns'
-import { EventSummary } from './types'
+import EventsProvider from './context/events-context'
 
 
 function EventsPage() {
   const [createOpen, setCreateOpen] = useState(false)
   const [editEventId, setEditEventId] = useState<string | null>(null)
-  const [eventToDelete, setEventToDelete] = useState<EventSummary | null>(null)
   const { data: events } = useSuspenseQuery(getEventsQueryOptions())
 
   return (
@@ -54,29 +53,23 @@ function EventsPage() {
           }
         }}
       />
-      <DeleteEventDialog
-        open={Boolean(eventToDelete)}
-        event={eventToDelete}
-        onOpenChange={(open) => {
-          if (!open) {
-            setEventToDelete(null)
-          }
-        }}
-      />
+      <EventsDeleteDialog />
     </>
   )
 }
 
 export default function Events() {
   return (
-    <Suspense
-      fallback={
-        <div className='flex h-screen items-center justify-center'>
-          <IconLoader className='h-8 w-8 animate-spin' />
-        </div>
-      }
-    >
-      <EventsPage />
-    </Suspense>
+    <EventsProvider>
+      <Suspense
+        fallback={
+          <div className='flex h-screen items-center justify-center'>
+            <IconLoader className='h-8 w-8 animate-spin' />
+          </div>
+        }
+      >
+        <EventsPage />
+      </Suspense>
+    </EventsProvider>
   )
 }
