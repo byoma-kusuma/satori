@@ -1,6 +1,7 @@
-import { Suspense } from 'react'
+import { Suspense, useEffect } from 'react'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { IconLoader } from '@tabler/icons-react'
+import { useNavigate } from '@tanstack/react-router'
 import { getPersonsQueryOptions } from './data/api'
 import { Header } from '@/components/layout/header'
 import { Main } from '@/components/layout/main'
@@ -12,9 +13,35 @@ import { PersonsDialogs } from './components/persons-dialogs'
 import { PersonsPrimaryButtons } from './components/persons-primary-buttons'
 import { PersonsTable } from './components/persons-table'
 import PersonsProvider from './context/persons-context'
+import { authClient } from '@/auth-client'
+import { getUserQueryOptions } from '@/api/users'
+import { useQuery } from '@tanstack/react-query'
 
 function PersonsList() {
+  const navigate = useNavigate()
   const { data: personList } = useSuspenseQuery(getPersonsQueryOptions())
+
+  // Get current user session
+  const { data: session } = useQuery({
+    queryKey: ['session'],
+    queryFn: async () => {
+      const { data } = await authClient.getSession()
+      return data
+    },
+  })
+
+  // Get full user data with role and personId
+  const { data: currentUser } = useQuery({
+    ...getUserQueryOptions(session?.user?.id || ''),
+    enabled: !!session?.user?.id,
+  })
+
+  // Redirect viewers to their own person edit page
+  useEffect(() => {
+    if (currentUser && currentUser.role === 'viewer' && currentUser.personId) {
+      navigate({ to: '/persons/$personId/edit', params: { personId: currentUser.personId } })
+    }
+  }, [currentUser, navigate])
 
   return (
     <>
@@ -28,7 +55,7 @@ function PersonsList() {
       <Main>
         <div className='mb-2 flex flex-wrap items-center justify-between space-y-2'>
           <div>
-            <h2 className='text-2xl font-bold tracking-tight'>Person List</h2>
+            <h2 className='text-2xl font-bold tracking-tight'>Persons</h2>
             <p className='text-muted-foreground'>
               Manage your persons here.
             </p>

@@ -40,7 +40,9 @@ export const columns: ColumnDef<Person>[] = [
   },
   {
     id: 'photo',
-    header: 'Photo',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title='Photo' />
+    ),
     cell: ({ row }) => {
       const person = row.original
       return (
@@ -53,6 +55,18 @@ export const columns: ColumnDef<Person>[] = [
       )
     },
     enableSorting: false,
+  },
+  {
+    accessorKey: 'personCode',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="ID" />
+    ),
+    cell: ({ row }) => {
+      const personCode = row.getValue<string>('personCode')
+      return personCode ? (
+        <span className="font-mono text-sm font-medium">{personCode}</span>
+      ) : '-'
+    },
   },
   {
     accessorKey: 'firstName',
@@ -100,36 +114,51 @@ export const columns: ColumnDef<Person>[] = [
     enableColumnFilter: true,
   },
   {
-    accessorKey: 'membershipCardNumber',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Membership ID" />
-    ),
-    cell: ({ row }) => {
-      const membershipId = row.getValue<string>('membershipCardNumber')
-      return membershipId || '-'
-    },
-  },
-  {
     accessorKey: 'emailId',
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Email" />
     ),
   },
   {
-    accessorKey: 'phoneNumber',
+    accessorKey: 'primaryPhone',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Phone" />
+      <DataTableColumnHeader column={column} title="Primary Phone" />
     ),
   },
   {
-    accessorKey: 'center',
+    accessorKey: 'centerName',
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Center" />
     ),
+    cell: ({ row }) => {
+      const name = row.getValue<string | null>('centerName')
+      return name ? name : <span className='text-muted-foreground'>—</span>
+    },
     filterFn: (row, id, value) => {
-      return value.includes(row.getValue(id))
+      const cellValue = row.getValue<string | null>(id) ?? ''
+      return value.includes(cellValue)
     },
     enableColumnFilter: true,
+  },
+  {
+    accessorKey: 'hasMajorEmpowerment',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Major Emp." />
+    ),
+    cell: ({ row }) => {
+      const hasMajor = row.original.hasMajorEmpowerment
+      return hasMajor ? (
+        <Badge className='bg-amber-500 text-amber-950 hover:bg-amber-500/90'>Major</Badge>
+      ) : (
+        <span className='text-muted-foreground'>—</span>
+      )
+    },
+    enableSorting: false,
+    filterFn: (row, id, value) => {
+      const hasMajor = row.getValue<boolean>(id)
+      const key = hasMajor ? 'true' : 'false'
+      return value.includes(key)
+    },
   },
   {
     id: 'actions',

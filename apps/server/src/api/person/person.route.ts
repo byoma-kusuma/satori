@@ -1,9 +1,9 @@
 import { Hono } from "hono";
-import { 
-  getAllPersons, 
-  getPersonById, 
-  createPerson, 
-  updatePerson, 
+import {
+  getAllPersons,
+  getPersonById,
+  createPerson,
+  updatePerson,
   deletePerson,
   getPersonsByType,
   getAllKramaInstructors,
@@ -17,6 +17,16 @@ import { zValidator } from "@hono/zod-validator";
 import { HTTPException } from "hono/http-exception";
 import { getPersonGroups } from "../group/group.service";
 import { PersonType } from "./person.types";
+import { getUserById } from "../user/user.service";
+
+// Pre-compiled regex for better performance
+const PHOTO_DATA_URL_REGEX = /^data:image\/(jpeg|jpg|png|webp);base64,/;
+
+// Helper function to calculate base64 byte size
+const getBase64ByteSize = (base64String: string): number => {
+  const base64Data = base64String.substring(base64String.indexOf(',') + 1);
+  return Math.ceil((base64Data.length * 3) / 4);
+};
 
 const persons = new Hono<{
   Variables: {
@@ -30,13 +40,27 @@ const personInputSchema = z.object({
   middleName: z.string().nullable().optional().default(null),
   lastName: z.string().min(1, "Last name is required"),
   address: z.string().optional().or(z.literal('')).default(''),
-  center: z.enum(["Nepal", "USA", "Australia", "UK"]).default("Nepal"),
+  centerId: z.string().optional().nullable().transform((val) => {
+    // Convert empty strings to null, otherwise validate UUID
+    if (val === '' || val === null || val === undefined) return null;
+    // Validate UUID format
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(val)) {
+      throw new Error('Center ID must be a valid UUID');
+    }
+    return val;
+  }),
   emailId: z.string().email().nullable().optional().default(null),
   gender: z.enum(["male", "female", "other", "prefer_not_to_say"]).nullable().optional().default(null),
-  phoneNumber: z.string().nullable().optional().default(null),
   primaryPhone: z.string().nullable().optional().default(null),
   secondaryPhone: z.string().nullable().optional().default(null),
-  photo: z.string().nullable().optional().default(null),
+  photo: z.string().nullable().optional().default(null).refine(
+    (val) => {
+      if (!val) return true;
+      return PHOTO_DATA_URL_REGEX.test(val);
+    },
+    { message: "Photo must be a valid image data URL" }
+  ),
   yearOfBirth: z.number().int().min(1900).nullable().optional().default(null),
   type: z.enum(["interested", "contact", "sangha_member", "attended_orientation"]).default("interested"),
   country: z.string().nullable().optional().default(null),
@@ -56,6 +80,7 @@ const personInputSchema = z.object({
   yearOfRefugeCalendarType: z.enum(["BS", "AD"]).nullable().optional().default(null),
   is_krama_instructor: z.boolean().nullable().optional().default(false),
   krama_instructor_person_id: z.string().uuid().nullable().optional().default(null),
+  referredBy: z.string().nullable().optional().default(null),
 });
 
 const personUpdateSchema = personInputSchema.partial();
@@ -91,14 +116,20 @@ persons.onError((err, c) => {
 export const personsRoutes = persons
   .use(authenticated)
   .get("/", requirePermission("canViewPersons"), async (c) => {
+    const user = c.get("user");
+    if (!user) throw new HTTPException(401, { message: "User not authenticated" });
+
+    // Get full user data including role and personId
+    const userData = await getUserById(user.id);
+
     const type = c.req.query('type') as PersonType | undefined;
-    
+
     if (type && ['interested', 'contact', 'sangha_member', 'attended_orientation'].includes(type)) {
       const persons = await getPersonsByType(type);
       return c.json(persons);
     }
-    
-    const persons = await getAllPersons();
+
+    const persons = await getAllPersons(userData.role, userData.personId);
     return c.json(persons);
   })
   // Krama Instructor routes - MUST be before /:id routes
@@ -108,7 +139,13 @@ export const personsRoutes = persons
   })
   .get("/:id", zValidator("param", paramsSchema), requirePermission("canViewPersons"), async (c) => {
     const { id } = c.req.valid("param");
-    const person = await getPersonById(id);
+    const user = c.get("user");
+    if (!user) throw new HTTPException(401, { message: "User not authenticated" });
+
+    // Get full user data including role and personId
+    const userData = await getUserById(user.id);
+
+    const person = await getPersonById(id, userData.role, userData.personId);
     return c.json(person);
   })
   .get("/:id/groups", requirePermission("canViewGroups"), async (c) => {
@@ -133,7 +170,11 @@ export const personsRoutes = persons
     const updateData = await c.req.valid("json");
     const user = c.get("user");
     if (!user) throw new Error("User not found");
+
+
     const updatedPerson = await updatePerson(id, updateData, user.id);
+
+
     return c.json(updatedPerson);
   })
   .delete("/:id", zValidator("param", paramsSchema), requirePermission("canDeletePersons"), async (c) => {
@@ -142,4 +183,4 @@ export const personsRoutes = persons
     return c.json({ success: true });
   });
 
-export type PersonType = typeof personsRoutes;
+export type PersonRouteType = typeof personsRoutes;

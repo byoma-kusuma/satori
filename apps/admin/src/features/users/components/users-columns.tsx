@@ -57,6 +57,16 @@ export const columns: ColumnDef<User>[] = [
     ),
   },
   {
+    accessorKey: 'personFullName',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Person" />
+    ),
+    cell: ({ row }) => {
+      const name = row.original.personFullName
+      return name ? name : '—'
+    },
+  },
+  {
     accessorKey: 'emailVerified',
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Email Verified" />

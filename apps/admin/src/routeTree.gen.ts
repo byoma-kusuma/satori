@@ -46,8 +46,14 @@ const AuthenticatedSettingsIndexLazyImport = createFileRoute(
 const AuthenticatedPersonsIndexLazyImport = createFileRoute(
   '/_authenticated/persons/',
 )()
+const AuthenticatedMahakramaIndexLazyImport = createFileRoute(
+  '/_authenticated/mahakrama/',
+)()
 const AuthenticatedHelpCenterIndexLazyImport = createFileRoute(
   '/_authenticated/help-center/',
+)()
+const AuthenticatedGurusIndexLazyImport = createFileRoute(
+  '/_authenticated/gurus/',
 )()
 const AuthenticatedGroupsIndexLazyImport = createFileRoute(
   '/_authenticated/groups/',
@@ -55,8 +61,14 @@ const AuthenticatedGroupsIndexLazyImport = createFileRoute(
 const AuthenticatedEventsIndexLazyImport = createFileRoute(
   '/_authenticated/events/',
 )()
+const AuthenticatedEmpowermentsIndexLazyImport = createFileRoute(
+  '/_authenticated/empowerments/',
+)()
 const AuthenticatedChatsIndexLazyImport = createFileRoute(
   '/_authenticated/chats/',
+)()
+const AuthenticatedCentersIndexLazyImport = createFileRoute(
+  '/_authenticated/centers/',
 )()
 const AuthenticatedAppsIndexLazyImport = createFileRoute(
   '/_authenticated/apps/',
@@ -75,6 +87,9 @@ const AuthenticatedSettingsAccountLazyImport = createFileRoute(
 )()
 const AuthenticatedPersonsCreateLazyImport = createFileRoute(
   '/_authenticated/persons/create',
+)()
+const AuthenticatedCentersCenterIdIndexLazyImport = createFileRoute(
+  '/_authenticated/centers/$centerId/',
 )()
 const AuthenticatedUsersUserIdEditLazyImport = createFileRoute(
   '/_authenticated/users/$userId/edit',
@@ -228,6 +243,15 @@ const AuthenticatedPersonsIndexLazyRoute =
     import('./routes/_authenticated/persons/index.lazy').then((d) => d.Route),
   )
 
+const AuthenticatedMahakramaIndexLazyRoute =
+  AuthenticatedMahakramaIndexLazyImport.update({
+    id: '/mahakrama/',
+    path: '/mahakrama/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any).lazy(() =>
+    import('./routes/_authenticated/mahakrama/index.lazy').then((d) => d.Route),
+  )
+
 const AuthenticatedHelpCenterIndexLazyRoute =
   AuthenticatedHelpCenterIndexLazyImport.update({
     id: '/help-center/',
@@ -237,6 +261,15 @@ const AuthenticatedHelpCenterIndexLazyRoute =
     import('./routes/_authenticated/help-center/index.lazy').then(
       (d) => d.Route,
     ),
+  )
+
+const AuthenticatedGurusIndexLazyRoute =
+  AuthenticatedGurusIndexLazyImport.update({
+    id: '/gurus/',
+    path: '/gurus/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any).lazy(() =>
+    import('./routes/_authenticated/gurus/index.lazy').then((d) => d.Route),
   )
 
 const AuthenticatedGroupsIndexLazyRoute =
@@ -257,6 +290,17 @@ const AuthenticatedEventsIndexLazyRoute =
     import('./routes/_authenticated/events/index.lazy').then((d) => d.Route),
   )
 
+const AuthenticatedEmpowermentsIndexLazyRoute =
+  AuthenticatedEmpowermentsIndexLazyImport.update({
+    id: '/empowerments/',
+    path: '/empowerments/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any).lazy(() =>
+    import('./routes/_authenticated/empowerments/index.lazy').then(
+      (d) => d.Route,
+    ),
+  )
+
 const AuthenticatedChatsIndexLazyRoute =
   AuthenticatedChatsIndexLazyImport.update({
     id: '/chats/',
@@ -264,6 +308,15 @@ const AuthenticatedChatsIndexLazyRoute =
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any).lazy(() =>
     import('./routes/_authenticated/chats/index.lazy').then((d) => d.Route),
+  )
+
+const AuthenticatedCentersIndexLazyRoute =
+  AuthenticatedCentersIndexLazyImport.update({
+    id: '/centers/',
+    path: '/centers/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any).lazy(() =>
+    import('./routes/_authenticated/centers/index.lazy').then((d) => d.Route),
   )
 
 const AuthenticatedAppsIndexLazyRoute = AuthenticatedAppsIndexLazyImport.update(
@@ -327,6 +380,17 @@ const AuthenticatedPersonsCreateLazyRoute =
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any).lazy(() =>
     import('./routes/_authenticated/persons/create.lazy').then((d) => d.Route),
+  )
+
+const AuthenticatedCentersCenterIdIndexLazyRoute =
+  AuthenticatedCentersCenterIdIndexLazyImport.update({
+    id: '/centers/$centerId/',
+    path: '/centers/$centerId/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any).lazy(() =>
+    import('./routes/_authenticated/centers/$centerId/index.lazy').then(
+      (d) => d.Route,
+    ),
   )
 
 const AuthenticatedUsersUserIdEditLazyRoute =
@@ -506,11 +570,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppsIndexLazyImport
       parentRoute: typeof AuthenticatedRouteImport
     }
+    '/_authenticated/centers/': {
+      id: '/_authenticated/centers/'
+      path: '/centers'
+      fullPath: '/centers'
+      preLoaderRoute: typeof AuthenticatedCentersIndexLazyImport
+      parentRoute: typeof AuthenticatedRouteImport
+    }
     '/_authenticated/chats/': {
       id: '/_authenticated/chats/'
       path: '/chats'
       fullPath: '/chats'
       preLoaderRoute: typeof AuthenticatedChatsIndexLazyImport
+      parentRoute: typeof AuthenticatedRouteImport
+    }
+    '/_authenticated/empowerments/': {
+      id: '/_authenticated/empowerments/'
+      path: '/empowerments'
+      fullPath: '/empowerments'
+      preLoaderRoute: typeof AuthenticatedEmpowermentsIndexLazyImport
       parentRoute: typeof AuthenticatedRouteImport
     }
     '/_authenticated/events/': {
@@ -527,11 +605,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedGroupsIndexLazyImport
       parentRoute: typeof AuthenticatedRouteImport
     }
+    '/_authenticated/gurus/': {
+      id: '/_authenticated/gurus/'
+      path: '/gurus'
+      fullPath: '/gurus'
+      preLoaderRoute: typeof AuthenticatedGurusIndexLazyImport
+      parentRoute: typeof AuthenticatedRouteImport
+    }
     '/_authenticated/help-center/': {
       id: '/_authenticated/help-center/'
       path: '/help-center'
       fullPath: '/help-center'
       preLoaderRoute: typeof AuthenticatedHelpCenterIndexLazyImport
+      parentRoute: typeof AuthenticatedRouteImport
+    }
+    '/_authenticated/mahakrama/': {
+      id: '/_authenticated/mahakrama/'
+      path: '/mahakrama'
+      fullPath: '/mahakrama'
+      preLoaderRoute: typeof AuthenticatedMahakramaIndexLazyImport
       parentRoute: typeof AuthenticatedRouteImport
     }
     '/_authenticated/persons/': {
@@ -583,6 +675,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedUsersUserIdEditLazyImport
       parentRoute: typeof AuthenticatedRouteImport
     }
+    '/_authenticated/centers/$centerId/': {
+      id: '/_authenticated/centers/$centerId/'
+      path: '/centers/$centerId'
+      fullPath: '/centers/$centerId'
+      preLoaderRoute: typeof AuthenticatedCentersCenterIdIndexLazyImport
+      parentRoute: typeof AuthenticatedRouteImport
+    }
   }
 }
 
@@ -619,16 +718,21 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedPersonsCreateLazyRoute: typeof AuthenticatedPersonsCreateLazyRoute
   AuthenticatedAppsIndexLazyRoute: typeof AuthenticatedAppsIndexLazyRoute
+  AuthenticatedCentersIndexLazyRoute: typeof AuthenticatedCentersIndexLazyRoute
   AuthenticatedChatsIndexLazyRoute: typeof AuthenticatedChatsIndexLazyRoute
+  AuthenticatedEmpowermentsIndexLazyRoute: typeof AuthenticatedEmpowermentsIndexLazyRoute
   AuthenticatedEventsIndexLazyRoute: typeof AuthenticatedEventsIndexLazyRoute
   AuthenticatedGroupsIndexLazyRoute: typeof AuthenticatedGroupsIndexLazyRoute
+  AuthenticatedGurusIndexLazyRoute: typeof AuthenticatedGurusIndexLazyRoute
   AuthenticatedHelpCenterIndexLazyRoute: typeof AuthenticatedHelpCenterIndexLazyRoute
+  AuthenticatedMahakramaIndexLazyRoute: typeof AuthenticatedMahakramaIndexLazyRoute
   AuthenticatedPersonsIndexLazyRoute: typeof AuthenticatedPersonsIndexLazyRoute
   AuthenticatedTasksIndexLazyRoute: typeof AuthenticatedTasksIndexLazyRoute
   AuthenticatedUsersIndexLazyRoute: typeof AuthenticatedUsersIndexLazyRoute
   AuthenticatedEventsEventIdViewLazyRoute: typeof AuthenticatedEventsEventIdViewLazyRoute
   AuthenticatedPersonsPersonIdEditLazyRoute: typeof AuthenticatedPersonsPersonIdEditLazyRoute
   AuthenticatedUsersUserIdEditLazyRoute: typeof AuthenticatedUsersUserIdEditLazyRoute
+  AuthenticatedCentersCenterIdIndexLazyRoute: typeof AuthenticatedCentersCenterIdIndexLazyRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -637,10 +741,15 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedPersonsCreateLazyRoute: AuthenticatedPersonsCreateLazyRoute,
   AuthenticatedAppsIndexLazyRoute: AuthenticatedAppsIndexLazyRoute,
+  AuthenticatedCentersIndexLazyRoute: AuthenticatedCentersIndexLazyRoute,
   AuthenticatedChatsIndexLazyRoute: AuthenticatedChatsIndexLazyRoute,
+  AuthenticatedEmpowermentsIndexLazyRoute:
+    AuthenticatedEmpowermentsIndexLazyRoute,
   AuthenticatedEventsIndexLazyRoute: AuthenticatedEventsIndexLazyRoute,
   AuthenticatedGroupsIndexLazyRoute: AuthenticatedGroupsIndexLazyRoute,
+  AuthenticatedGurusIndexLazyRoute: AuthenticatedGurusIndexLazyRoute,
   AuthenticatedHelpCenterIndexLazyRoute: AuthenticatedHelpCenterIndexLazyRoute,
+  AuthenticatedMahakramaIndexLazyRoute: AuthenticatedMahakramaIndexLazyRoute,
   AuthenticatedPersonsIndexLazyRoute: AuthenticatedPersonsIndexLazyRoute,
   AuthenticatedTasksIndexLazyRoute: AuthenticatedTasksIndexLazyRoute,
   AuthenticatedUsersIndexLazyRoute: AuthenticatedUsersIndexLazyRoute,
@@ -649,6 +758,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedPersonsPersonIdEditLazyRoute:
     AuthenticatedPersonsPersonIdEditLazyRoute,
   AuthenticatedUsersUserIdEditLazyRoute: AuthenticatedUsersUserIdEditLazyRoute,
+  AuthenticatedCentersCenterIdIndexLazyRoute:
+    AuthenticatedCentersCenterIdIndexLazyRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
@@ -674,10 +785,14 @@ export interface FileRoutesByFullPath {
   '/settings/display': typeof AuthenticatedSettingsDisplayLazyRoute
   '/settings/notifications': typeof AuthenticatedSettingsNotificationsLazyRoute
   '/apps': typeof AuthenticatedAppsIndexLazyRoute
+  '/centers': typeof AuthenticatedCentersIndexLazyRoute
   '/chats': typeof AuthenticatedChatsIndexLazyRoute
+  '/empowerments': typeof AuthenticatedEmpowermentsIndexLazyRoute
   '/events': typeof AuthenticatedEventsIndexLazyRoute
   '/groups': typeof AuthenticatedGroupsIndexLazyRoute
+  '/gurus': typeof AuthenticatedGurusIndexLazyRoute
   '/help-center': typeof AuthenticatedHelpCenterIndexLazyRoute
+  '/mahakrama': typeof AuthenticatedMahakramaIndexLazyRoute
   '/persons': typeof AuthenticatedPersonsIndexLazyRoute
   '/settings/': typeof AuthenticatedSettingsIndexLazyRoute
   '/tasks': typeof AuthenticatedTasksIndexLazyRoute
@@ -685,6 +800,7 @@ export interface FileRoutesByFullPath {
   '/events/$eventId/view': typeof AuthenticatedEventsEventIdViewLazyRoute
   '/persons/$personId/edit': typeof AuthenticatedPersonsPersonIdEditLazyRoute
   '/users/$userId/edit': typeof AuthenticatedUsersUserIdEditLazyRoute
+  '/centers/$centerId': typeof AuthenticatedCentersCenterIdIndexLazyRoute
 }
 
 export interface FileRoutesByTo {
@@ -705,10 +821,14 @@ export interface FileRoutesByTo {
   '/settings/display': typeof AuthenticatedSettingsDisplayLazyRoute
   '/settings/notifications': typeof AuthenticatedSettingsNotificationsLazyRoute
   '/apps': typeof AuthenticatedAppsIndexLazyRoute
+  '/centers': typeof AuthenticatedCentersIndexLazyRoute
   '/chats': typeof AuthenticatedChatsIndexLazyRoute
+  '/empowerments': typeof AuthenticatedEmpowermentsIndexLazyRoute
   '/events': typeof AuthenticatedEventsIndexLazyRoute
   '/groups': typeof AuthenticatedGroupsIndexLazyRoute
+  '/gurus': typeof AuthenticatedGurusIndexLazyRoute
   '/help-center': typeof AuthenticatedHelpCenterIndexLazyRoute
+  '/mahakrama': typeof AuthenticatedMahakramaIndexLazyRoute
   '/persons': typeof AuthenticatedPersonsIndexLazyRoute
   '/settings': typeof AuthenticatedSettingsIndexLazyRoute
   '/tasks': typeof AuthenticatedTasksIndexLazyRoute
@@ -716,6 +836,7 @@ export interface FileRoutesByTo {
   '/events/$eventId/view': typeof AuthenticatedEventsEventIdViewLazyRoute
   '/persons/$personId/edit': typeof AuthenticatedPersonsPersonIdEditLazyRoute
   '/users/$userId/edit': typeof AuthenticatedUsersUserIdEditLazyRoute
+  '/centers/$centerId': typeof AuthenticatedCentersCenterIdIndexLazyRoute
 }
 
 export interface FileRoutesById {
@@ -740,10 +861,14 @@ export interface FileRoutesById {
   '/_authenticated/settings/display': typeof AuthenticatedSettingsDisplayLazyRoute
   '/_authenticated/settings/notifications': typeof AuthenticatedSettingsNotificationsLazyRoute
   '/_authenticated/apps/': typeof AuthenticatedAppsIndexLazyRoute
+  '/_authenticated/centers/': typeof AuthenticatedCentersIndexLazyRoute
   '/_authenticated/chats/': typeof AuthenticatedChatsIndexLazyRoute
+  '/_authenticated/empowerments/': typeof AuthenticatedEmpowermentsIndexLazyRoute
   '/_authenticated/events/': typeof AuthenticatedEventsIndexLazyRoute
   '/_authenticated/groups/': typeof AuthenticatedGroupsIndexLazyRoute
+  '/_authenticated/gurus/': typeof AuthenticatedGurusIndexLazyRoute
   '/_authenticated/help-center/': typeof AuthenticatedHelpCenterIndexLazyRoute
+  '/_authenticated/mahakrama/': typeof AuthenticatedMahakramaIndexLazyRoute
   '/_authenticated/persons/': typeof AuthenticatedPersonsIndexLazyRoute
   '/_authenticated/settings/': typeof AuthenticatedSettingsIndexLazyRoute
   '/_authenticated/tasks/': typeof AuthenticatedTasksIndexLazyRoute
@@ -751,6 +876,7 @@ export interface FileRoutesById {
   '/_authenticated/events/$eventId/view': typeof AuthenticatedEventsEventIdViewLazyRoute
   '/_authenticated/persons/$personId/edit': typeof AuthenticatedPersonsPersonIdEditLazyRoute
   '/_authenticated/users/$userId/edit': typeof AuthenticatedUsersUserIdEditLazyRoute
+  '/_authenticated/centers/$centerId/': typeof AuthenticatedCentersCenterIdIndexLazyRoute
 }
 
 export interface FileRouteTypes {
@@ -775,10 +901,14 @@ export interface FileRouteTypes {
     | '/settings/display'
     | '/settings/notifications'
     | '/apps'
+    | '/centers'
     | '/chats'
+    | '/empowerments'
     | '/events'
     | '/groups'
+    | '/gurus'
     | '/help-center'
+    | '/mahakrama'
     | '/persons'
     | '/settings/'
     | '/tasks'
@@ -786,6 +916,7 @@ export interface FileRouteTypes {
     | '/events/$eventId/view'
     | '/persons/$personId/edit'
     | '/users/$userId/edit'
+    | '/centers/$centerId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/500'
@@ -805,10 +936,14 @@ export interface FileRouteTypes {
     | '/settings/display'
     | '/settings/notifications'
     | '/apps'
+    | '/centers'
     | '/chats'
+    | '/empowerments'
     | '/events'
     | '/groups'
+    | '/gurus'
     | '/help-center'
+    | '/mahakrama'
     | '/persons'
     | '/settings'
     | '/tasks'
@@ -816,6 +951,7 @@ export interface FileRouteTypes {
     | '/events/$eventId/view'
     | '/persons/$personId/edit'
     | '/users/$userId/edit'
+    | '/centers/$centerId'
   id:
     | '__root__'
     | '/_authenticated'
@@ -838,10 +974,14 @@ export interface FileRouteTypes {
     | '/_authenticated/settings/display'
     | '/_authenticated/settings/notifications'
     | '/_authenticated/apps/'
+    | '/_authenticated/centers/'
     | '/_authenticated/chats/'
+    | '/_authenticated/empowerments/'
     | '/_authenticated/events/'
     | '/_authenticated/groups/'
+    | '/_authenticated/gurus/'
     | '/_authenticated/help-center/'
+    | '/_authenticated/mahakrama/'
     | '/_authenticated/persons/'
     | '/_authenticated/settings/'
     | '/_authenticated/tasks/'
@@ -849,6 +989,7 @@ export interface FileRouteTypes {
     | '/_authenticated/events/$eventId/view'
     | '/_authenticated/persons/$personId/edit'
     | '/_authenticated/users/$userId/edit'
+    | '/_authenticated/centers/$centerId/'
   fileRoutesById: FileRoutesById
 }
 
@@ -913,16 +1054,21 @@ export const routeTree = rootRoute
         "/_authenticated/",
         "/_authenticated/persons/create",
         "/_authenticated/apps/",
+        "/_authenticated/centers/",
         "/_authenticated/chats/",
+        "/_authenticated/empowerments/",
         "/_authenticated/events/",
         "/_authenticated/groups/",
+        "/_authenticated/gurus/",
         "/_authenticated/help-center/",
+        "/_authenticated/mahakrama/",
         "/_authenticated/persons/",
         "/_authenticated/tasks/",
         "/_authenticated/users/",
         "/_authenticated/events/$eventId/view",
         "/_authenticated/persons/$personId/edit",
-        "/_authenticated/users/$userId/edit"
+        "/_authenticated/users/$userId/edit",
+        "/_authenticated/centers/$centerId/"
       ]
     },
     "/(auth)/500": {
@@ -997,8 +1143,16 @@ export const routeTree = rootRoute
       "filePath": "_authenticated/apps/index.lazy.tsx",
       "parent": "/_authenticated"
     },
+    "/_authenticated/centers/": {
+      "filePath": "_authenticated/centers/index.lazy.tsx",
+      "parent": "/_authenticated"
+    },
     "/_authenticated/chats/": {
       "filePath": "_authenticated/chats/index.lazy.tsx",
+      "parent": "/_authenticated"
+    },
+    "/_authenticated/empowerments/": {
+      "filePath": "_authenticated/empowerments/index.lazy.tsx",
       "parent": "/_authenticated"
     },
     "/_authenticated/events/": {
@@ -1009,8 +1163,16 @@ export const routeTree = rootRoute
       "filePath": "_authenticated/groups/index.lazy.tsx",
       "parent": "/_authenticated"
     },
+    "/_authenticated/gurus/": {
+      "filePath": "_authenticated/gurus/index.lazy.tsx",
+      "parent": "/_authenticated"
+    },
     "/_authenticated/help-center/": {
       "filePath": "_authenticated/help-center/index.lazy.tsx",
+      "parent": "/_authenticated"
+    },
+    "/_authenticated/mahakrama/": {
+      "filePath": "_authenticated/mahakrama/index.lazy.tsx",
       "parent": "/_authenticated"
     },
     "/_authenticated/persons/": {
@@ -1039,6 +1201,10 @@ export const routeTree = rootRoute
     },
     "/_authenticated/users/$userId/edit": {
       "filePath": "_authenticated/users/$userId/edit.lazy.tsx",
+      "parent": "/_authenticated"
+    },
+    "/_authenticated/centers/$centerId/": {
+      "filePath": "_authenticated/centers/$centerId/index.lazy.tsx",
       "parent": "/_authenticated"
     }
   }

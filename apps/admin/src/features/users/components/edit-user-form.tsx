@@ -2,10 +2,10 @@
 
 import { z } from 'zod'
 import { useForm } from 'react-hook-form'
-import { useRef } from 'react'
+import { useRef, useMemo } from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useNavigate, useParams } from '@tanstack/react-router'
-import { useSuspenseQuery } from '@tanstack/react-query'
+import { useSuspenseQuery, useQuery } from '@tanstack/react-query'
 import { toast } from '@/hooks/use-toast'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
@@ -34,12 +34,22 @@ import { IconChevronLeft } from '@tabler/icons-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Suspense } from 'react'
 import { userRoleEnum, userRoleLabels } from '@/types/user-roles'
-import { useUpdateUserRole, getUserQueryOptions } from '@/api/users'
+import { useUpdateUser, getUserQueryOptions, getAvailablePersonsQueryOptions, AvailablePerson } from '@/api/users'
+import { PersonSelect, type PersonOption } from '@/components/ui/person-select'
 
 const userEditSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   email: z.string().email('Invalid email address'),
   role: z.enum(userRoleEnum),
+  personId: z.string().uuid().nullable().optional(),
+}).superRefine((data, ctx) => {
+  if ((data.role === 'krama_instructor' || data.role === 'viewer') && !data.personId) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'Person link is required for Krama Instructor and Viewer roles',
+      path: ['personId'],
+    })
+  }
 })
 
 type UserEditForm = z.infer<typeof userEditSchema>
@@ -47,32 +57,70 @@ type UserEditForm = z.infer<typeof userEditSchema>
 function EditUserForm({ userId }: { userId: string }) {
   const navigate = useNavigate()
   const formRef = useRef<HTMLFormElement>(null)
-  const updateUserRoleMutation = useUpdateUserRole()
-  
+  const updateUserMutation = useUpdateUser()
+
   // Fetch the user data
   const { data: user } = useSuspenseQuery(getUserQueryOptions(userId))
-  
+
+  // Fetch available persons
+  const { data: availablePersons = [], isLoading: personsLoading } = useQuery(getAvailablePersonsQueryOptions())
+
   const form = useForm<UserEditForm>({
     resolver: zodResolver(userEditSchema),
     defaultValues: {
       name: user.name,
       email: user.email,
       role: user.role,
+      personId: user.personId ?? null,
     },
   })
 
+  const watchRole = form.watch('role')
+
+  const currentPersonOption = useMemo<PersonOption | null>(() => {
+    if (!user.personId) return null
+    return {
+      id: user.personId,
+      firstName: user.personFirstName ?? '',
+      lastName: user.personLastName ?? '',
+      personCode: user.personEmail ?? undefined,
+      type: null,
+      primaryPhone: null,
+    }
+  }, [user])
+
+  const personOptions = useMemo<PersonOption[]>(() => {
+    const list: PersonOption[] = Array.isArray(availablePersons)
+      ? (availablePersons as AvailablePerson[]).map((person) => ({
+          id: person.id,
+          firstName: person.firstName,
+          lastName: person.lastName ?? '',
+          personCode: person.emailId ?? undefined,
+          type: null,
+          primaryPhone: null,
+        }))
+      : []
+
+    if (currentPersonOption && !list.some((option) => option.id === currentPersonOption.id)) {
+      list.push(currentPersonOption)
+    }
+
+    return list
+      .slice()
+      .sort((a, b) => `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`))
+  }, [availablePersons, currentPersonOption])
+
   const onSubmit = (vals: UserEditForm) => {
-    // For now, we only support updating the role
-    updateUserRoleMutation.mutate({
+    updateUserMutation.mutate({
       id: userId,
-      updateData: { role: vals.role }
+      updateData: { personId: vals.personId ?? null }
     }, {
       onSuccess: () => {
         toast({ title: 'User updated successfully' })
         navigate({ to: '/users' })
       },
       onError: (err: unknown) => {
-        toast({ title: 'Update failed', description: String(err) })
+        toast({ title: 'Update failed', description: String(err), variant: 'destructive' })
       }
     })
   }
@@ -94,6 +142,44 @@ function EditUserForm({ userId }: { userId: string }) {
             className="space-y-4"
           >
             <div className="grid grid-cols-1 gap-4">
+              <FormField
+                control={form.control}
+                name="personId"
+                render={({ field }) => {
+                  const isRequired = watchRole === 'krama_instructor' || watchRole === 'viewer'
+                  return (
+                    <FormItem className="space-y-1">
+                      <FormLabel>
+                        Link Person {isRequired ? '' : '(optional)'}
+                      </FormLabel>
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1">
+                          <PersonSelect
+                            persons={personOptions}
+                            value={field.value ?? undefined}
+                            onValueChange={(value) => field.onChange(value ?? null)}
+                            placeholder={personsLoading ? 'Loading persons…' : 'Select person'}
+                            disabled={personsLoading || updateUserMutation.isPending}
+                            emptyMessage="No available persons"
+                          />
+                        </div>
+                        {field.value && !isRequired && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => field.onChange(null)}
+                            disabled={updateUserMutation.isPending}
+                          >
+                            Clear
+                          </Button>
+                        )}
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )
+                }}
+              />
               <FormField
                 control={form.control}
                 name="name"
@@ -158,7 +244,7 @@ function EditUserForm({ userId }: { userId: string }) {
         <Button
           type="submit"
           form="user-form"
-          disabled={updateUserRoleMutation.isPending}
+          disabled={updateUserMutation.isPending}
         >
           Update User
         </Button>

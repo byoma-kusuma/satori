@@ -81,7 +81,6 @@ function EditPersonForm({ personId }: { personId: string }) {
   return (
     <Card className="max-w-2xl mx-auto">
       <CardHeader>
-        <CardTitle>Edit Person</CardTitle>
         <CardDescription>
           Update the person's information.
         </CardDescription>
@@ -297,7 +296,7 @@ function EditPersonSkeleton() {
   )
 }
 
-export function EditPersonPage() {
+export function EditPersonPageOld() {
   const navigate = useNavigate()
   const { personId } = useParams({ from: '/_authenticated/persons/$personId/edit' })
 
@@ -312,13 +311,6 @@ export function EditPersonPage() {
       </Header>
       <Main>
         <div className='mb-6'>
-          <Button
-            variant="outline"
-            className="mb-4"
-            onClick={() => navigate({ to: '/persons' })}
-          >
-            <IconChevronLeft className="mr-2 h-4 w-4" /> Back to Person List
-          </Button>
           <h2 className='text-2xl font-bold tracking-tight'>Edit Person</h2>
           <p className='text-muted-foreground'>
             Update the person's information.

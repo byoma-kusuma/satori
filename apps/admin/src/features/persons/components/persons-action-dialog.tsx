@@ -37,6 +37,7 @@ import { usePersons } from '../hooks/use-persons'
 import { useCreatePerson, useUpdatePerson } from '../data/api'
 import PhoneInput from 'react-phone-number-input'
 import 'react-phone-number-input/style.css'
+import { CenterSelect } from '@/components/ui/center-select'
 
 type PersonForm = z.infer<typeof personInputSchema>
 
@@ -67,34 +68,43 @@ export function PersonsActionDialog({ currentRow, open, onOpenChange }: Props) {
 
   const form = useForm<PersonForm>({
     resolver: zodResolver(personInputSchema),
-    defaultValues: currentRow ? {
-      firstName: currentRow.firstName,
-      lastName: currentRow.lastName,
-      address: currentRow.address,
-      emailId: currentRow.emailId || undefined,
-      phoneNumber: currentRow.phoneNumber || undefined,
-      yearOfBirth: currentRow.yearOfBirth || undefined,
-      photo: currentRow.photo || undefined,
-      gender: currentRow.gender || undefined,
-      center: currentRow.center,
-    } : {
-      firstName: '',
-      lastName: '',
-      address: '',
-      emailId: undefined,
-      phoneNumber: undefined,
-      yearOfBirth: undefined,
-      photo: undefined,
-      gender: undefined,
-      center: 'Nepal',
-    },
+    defaultValues: currentRow
+      ? {
+          firstName: currentRow.firstName,
+          lastName: currentRow.lastName,
+          address: currentRow.address,
+          emailId: currentRow.emailId || undefined,
+          phoneNumber: currentRow.phoneNumber || undefined,
+          yearOfBirth: currentRow.yearOfBirth || undefined,
+          photo: currentRow.photo || undefined,
+          gender: currentRow.gender || undefined,
+          centerId: currentRow.center_id ?? undefined,
+          type: currentRow.type,
+        }
+      : {
+          firstName: '',
+          lastName: '',
+          address: '',
+          emailId: undefined,
+          phoneNumber: undefined,
+          yearOfBirth: undefined,
+          photo: undefined,
+          gender: undefined,
+          centerId: undefined,
+          type: 'interested',
+        },
   })
 
   const onSubmit = (vals: PersonForm) => {
+    const payload = {
+      ...vals,
+      centerId: vals.centerId === undefined || vals.centerId === '' ? null : vals.centerId,
+    }
+
     if (isEdit && currentRow) {
       updatePersonMutation.mutate({
         id: currentRow.id,
-        updateData: vals
+        updateData: payload
       }, {
         onSuccess: () => {
           toast({ title: 'Person updated successfully' })
@@ -107,7 +117,7 @@ export function PersonsActionDialog({ currentRow, open, onOpenChange }: Props) {
         }
       })
     } else {
-      createPersonMutation.mutate(vals, {
+      createPersonMutation.mutate(payload, {
         onSuccess: () => {
           toast({ title: 'Person created successfully' })
           form.reset()
@@ -216,8 +226,7 @@ export function PersonsActionDialog({ currentRow, open, onOpenChange }: Props) {
                             placeholder="Enter phone number"
                             value={field.value || ''}
                             onChange={(value) => field.onChange(value || '')}
-                            className="h-10 w-full"
-                            inputClassName="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                            className="phone-input h-10 w-full"
                           />
                         </div>
                       </FormControl>
@@ -281,23 +290,17 @@ export function PersonsActionDialog({ currentRow, open, onOpenChange }: Props) {
                 />
                 <FormField
                   control={form.control}
-                  name="center"
+                  name="centerId"
                   render={({ field }) => (
                     <FormItem className="space-y-1">
                       <FormLabel>Center</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select center" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="Nepal">Nepal</SelectItem>
-                          <SelectItem value="USA">USA</SelectItem>
-                          <SelectItem value="Australia">Australia</SelectItem>
-                          <SelectItem value="UK">UK</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <FormControl>
+                        <CenterSelect
+                          value={field.value ?? undefined}
+                          onValueChange={(value) => field.onChange(value)}
+                          placeholder="Select center"
+                        />
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}

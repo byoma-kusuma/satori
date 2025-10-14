@@ -89,3 +89,34 @@ export async function getPersonGroups(personId: string) {
     .where('person_group.personId', '=', personId)
     .execute();
 }
+
+export async function addPersonsToGroupsBulk(
+  personIds: string[],
+  groupIds: string[],
+  addedBy: string,
+) {
+  if (personIds.length === 0 || groupIds.length === 0) {
+    return { inserted: 0, skipped: 0, total: 0 }
+  }
+
+  const rows = personIds.flatMap((personId) =>
+    groupIds.map((groupId) => ({
+      personId,
+      groupId,
+      addedBy,
+    })),
+  )
+
+  const inserted = await db
+    .insertInto('person_group')
+    .values(rows)
+    .onConflict((oc) => oc.columns(['personId', 'groupId']).doNothing())
+    .returning(['personId', 'groupId'])
+    .execute()
+
+  return {
+    inserted: inserted.length,
+    skipped: rows.length - inserted.length,
+    total: rows.length,
+  }
+}

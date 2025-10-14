@@ -1,16 +1,21 @@
 import { z } from 'zod'
 
+// Pre-compiled regex for better performance
+const PHOTO_DATA_URL_REGEX = /^data:image\/(jpeg|jpg|png|webp);base64,/
+
 export const personSchema = z.object({
   id: z.string(),
+  personCode: z.string().nullable(),
   firstName: z.string(),
   lastName: z.string(),
   address: z.string(),
   emailId: z.string().nullable(),
-  phoneNumber: z.string().nullable(),
   yearOfBirth: z.number().nullable(),
   photo: z.string().nullable(),
   gender: z.enum(['male', 'female', 'other', 'prefer_not_to_say']).nullable(),
-  center: z.enum(['Nepal', 'USA', 'Australia', 'UK']),
+  center_id: z.string().nullable(),
+  centerName: z.string().nullable(),
+  center: z.string().nullable().optional(),
   createdAt: z.coerce.date().nullable(),
   updatedAt: z.coerce.date().nullable(),
   createdBy: z.string(),
@@ -36,6 +41,8 @@ export const personSchema = z.object({
   emergencyContactPhone: z.string().nullable(),
   is_krama_instructor: z.boolean().nullable(),
   krama_instructor_person_id: z.string().nullable(),
+  referredBy: z.string().nullable(),
+  hasMajorEmpowerment: z.boolean().default(false),
 })
 
 export type Person = z.infer<typeof personSchema>
@@ -46,13 +53,18 @@ export const personInputSchema = z.object({
   lastName: z.string().min(1, 'Last name is required'),
   address: z.string().min(1, 'Address is required'),
   emailId: z.string().email().optional().or(z.literal('')),
-  phoneNumber: z.string().optional(),
   primaryPhone: z.string().optional(),
   secondaryPhone: z.string().optional(),
   yearOfBirth: z.number().int().min(1900).optional(),
-  photo: z.string().optional(),
+  photo: z.string().optional().refine(
+    (val) => {
+      if (!val) return true;
+      return PHOTO_DATA_URL_REGEX.test(val);
+    },
+    { message: "Photo must be a valid image" }
+  ),
   gender: z.enum(['male', 'female', 'other', 'prefer_not_to_say']).optional(),
-  center: z.enum(['Nepal', 'USA', 'Australia', 'UK']),
+  centerId: z.string().optional(),
   type: z.enum(['interested', 'contact', 'sangha_member', 'attended_orientation']),
   country: z.string().optional(),
   nationality: z.string().optional(),
@@ -71,6 +83,7 @@ export const personInputSchema = z.object({
   yearOfRefugeCalendarType: z.enum(['BS', 'AD']).optional(),
   is_krama_instructor: z.boolean().optional(),
   krama_instructor_person_id: z.string().optional(),
+  referredBy: z.string().optional(),
 })
 
 export type PersonInput = z.infer<typeof personInputSchema>

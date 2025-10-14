@@ -1,10 +1,14 @@
 import {
+  IconBuilding,
   IconCalendar,
   IconHelp,
   IconPalette,
   IconSettings,
   IconUsers,
   IconUsersGroup,
+  IconCertificate,
+  IconUser,
+  IconTimeline,
 } from '@tabler/icons-react'
 import { AudioWaveform, GalleryVerticalEnd } from 'lucide-react'
 import { type SidebarData } from '../types'
@@ -13,13 +17,13 @@ import { ByomaKusumaIcon } from '@/components/byoma-kusuma-icon'
 
 const baseSidebarData = {
   user: {
-    name: 'ByomaKusuma',
+    name: 'Byoma Kusuma',
     email: 'placeholder@byomakusuma.com',
     avatar: '/avatars/byoma-kusuma.jpg',
   },
   teams: [
     {
-      name: 'ByomaKusuma',
+      name: 'Byoma Kusuma',
       logo: ByomaKusumaIcon,
       plan: 'ByomaKusuma UI',
     },
@@ -44,6 +48,11 @@ const baseSidebarData = {
           icon: IconUsers,
         },
         {
+          title: 'Centers',
+          url: '/centers',
+          icon: IconBuilding,
+        },
+        {
           title: 'Groups',
           url: '/groups',
           icon: IconUsersGroup,
@@ -52,6 +61,21 @@ const baseSidebarData = {
           title: 'Events',
           url: '/events',
           icon: IconCalendar,
+        },
+        {
+          title: 'Mahakrama',
+          url: '/mahakrama',
+          icon: IconTimeline,
+        },
+        {
+          title: 'Empowerments',
+          url: '/empowerments',
+          icon: IconCertificate,
+        },
+        {
+          title: 'Gurus',
+          url: '/gurus',
+          icon: IconUser,
         },
         {
           title: 'Users',
