@@ -89,7 +89,14 @@ export function PersonEmpowermentDialog({
   const onSubmit = (data: PersonEmpowermentInput) => {
     const processedData: any = {
       ...data,
-      start_date: new Date(data.start_date + 'T00:00:00Z').toISOString(),
+    }
+
+    // Only include start_date if it has a valid value
+    if (data.start_date && data.start_date.trim() !== '') {
+      processedData.start_date = new Date(data.start_date + 'T00:00:00Z').toISOString()
+    } else {
+      // Remove start_date from the object if it's empty
+      delete processedData.start_date
     }
 
     // Only include end_date if it has a valid value

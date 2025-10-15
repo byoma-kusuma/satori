@@ -1,9 +1,10 @@
 // User role types - must match backend
-export const userRoleEnum = ['admin', 'krama_instructor', 'viewer'] as const;
+export const userRoleEnum = ['sysadmin', 'admin', 'krama_instructor', 'viewer'] as const;
 export type UserRole = (typeof userRoleEnum)[number];
 
 // Human-readable labels for user roles
 export const userRoleLabels: Record<UserRole, string> = {
+  sysadmin: 'System Administrator',
   admin: 'Administrator',
   krama_instructor: 'Krama Instructor',
   viewer: 'Viewer',
@@ -11,6 +12,7 @@ export const userRoleLabels: Record<UserRole, string> = {
 
 // Role descriptions
 export const userRoleDescriptions: Record<UserRole, string> = {
+  sysadmin: 'Full system access with elevated privileges for system configuration and management',
   admin: 'Full system access including user management, all CRUD operations, and system settings',
   krama_instructor: 'Full system access including user management, all CRUD operations, and system settings',
   viewer: 'Read-only access to persons and events, no create/edit/delete permissions',
@@ -47,29 +49,56 @@ export interface Permission {
 
 // Define permissions for each role
 export const rolePermissions: Record<UserRole, Permission> = {
-  admin: {
+  sysadmin: {
     // User management
     canManageUsers: true,
     canViewUsers: true,
-    
+
     // Person management
     canCreatePersons: true,
     canEditPersons: true,
     canDeletePersons: true,
     canViewPersons: true,
-    
+
     // Event management
     canCreateEvents: true,
     canEditEvents: true,
     canDeleteEvents: true,
     canViewEvents: true,
-    
+
     // Group management
     canCreateGroups: true,
     canEditGroups: true,
     canDeleteGroups: true,
     canViewGroups: true,
-    
+
+    // System settings
+    canManageSettings: true,
+  },
+
+  admin: {
+    // User management
+    canManageUsers: true,
+    canViewUsers: true,
+
+    // Person management
+    canCreatePersons: true,
+    canEditPersons: true,
+    canDeletePersons: true,
+    canViewPersons: true,
+
+    // Event management
+    canCreateEvents: true,
+    canEditEvents: true,
+    canDeleteEvents: true,
+    canViewEvents: true,
+
+    // Group management
+    canCreateGroups: true,
+    canEditGroups: true,
+    canDeleteGroups: true,
+    canViewGroups: true,
+
     // System settings
     canManageSettings: true,
   },

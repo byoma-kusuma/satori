@@ -154,7 +154,7 @@ export function GeneralInfoTab({ form, person, formRef, onSubmit }: GeneralInfoT
         id="person-form"
         ref={formRef}
         onSubmit={form.handleSubmit(onSubmit)}
-        className="space-y-6"
+        className="space-y-5"
       >
         {person.hasMajorEmpowerment && (
           <div className='flex items-center gap-2 rounded-md border border-dashed border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-700'>
@@ -164,7 +164,7 @@ export function GeneralInfoTab({ form, person, formRef, onSubmit }: GeneralInfoT
         )}
 
         {/* Person Type */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <FormField
             control={form.control}
             name="type"
@@ -173,7 +173,7 @@ export function GeneralInfoTab({ form, person, formRef, onSubmit }: GeneralInfoT
                 <FormLabel>Person Type</FormLabel>
                 <Select onValueChange={field.onChange} defaultValue={field.value as string}>
                   <FormControl>
-                    <SelectTrigger className="w-48">
+                    <SelectTrigger className="w-full sm:w-48">
                       <SelectValue placeholder="Select person type" />
                     </SelectTrigger>
                   </FormControl>
@@ -192,9 +192,9 @@ export function GeneralInfoTab({ form, person, formRef, onSubmit }: GeneralInfoT
         </div>
         
         {/* Top section: Basic fields on left, Photo on right */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {/* Left side - Basic fields */}
-          <div className="space-y-4">
+          <div className="space-y-3">
             <FormField
               control={form.control}
               name="firstName"
@@ -255,9 +255,9 @@ export function GeneralInfoTab({ form, person, formRef, onSubmit }: GeneralInfoT
               control={form.control}
               name="photo"
               render={({ field }) => (
-                <FormItem className="flex flex-col items-center space-y-4">
+                <FormItem className="flex flex-col items-center space-y-3">
                   <div className="relative cursor-pointer group">
-                    <Avatar className="h-32 w-32 border-2 border-dashed border-gray-300 group-hover:border-primary transition-colors">
+                    <Avatar className="h-24 w-24 sm:h-32 sm:w-32 border-2 border-dashed border-gray-300 group-hover:border-primary transition-colors">
                       <AvatarImage src={field.value || ''} alt="Profile photo" />
                       <AvatarFallback className="bg-gray-50 text-gray-400">
                         {isUploadingPhoto ? (
@@ -342,7 +342,7 @@ export function GeneralInfoTab({ form, person, formRef, onSubmit }: GeneralInfoT
             />
             
             {/* Print ID Card Button */}
-            <div className="flex justify-center mt-4">
+            <div className="flex justify-center mt-3">
               <Button
                 type="button"
                 variant="outline"
@@ -357,7 +357,7 @@ export function GeneralInfoTab({ form, person, formRef, onSubmit }: GeneralInfoT
         </div>
 
         {/* Additional fields section */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <FormField
             control={form.control}
             name="centerId"
@@ -611,8 +611,8 @@ export function GeneralInfoTab({ form, person, formRef, onSubmit }: GeneralInfoT
         </div>
         
         {/* Emergency Contact Section */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6 pt-6 border-t">
-          <div className="col-span-2">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mt-6 pt-6 border-t">
+          <div className="col-span-full">
             <h3 className="text-lg font-semibold mb-4">Emergency Contact</h3>
           </div>
           <FormField
@@ -667,8 +667,8 @@ export function GeneralInfoTab({ form, person, formRef, onSubmit }: GeneralInfoT
         </div>
         
         {form.watch('type') === 'sangha_member' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6 pt-6 border-t">
-            <div className="col-span-2">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mt-6 pt-6 border-t">
+            <div className="col-span-full">
               <h3 className="text-lg font-semibold mb-4">Sangha Member Information</h3>
             </div>
             <FormField

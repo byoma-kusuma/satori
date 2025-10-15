@@ -13,6 +13,7 @@ import {
 import { AudioWaveform, GalleryVerticalEnd } from 'lucide-react'
 import { type SidebarData } from '../types'
 import { type User } from '@/hooks/use-auth'
+import { type UserRole } from '@/types/user-roles'
 import { ByomaKusumaIcon } from '@/components/byoma-kusuma-icon'
 
 const baseSidebarData = {
@@ -108,13 +109,28 @@ const baseSidebarData = {
   ],
 }
 
-export const getSidebarData = (user: User | null): SidebarData => ({
-  ...baseSidebarData,
-  user: user ? {
-    name: user.name,
-    email: user.email,
-    avatar: baseSidebarData.user.avatar
-  } : baseSidebarData.user
-} as SidebarData)
+export const getSidebarData = (user: User | null, userRole: UserRole | null): SidebarData => {
+  // Filter nav items based on user role
+  const filteredNavGroups = baseSidebarData.navGroups.map(group => ({
+    ...group,
+    items: group.items.filter(item => {
+      // Hide Users menu item for non-sysadmin users
+      if (item.title === 'Users' && userRole !== 'sysadmin') {
+        return false
+      }
+      return true
+    })
+  }))
+
+  return {
+    ...baseSidebarData,
+    navGroups: filteredNavGroups,
+    user: user ? {
+      name: user.name,
+      email: user.email,
+      avatar: baseSidebarData.user.avatar
+    } : baseSidebarData.user
+  } as SidebarData
+}
 
 export const sidebarData: SidebarData = baseSidebarData as SidebarData

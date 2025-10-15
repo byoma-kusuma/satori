@@ -51,7 +51,7 @@ export const personInputSchema = z.object({
   firstName: z.string().min(1, 'First name is required'),
   middleName: z.string().optional(),
   lastName: z.string().min(1, 'Last name is required'),
-  address: z.string().min(1, 'Address is required'),
+  address: z.string().optional(),
   emailId: z.string().email().optional().or(z.literal('')),
   primaryPhone: z.string().optional(),
   secondaryPhone: z.string().optional(),

@@ -113,7 +113,10 @@ function EditUserForm({ userId }: { userId: string }) {
   const onSubmit = (vals: UserEditForm) => {
     updateUserMutation.mutate({
       id: userId,
-      updateData: { personId: vals.personId ?? null }
+      updateData: {
+        personId: vals.personId ?? null,
+        role: vals.role,
+      }
     }, {
       onSuccess: () => {
         toast({ title: 'User updated successfully' })

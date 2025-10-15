@@ -10,10 +10,12 @@ import { NavUser } from '@/components/layout/nav-user'
 import { TeamSwitcher } from '@/components/layout/team-switcher'
 import { getSidebarData } from './data/sidebar-data'
 import { useAuth } from '@/hooks/use-auth'
+import { usePermissions } from '@/contexts/permission-context'
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { user } = useAuth()
-  const sidebarData = getSidebarData(user)
+  const { userRole } = usePermissions()
+  const sidebarData = getSidebarData(user, userRole)
   
   return (
     <Sidebar collapsible='icon' variant='floating' {...props}>

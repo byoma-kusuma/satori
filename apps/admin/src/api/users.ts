@@ -41,6 +41,7 @@ export interface AvailablePerson {
 
 export interface UpdateUserInput {
   personId?: string | null
+  role?: UserRole
 }
 
 export interface UpdateUserRoleInput {

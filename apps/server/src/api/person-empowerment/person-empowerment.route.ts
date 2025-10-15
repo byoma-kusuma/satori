@@ -9,8 +9,8 @@ import { authenticated } from '../../middlewares/session'
 const personEmpowermentInputSchema = z.object({
   empowerment_id: z.string().uuid('Invalid empowerment ID'),
   person_id: z.string().uuid('Invalid person ID'),
-  guru_id: z.string().uuid('Invalid guru ID'),
-  start_date: z.string().min(1, 'Start date is required'),
+  guru_id: z.string().uuid('Invalid guru ID').optional().or(z.literal('')),
+  start_date: z.string().optional(),
   end_date: z.string().min(1).optional(),
 })
 
@@ -62,15 +62,31 @@ export const personEmpowermentRoute = app
       const data = personEmpowermentInputSchema.parse(rawData)
       const user = requireUser(c.get('user'))
 
+      const insertData: any = {
+        empowerment_id: data.empowerment_id,
+        person_id: data.person_id,
+        created_by: (user as any).id,
+        last_updated_by: (user as any).id,
+      }
+
+      // Only include guru_id if it's not empty
+      if (data.guru_id && data.guru_id.trim() !== '') {
+        insertData.guru_id = data.guru_id
+      }
+
+      // Only include start_date if it's provided
+      if (data.start_date && data.start_date.trim() !== '') {
+        insertData.start_date = new Date(data.start_date)
+      }
+
+      // Only include end_date if it's provided
+      if (data.end_date && data.end_date.trim() !== '') {
+        insertData.end_date = new Date(data.end_date)
+      }
+
       const personEmpowerment = await db
         .insertInto('person_empowerment')
-        .values({
-          ...data,
-          start_date: new Date(data.start_date),
-          end_date: data.end_date ? new Date(data.end_date) : null,
-          created_by: (user as any).id,
-          last_updated_by: (user as any).id,
-        })
+        .values(insertData)
         .returningAll()
         .executeTakeFirstOrThrow()
 
@@ -87,31 +103,40 @@ export const personEmpowermentRoute = app
     const id = c.req.param('id')
     const data = c.req.valid('json')
     const user = requireUser(c.get('user'))
-    
+
     const updateData: any = {
-      ...data,
       last_updated_by: user.id,
       updated_at: new Date(),
     }
-    
-    if (data.start_date) {
+
+    // Only include fields that are provided and not empty
+    if (data.empowerment_id) {
+      updateData.empowerment_id = data.empowerment_id
+    }
+    if (data.person_id) {
+      updateData.person_id = data.person_id
+    }
+    if (data.guru_id && data.guru_id.trim() !== '') {
+      updateData.guru_id = data.guru_id
+    }
+    if (data.start_date && data.start_date.trim() !== '') {
       updateData.start_date = new Date(data.start_date)
     }
-    if (data.end_date) {
+    if (data.end_date && data.end_date.trim() !== '') {
       updateData.end_date = new Date(data.end_date)
     }
-    
+
     const personEmpowerment = await db
       .updateTable('person_empowerment')
       .set(updateData)
       .where('id', '=', id)
       .returningAll()
       .executeTakeFirst()
-    
+
     if (!personEmpowerment) {
       return c.json({ error: 'Person empowerment not found' }, 404)
     }
-    
+
     return c.json(personEmpowerment)
   })
   .delete('/:id', async (c) => {
