@@ -41,8 +41,11 @@ export interface Permission {
   canEditGroups: boolean;
   canDeleteGroups: boolean;
   canViewGroups: boolean;
-  
-  
+
+  // Registration management
+  canManageRegistrations: boolean;
+  canViewRegistrations: boolean;
+
   // System settings
   canManageSettings: boolean;
 }
@@ -72,6 +75,10 @@ export const rolePermissions: Record<UserRole, Permission> = {
     canDeleteGroups: true,
     canViewGroups: true,
 
+    // Registration management
+    canManageRegistrations: true,
+    canViewRegistrations: true,
+
     // System settings
     canManageSettings: true,
   },
@@ -99,6 +106,10 @@ export const rolePermissions: Record<UserRole, Permission> = {
     canDeleteGroups: true,
     canViewGroups: true,
 
+    // Registration management
+    canManageRegistrations: true,
+    canViewRegistrations: true,
+
     // System settings
     canManageSettings: true,
   },
@@ -107,25 +118,29 @@ export const rolePermissions: Record<UserRole, Permission> = {
     // User management
     canManageUsers: true,
     canViewUsers: true,
-    
+
     // Person management
     canCreatePersons: true,
     canEditPersons: true,
     canDeletePersons: true,
     canViewPersons: true,
-    
+
     // Event management
     canCreateEvents: true,
     canEditEvents: true,
     canDeleteEvents: true,
     canViewEvents: true,
-    
+
     // Group management
     canCreateGroups: true,
     canEditGroups: true,
     canDeleteGroups: true,
     canViewGroups: true,
-    
+
+    // Registration management
+    canManageRegistrations: true,
+    canViewRegistrations: true,
+
     // System settings
     canManageSettings: true,
   },
@@ -134,25 +149,29 @@ export const rolePermissions: Record<UserRole, Permission> = {
     // User management
     canManageUsers: false,
     canViewUsers: false,
-    
+
     // Person management
     canCreatePersons: false,
     canEditPersons: false,
     canDeletePersons: false,
     canViewPersons: true,
-    
+
     // Event management
     canCreateEvents: false,
     canEditEvents: false,
     canDeleteEvents: false,
     canViewEvents: true,
-    
+
     // Group management
     canCreateGroups: false,
     canEditGroups: false,
     canDeleteGroups: false,
     canViewGroups: true,
-    
+
+    // Registration management
+    canManageRegistrations: false,
+    canViewRegistrations: false,
+
     // System settings
     canManageSettings: false,
   },

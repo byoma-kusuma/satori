@@ -3,16 +3,16 @@ import { PersonInput, PersonType } from './person.types';
 import { UserRole } from '../../types/user-roles';
 
 // Generate person code from first and last name initials + 4 digit number
-const generatePersonCode = async (firstName: string, lastName: string): Promise<string> => {
+export const generatePersonCode = async (firstName: string, lastName: string): Promise<string> => {
   const initials = (firstName.charAt(0) + lastName.charAt(0)).toUpperCase();
-  
+
   // Find the highest existing number for these initials
   const existingCodes = await db
     .selectFrom('person')
     .select('personCode')
     .where('personCode', 'like', `${initials}%`)
     .execute();
-  
+
   let maxNumber = 0;
   existingCodes.forEach(row => {
     if (row.personCode) {
@@ -22,7 +22,7 @@ const generatePersonCode = async (firstName: string, lastName: string): Promise<
       }
     }
   });
-  
+
   const nextNumber = (maxNumber + 1).toString().padStart(4, '0');
   return `${initials}${nextNumber}`;
 };

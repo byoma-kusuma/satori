@@ -9,6 +9,7 @@ import {
   IconCertificate,
   IconUser,
   IconTimeline,
+  IconClipboardList,
 } from '@tabler/icons-react'
 import { AudioWaveform, GalleryVerticalEnd } from 'lucide-react'
 import { type SidebarData } from '../types'
@@ -47,6 +48,11 @@ const baseSidebarData = {
           title: 'Persons',
           url: '/persons',
           icon: IconUsers,
+        },
+        {
+          title: 'Registrations',
+          url: '/registrations',
+          icon: IconClipboardList,
         },
         {
           title: 'Centers',

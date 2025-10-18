@@ -128,14 +128,14 @@ export const addUserRole = async (c: Context, next: Next) => {
 /**
  * Admin-only middleware
  */
-export const adminOnly = requireRole(['admin']);
+export const adminOnly = requireRole(['admin', 'sysadmin']);
 
 /**
  * Admin or Krama Instructor middleware
  */
-export const adminOrInstructor = requireRole(['admin', 'krama_instructor']);
+export const adminOrInstructor = requireRole(['admin', 'sysadmin', 'krama_instructor']);
 
 /**
  * Any authenticated user middleware (already exists but kept for consistency)
  */
-export const authenticatedUser = requireRole(['admin', 'krama_instructor', 'viewer']);
+export const authenticatedUser = requireRole(['admin', 'sysadmin', 'krama_instructor', 'viewer']);
