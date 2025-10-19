@@ -33,9 +33,11 @@ export type PersonTitle = "dharma_dhar" | "sahayak_dharmacharya" | "sahayak_sama
 
 export type PersonType = "attended_orientation" | "contact" | "interested" | "sangha_member";
 
+export type RegistrationStatus = "complete" | "invalid" | "new";
+
 export type Timestamp = ColumnType<Date, Date | string, Date | string>;
 
-export type UserRole = "admin" | "krama_instructor" | "viewer";
+export type UserRole = "admin" | "krama_instructor" | "sysadmin" | "viewer";
 
 export interface Account {
   accessToken: string | null;
@@ -296,11 +298,17 @@ export interface PersonEmpowerment {
   created_by: string;
   empowerment_id: string;
   end_date: Timestamp | null;
-  guru_id: string;
+  /**
+   * Guru who gave the empowerment (optional)
+   */
+  guru_id: string | null;
   id: Generated<string>;
   last_updated_by: string;
   person_id: string;
-  start_date: Timestamp;
+  /**
+   * Start date of the empowerment (optional)
+   */
+  start_date: Timestamp | null;
   updated_at: Generated<Timestamp | null>;
 }
 
@@ -321,6 +329,32 @@ export interface PersonRelationship {
   related_person_id: string;
   relationship_type: string;
   updated_at: Generated<Timestamp | null>;
+}
+
+export interface Registration {
+  address: string | null;
+  country: string | null;
+  createdAt: Generated<Timestamp | null>;
+  email: string | null;
+  empowerment_text: string | null;
+  first_name: string;
+  gender: GenderType | null;
+  id: Generated<string>;
+  import_batch_id: string | null;
+  imported_at: Generated<Timestamp | null>;
+  imported_by: string | null;
+  invalid_reason: string | null;
+  krama_instructor_text: string | null;
+  last_name: string;
+  middle_name: string | null;
+  phone: string | null;
+  previously_attended_camp: boolean | null;
+  session_text: string | null;
+  src_timestamp: Timestamp | null;
+  status: Generated<RegistrationStatus>;
+  status_updated_at: Timestamp | null;
+  status_updated_by: string | null;
+  updatedAt: Generated<Timestamp | null>;
 }
 
 export interface SchemaMigrations {
@@ -345,6 +379,7 @@ export interface User {
   emailVerified: boolean;
   id: string;
   image: string | null;
+  must_change_password: Generated<boolean>;
   name: string;
   person_id: string | null;
   /**
@@ -381,6 +416,7 @@ export interface DB {
   person_empowerment: PersonEmpowerment;
   person_group: PersonGroup;
   person_relationship: PersonRelationship;
+  registration: Registration;
   schema_migrations: SchemaMigrations;
   session: Session;
   user: User;

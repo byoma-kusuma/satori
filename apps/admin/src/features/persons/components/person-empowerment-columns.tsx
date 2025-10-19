@@ -9,12 +9,12 @@ export interface PersonEmpowerment {
   empowerment_type: string | null
   empowerment_form: string | null
   empowerment_major: boolean
-  guru_name: string
-  start_date: string
+  guru_name: string | null
+  start_date: string | null
   end_date: string | null
   empowerment_id: string
   person_id: string
-  guru_id: string
+  guru_id: string | null
 }
 
 export const createPersonEmpowermentColumns = (empowerments: any[], gurus: any[]): ColumnDef<PersonEmpowerment>[] => [
@@ -44,13 +44,14 @@ export const createPersonEmpowermentColumns = (empowerments: any[], gurus: any[]
   {
     accessorKey: 'guru_name',
     header: 'Guru Name',
+    cell: ({ row }) => row.original.guru_name ?? '-',
   },
   {
     accessorKey: 'start_date',
     header: 'Start Date',
     cell: ({ row }) => {
-      const date = row.getValue('start_date') as string
-      return format(new Date(date), 'MMM dd, yyyy')
+      const date = row.getValue('start_date') as string | null
+      return date ? format(new Date(date), 'MMM dd, yyyy') : '-'
     },
   },
   {

@@ -36,13 +36,13 @@ import {
 } from '@/api/users'
 import { PersonSelect, type PersonOption } from '@/components/ui/person-select'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { userRoleLabels, type UserRole } from '@/types/user-roles'
+import { userRoleEnum, userRoleLabels, type UserRole } from '@/types/user-roles'
 
 const formSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   email: z.string().email('Valid email is required'),
   password: z.string().min(8, 'Password must be at least 8 characters').optional(),
-  role: z.enum(['admin', 'krama_instructor', 'viewer']).optional(),
+  role: z.enum(userRoleEnum).optional(),
   personId: z.string().uuid().optional(),
 }).superRefine((data, ctx) => {
   if ((data.role === 'krama_instructor' || data.role === 'viewer') && !data.personId) {
@@ -157,6 +157,7 @@ export function UsersActionDialog({ currentRow, open, onOpenChange }: Props) {
           id: currentRow.id,
           updateData: {
             personId: values.personId ?? null,
+            role: values.role,
           },
         },
         {

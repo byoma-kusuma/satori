@@ -32,7 +32,6 @@ export const auth = betterAuth({
     sendOnSignUp: true,
     sendVerificationEmail: async ({ user, url, token }, request) => {
       // Validate email before sending verification
-      console.log(`[EMAIL_VALIDATION] Validating email before verification: ${user.email}`);
       validateEmailForSignup(user.email);
       
       await sendEmail({
@@ -47,7 +46,6 @@ export const auth = betterAuth({
     user: {
       create: {
         before: async (user) => {
-          console.log(`[EMAIL_VALIDATION] Before user creation: ${user.email}`);
           validateEmailForSignup(user.email);
           return user;
         },

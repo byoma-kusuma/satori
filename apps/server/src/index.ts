@@ -24,8 +24,6 @@ if (!process.env.ORIGIN) {
   process.env.ORIGIN = `http://localhost:${process.env.FRONTEND_PORT ?? 3000}`;
 }
 
-console.log("Allowed origins:", process.env.ORIGIN);
-
 // CORS middleware configuration
 app.use(
   '*',

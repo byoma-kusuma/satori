@@ -1,4 +1,15 @@
 -- migrate:up
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+-- Create a function for updating the updatedAt timestamp
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW."updatedAt" = CURRENT_TIMESTAMP;
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
 -- Create guru table
 CREATE TABLE public.guru (
     id uuid DEFAULT public.uuid_generate_v4() NOT NULL,

@@ -63,7 +63,7 @@ export function PersonEmpowermentTable({ personId }: PersonEmpowermentTableProps
 
     return filteredEmpowerments.map((pe: any) => {
       const empowerment = empowerments.find((e: any) => e.id === pe.empowerment_id)
-      const guru = gurus.find((g: any) => g.id === pe.guru_id)
+      const guru = pe.guru_id ? gurus.find((g: any) => g.id === pe.guru_id) : null
 
       return {
         ...pe,
@@ -71,7 +71,7 @@ export function PersonEmpowermentTable({ personId }: PersonEmpowermentTableProps
         empowerment_type: empowerment?.type ?? null,
         empowerment_form: empowerment?.form ?? null,
         empowerment_major: empowerment?.major_empowerment ?? false,
-        guru_name: guru?.name || 'Unknown'
+        guru_name: guru?.name || null
       }
     })
   }, [personEmpowerments, personId, empowerments, gurus])
