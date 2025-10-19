@@ -21,13 +21,9 @@ export function isAllowedEmail(email: string): boolean {
 }
 
 export function validateEmailForSignup(email: string): void {
-  console.log(`[EMAIL_VALIDATION] Checking email: ${email}`);
   
   if (!isAllowedEmail(email)) {
-    console.log(`[EMAIL_VALIDATION] REJECTED: ${email}`);
     const allowedDomains = process.env.TEST_ORG?.split(',').map(org => `@${org.trim()}`).join(', ') || '';
     throw new Error(`Email ${email} is not authorized for signup. Only test users and emails from domains: ${allowedDomains} are allowed.`);
-  }
-  
-  console.log(`[EMAIL_VALIDATION] APPROVED: ${email}`);
+  }  
 }

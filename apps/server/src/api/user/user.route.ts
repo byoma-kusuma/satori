@@ -78,7 +78,6 @@ export const usersRoutes = users
   })
   .post("/", zValidator("json", createUserSchema), requirePermission("canManageUsers"), async (c) => {
     const data = c.req.valid("json");
-    console.log('Route received data:', JSON.stringify(data, null, 2));
     const user = await createUser(data);
     return c.json(user, 201);
   })

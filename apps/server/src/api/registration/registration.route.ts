@@ -97,10 +97,6 @@ async function fuzzyFindPersonByName(name: string) {
   const originalName = name.trim()
   const strippedName = stripTitles(name)
 
-  console.log('[Fuzzy Match] Original name:', originalName)
-  console.log('[Fuzzy Match] Stripped name:', strippedName)
-  console.log('[Fuzzy Match] Total candidates:', cand.length)
-
   const scored = cand
     .map((p) => {
       const fullName = [p.firstName, p.middleName, p.lastName].filter(Boolean).join(' ')
@@ -111,12 +107,6 @@ async function fuzzyFindPersonByName(name: string) {
     .sort((a, b) => b.s - a.s)
 
   const best = scored[0]
-
-  console.log('[Fuzzy Match] Top 3 matches:')
-  scored.slice(0, 3).forEach((m, i) => {
-    console.log(`  ${i + 1}. "${m.fullName}" - score: ${m.s.toFixed(3)} (orig: ${m.s1.toFixed(3)}, stripped: ${m.s2.toFixed(3)})`)
-  })
-  console.log('[Fuzzy Match] Best match passed threshold (>= 0.82):', best && best.s >= 0.82)
 
   return best && best.s >= 0.82 ? best.id : null
 }
@@ -353,15 +343,10 @@ export const registrationRoutes = app
     await db.transaction().execute(async (trx) => {
       for (const r of regs as any[]) {
         try {
-          console.log('[Registration Convert] Processing:', r.first_name, r.last_name)
-          console.log('[Registration Convert] Krama Instructor Text:', r.krama_instructor_text)
-
           const instructorId = r.krama_instructor_text
             ? await fuzzyFindPersonByName(r.krama_instructor_text)
             : null
-
-          console.log('[Registration Convert] Found Instructor ID:', instructorId)
-
+            
           const personCode = await generatePersonCode(r.first_name, r.last_name)
           const parsedCountry = parseCountry(r.country)
           const normalizedPhone = normalizePhoneWithCountryCode(r.phone, parsedCountry)

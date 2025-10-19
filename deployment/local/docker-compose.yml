@@ -1,5 +1,3 @@
-version: '3.8'
-
 networks:
   satori-app-network:
     name: ${DOCKER_NETWORK:-satori-app-network}
@@ -73,7 +71,7 @@ services:
       - AZURE_COMMUNICATION_CONNECTION_STRING=${AZURE_COMMUNICATION_CONNECTION_STRING}
       - AZURE_COMMUNICATION_FROM_EMAIL=${AZURE_COMMUNICATION_FROM_EMAIL}
     ports:
-      - "${APP_CONTAINER_PORT:-3001}:3001"
+      - "${APP_CONTAINER_PORT:-3000}:3000"
     depends_on:
       migrate:
         condition: service_completed_successfully

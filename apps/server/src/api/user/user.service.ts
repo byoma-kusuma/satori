@@ -197,17 +197,8 @@ export async function createUser(input: CreateUserInput): Promise<UserResponse> 
   const email = input.email.trim().toLowerCase()
   const password = input.password
 
-  console.log('createUser - input:', JSON.stringify(input, null, 2))
-
   if (!password || password.length < 8) {
     throw new HTTPException(400, { message: 'Password must be at least 8 characters.' })
-  }
-
-  if (input.personId) {
-    console.log('Validating personId:', input.personId)
-    await ensurePersonAvailable(input.personId)
-  } else {
-    console.log('No personId provided')
   }
 
   return db.transaction().execute(async (trx) => {
@@ -224,10 +215,8 @@ export async function createUser(input: CreateUserInput): Promise<UserResponse> 
     }
 
     const userId = result.user.id
-    console.log('User created with ID:', userId)
 
     if (input.role && input.role !== 'viewer') {
-      console.log('Setting role:', input.role)
       await trx
         .updateTable('user')
         .set({ role: input.role, updatedAt: new Date() })
@@ -236,25 +225,20 @@ export async function createUser(input: CreateUserInput): Promise<UserResponse> 
     }
 
     if (input.personId) {
-      console.log('Setting person_id:', input.personId)
       const updateResult = await trx
         .updateTable('user')
         .set({ person_id: input.personId, updatedAt: new Date() })
         .where('id', '=', userId)
         .executeTakeFirst()
-      console.log('Update result:', updateResult)
 
       // If user is a Krama Instructor, update the person's flag
       if (input.role === 'krama_instructor') {
-        console.log('Setting is_krama_instructor flag')
         await trx
           .updateTable('person')
           .set({ is_krama_instructor: true })
           .where('id', '=', input.personId)
           .executeTakeFirst()
       }
-    } else {
-      console.log('Skipping person_id update - no personId')
     }
 
     return getUserById(userId)
