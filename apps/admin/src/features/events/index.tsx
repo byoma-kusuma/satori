@@ -13,7 +13,7 @@ import { EventsTable } from './components/events-table'
 import { CreateEventDialog } from './components/create-event-dialog'
 import { EditEventDialog } from './components/edit-event-dialog'
 import { EventsDeleteDialog } from './components/events-delete-dialog'
-import { columns } from './components/events-columns'
+import { getColumns } from './components/events-columns'
 import EventsProvider from './context/events-context'
 
 
@@ -21,6 +21,8 @@ function EventsPage() {
   const [createOpen, setCreateOpen] = useState(false)
   const [editEventId, setEditEventId] = useState<string | null>(null)
   const { data: events } = useSuspenseQuery(getEventsQueryOptions())
+
+  const columns = getColumns((eventId) => setEditEventId(eventId))
 
   return (
     <>

@@ -79,7 +79,7 @@ export function EmpowermentDialog({ open, onOpenChange, empowermentId }: Empower
   const onSubmit = (data: EmpowermentInput) => {
     const payload: EmpowermentInput = {
       ...data,
-      class: data.class && data.class.length > 0 ? data.class : undefined,
+      class: data.class?.trim() ? data.class : undefined,
       major_empowerment: data.major_empowerment ?? false,
     }
 

@@ -15,9 +15,10 @@ import { useEvents } from '../hooks/use-events'
 
 interface DataTableRowActionsProps {
   row: Row<Event>
+  onEdit?: (eventId: string) => void
 }
 
-export function DataTableRowActions({ row }: DataTableRowActionsProps) {
+export function DataTableRowActions({ row, onEdit }: DataTableRowActionsProps) {
   const navigate = useNavigate()
   const { setOpen, setCurrentRow } = useEvents()
   const event = row.original
@@ -27,9 +28,11 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
     navigate({ to: '/events/$eventId/view', params: { eventId: event.id } })
   }
 
-  const handleEdit = () => {
-    if (!isClosed) {
-      // TODO: Implement edit functionality
+  const handleEdit = (e?: React.MouseEvent) => {
+    e?.preventDefault()
+    e?.stopPropagation()
+    if (!isClosed && onEdit) {
+      onEdit(event.id)
     }
   }
 

@@ -230,36 +230,18 @@ const COUNTRY_CODES: Record<string, string[]> = {
   '998': ['Uzbekistan'],
 }
 
-function normalizePhoneWithCountryCode(phone: string | null | undefined, country: string | null | undefined): string | null {
+function normalizePhoneWithCountryCode(phone: string | null | undefined, _country: string | null | undefined): string | null {
+  // Do NOT auto-prefix a country code. Preserve an existing leading '+' if present,
+  // otherwise return digits-only as entered.
   if (!phone) return null
 
-  // Clean the phone number - remove all non-digit characters except leading +
-  let cleaned = phone.trim()
-  const hasPlus = cleaned.startsWith('+')
-  cleaned = cleaned.replace(/[^0-9]/g, '')
+  let trimmed = phone.trim()
+  const hasPlus = trimmed.startsWith('+')
+  // Strip all non-digits
+  const digits = trimmed.replace(/[^0-9]/g, '')
+  if (!digits) return null
 
-  if (!cleaned) return null
-
-  // If phone already has + prefix and is international format, return as-is
-  if (hasPlus && cleaned.length >= 10) {
-    return `+${cleaned}`
-  }
-
-  // ONLY use the Country field to determine country code
-  // Do NOT attempt to detect country code from phone number digits
-  if (country) {
-    // Find country code based on country field
-    for (const [code, countries] of Object.entries(COUNTRY_CODES)) {
-      if (countries.some(c => c.toLowerCase() === country.toLowerCase())) {
-        // Found matching country - add its code to the phone number
-        return `+${code}${cleaned}`
-      }
-    }
-  }
-
-  // No country provided or no matching country code found
-  // Return phone number as-is without any country code
-  return cleaned
+  return hasPlus ? `+${digits}` : digits
 }
 
 function parseCountry(countryText: string | null | undefined): string | null {

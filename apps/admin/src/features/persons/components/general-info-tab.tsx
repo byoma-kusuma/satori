@@ -747,6 +747,8 @@ export function GeneralInfoTab({ form, person, formRef, onSubmit }: GeneralInfoT
                       <SelectItem value="dharma_dhar">{titleLabels.dharma_dhar}</SelectItem>
                       <SelectItem value="sahayak_dharmacharya">{titleLabels.sahayak_dharmacharya}</SelectItem>
                       <SelectItem value="sahayak_samathacharya">{titleLabels.sahayak_samathacharya}</SelectItem>
+                      <SelectItem value="khenpo">{titleLabels.khenpo}</SelectItem>
+                      <SelectItem value="dharmacharya">{titleLabels.dharmacharya}</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />

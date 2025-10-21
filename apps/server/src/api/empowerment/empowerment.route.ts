@@ -8,7 +8,7 @@ import { authenticated } from '../../middlewares/session'
 
 const empowermentInputSchema = z.object({
   name: z.string().min(1, 'Name is required'),
-  class: z.enum(['Kriyā Tantra', 'Charyā Tantra', 'Yoga Tantra', 'Anuttarayoga Tantra']).optional(),
+  class: z.enum(['Kriyā Tantra', 'Charyā Tantra', 'Yoga Tantra', 'Anuttarayoga Tantra']).nullish(),
   description: z.string().optional(),
   prerequisites: z.string().optional(),
   type: z.enum(['Sutra', 'Tantra']),
