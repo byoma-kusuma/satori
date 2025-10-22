@@ -15,6 +15,7 @@ import { gurusRoutes } from "./api/guru/guru.route";
 import { personEmpowermentRoute } from "./api/person-empowerment/person-empowerment.route";
 import { mahakramaRoutes } from "./api/mahakrama/mahakrama.route";
 import { personRelationshipRoutes } from "./api/person-relationship/person-relationship.route";
+import { registrationRoutes } from "./api/registration/registration.route";
 
 const app = new Hono();
 
@@ -62,6 +63,7 @@ app.route("/api/guru", gurusRoutes);
 app.route("/api/person-empowerment", personEmpowermentRoute);
 app.route("/api/mahakrama", mahakramaRoutes);
 app.route("/api/person-relationship", personRelationshipRoutes);
+app.route("/api/registration", registrationRoutes);
 
 export default {
   port: process.env.PORT || 3000,
