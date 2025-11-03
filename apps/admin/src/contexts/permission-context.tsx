@@ -35,8 +35,6 @@ export const PermissionProvider: React.FC<PermissionProviderProps> = ({ children
   });
 
   const userId = session?.data?.user?.id;
-  console.log('PermissionProvider - Session:', session);
-  console.log('PermissionProvider - User ID:', userId);
 
   // Get user role
   const { data: roleData, isLoading, error } = useQuery({
@@ -45,9 +43,6 @@ export const PermissionProvider: React.FC<PermissionProviderProps> = ({ children
     enabled: !!userId,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
-
-  console.log('PermissionProvider - Role Data:', roleData);
-  console.log('PermissionProvider - Error:', error);
 
   const userRole = roleData?.role || null;
   const permissions = userRole ? getRolePermissions(userRole) : null;

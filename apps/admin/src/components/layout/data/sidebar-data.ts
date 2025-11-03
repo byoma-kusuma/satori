@@ -50,11 +50,6 @@ const baseSidebarData = {
           icon: IconUsers,
         },
         {
-          title: 'Registrations',
-          url: '/registrations',
-          icon: IconClipboardList,
-        },
-        {
           title: 'Centers',
           url: '/centers',
           icon: IconBuilding,
@@ -88,6 +83,11 @@ const baseSidebarData = {
           title: 'Users',
           url: '/users',
           icon: IconUsers,
+        },
+        {
+          title: 'Import',
+          url: '/registrations',
+          icon: IconClipboardList,
         },
       ],
     },

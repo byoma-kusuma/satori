@@ -70,7 +70,7 @@ const personInputSchema = z.object({
   notes: z.string().nullable().optional().default(null),
   refugeName: z.string().nullable().optional().default(null),
   yearOfRefuge: z.number().int().min(1900).nullable().optional().default(null),
-  title: z.enum(["dharma_dhar", "sahayak_dharmacharya", "sahayak_samathacharya"]).nullable().optional().default(null),
+  title: z.enum(["dharma_dhar", "sahayak_dharmacharya", "sahayak_samathacharya", "khenpo", "dharmacharya"]).nullable().optional().default(null),
   membershipType: z.enum(["Life Time", "Board Member", "General Member", "Honorary Member"]).nullable().optional().default(null),
   hasMembershipCard: z.boolean().nullable().optional().default(null),
   membershipCardNumber: z.string().nullable().optional().default(null),

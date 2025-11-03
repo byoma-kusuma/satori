@@ -9,11 +9,6 @@ export const sidebarData = [
     icon: IconUsers,
   },
   {
-    title: 'Registrations',
-    url: '/registrations',
-    icon: IconClipboardList,
-  },
-  {
     title: 'Groups',
     url: '/groups',
     icon: IconUsersGroup,
@@ -37,6 +32,11 @@ export const sidebarData = [
     title: 'Users',
     url: '/users',
     icon: IconUsers,
+  },
+  {
+    title: 'Import',
+    url: '/registrations',
+    icon: IconClipboardList,
   },
 ]
 export type UserRole = 'sysadmin' | 'admin' | 'krama_instructor' | 'viewer'

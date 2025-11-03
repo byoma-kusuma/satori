@@ -20,7 +20,7 @@ const statusVariant: Record<EventSummary['status'], 'default' | 'secondary' | 'o
 const formatUtcDate = (value: string, options: Intl.DateTimeFormatOptions) =>
   new Intl.DateTimeFormat(undefined, { timeZone: 'UTC', ...options }).format(new Date(value))
 
-export const columns: ColumnDef<Event>[] = [
+export const getColumns = (onEdit?: (eventId: string) => void): ColumnDef<Event>[] => [
   {
     accessorKey: 'name',
     header: ({ column }) => (
@@ -133,9 +133,11 @@ export const columns: ColumnDef<Event>[] = [
   },
   {
     id: 'actions',
-    cell: ({ row }) => <DataTableRowActions row={row} />,
+    cell: ({ row }) => <DataTableRowActions row={row} onEdit={onEdit} />,
     meta: {
       className: 'w-[50px]',
     },
   },
 ]
+
+export const columns = getColumns()

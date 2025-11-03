@@ -4,7 +4,7 @@ import { Person } from '../../types';
 export type PersonType = 'interested' | 'contact' | 'sangha_member' | 'attended_orientation';
 
 // Define the person title enum
-export type PersonTitle = 'dharma_dhar' | 'sahayak_dharmacharya' | 'sahayak_samathacharya';
+export type PersonTitle = 'dharma_dhar' | 'sahayak_dharmacharya' | 'sahayak_samathacharya' | 'khenpo' | 'dharmacharya';
 
 // Define the membership type enum
 export type MembershipType = 'Life Time' | 'Board Member' | 'General Member' | 'Honorary Member';
@@ -64,7 +64,9 @@ export const personTypeLabels: Record<PersonType, string> = {
 
 // Define human-readable labels for the title types
 export const personTitleLabels: Record<PersonTitle, string> = {
-  dharma_dhar: 'Dharma Dhar',
+  dharma_dhar: 'Dharmadhar',
   sahayak_dharmacharya: 'Sahayak Dharmacharya',
-  sahayak_samathacharya: 'Sahayak Samathacharya'
+  sahayak_samathacharya: 'Sahayak Samathacharya',
+  khenpo: 'Khenpo',
+  dharmacharya: 'Dharmacharya',
 };

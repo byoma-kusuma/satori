@@ -32,7 +32,7 @@ export const personSchema = z.object({
   notes: z.string().nullable(),
   refugeName: z.string().nullable(),
   yearOfRefuge: z.number().nullable(),
-  title: z.enum(['dharma_dhar', 'sahayak_dharmacharya', 'sahayak_samathacharya']).nullable(),
+  title: z.enum(['dharma_dhar', 'sahayak_dharmacharya', 'sahayak_samathacharya', 'khenpo', 'dharmacharya']).nullable(),
   membershipType: z.enum(['Life Time', 'Board Member', 'General Member', 'Honorary Member']).nullable(),
   hasMembershipCard: z.boolean().nullable(),
   yearOfRefugeCalendarType: z.enum(['BS', 'AD']).nullable(),
@@ -73,7 +73,7 @@ export const personInputSchema = z.object({
   notes: z.string().optional(),
   refugeName: z.string().optional(),
   yearOfRefuge: z.number().int().min(1900).optional(),
-  title: z.enum(['dharma_dhar', 'sahayak_dharmacharya', 'sahayak_samathacharya']).optional(),
+  title: z.enum(['dharma_dhar', 'sahayak_dharmacharya', 'sahayak_samathacharya', 'khenpo', 'dharmacharya']).optional(),
   membershipType: z.enum(['Life Time', 'Board Member', 'General Member', 'Honorary Member']).optional(),
   hasMembershipCard: z.boolean().optional(),
   membershipCardNumber: z.string().optional(),
@@ -106,9 +106,11 @@ export const personTypeLabels = {
 }
 
 export const titleLabels = {
-  dharma_dhar: 'Dharma Dhar',
+  dharma_dhar: 'Dharmadhar',
   sahayak_dharmacharya: 'Sahayak Dharmacharya',  
   sahayak_samathacharya: 'Sahayak Samathacharya',
+  khenpo: 'Khenpo',
+  dharmacharya: 'Dharmacharya',
 }
 
 export const membershipTypeLabels = {
