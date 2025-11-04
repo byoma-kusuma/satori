@@ -8,6 +8,11 @@ export interface EmpowermentEventMetadata extends EventMetadata {
   guruId: string
 }
 
+export interface NewGroupInput {
+  groupName: string
+  description?: string | null
+}
+
 export interface CreateEventInput {
   name: string
   description?: string | null
@@ -17,7 +22,10 @@ export interface CreateEventInput {
   categoryId: string
   empowermentId?: string | null
   guruId?: string | null
+  eventGroupId?: string | null
+  newGroup?: NewGroupInput | null
   metadata?: EventMetadata | null
+  requiresFullAttendance?: boolean | null
 }
 
 export type UpdateEventInput = Partial<Omit<CreateEventInput, 'categoryId'>> & {
@@ -41,6 +49,7 @@ export interface EventSummaryDto {
   status: EventStatus
   startDate: string
   endDate: string
+  eventGroupId: string | null
   totalAttendees: number
   checkedInAttendees: number
   daysCount: number
@@ -91,8 +100,10 @@ export interface EventDetailDto {
   category: EventCategoryDto
   empowermentId: string | null
   guruId: string | null
+  eventGroupId: string | null
   closedAt: string | null
   closedBy: string | null
+  requiresFullAttendance: boolean
   days: EventDayDto[]
   attendees: EventAttendeeDto[]
   metadata: EventMetadata
@@ -117,4 +128,5 @@ export interface CheckInInput {
 
 export interface CloseEventInput {
   attendeeIds: string[]
+  adminOverride?: boolean
 }

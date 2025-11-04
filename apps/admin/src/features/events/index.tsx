@@ -9,6 +9,7 @@ import { Search } from '@/components/search'
 import { ThemeSwitch } from '@/components/theme-switch'
 
 import { getEventsQueryOptions } from '@/api/events'
+import { getEventGroupsQueryOptions } from '@/api/event-groups'
 import { EventsTable } from './components/events-table'
 import { CreateEventDialog } from './components/create-event-dialog'
 import { EditEventDialog } from './components/edit-event-dialog'
@@ -21,8 +22,14 @@ function EventsPage() {
   const [createOpen, setCreateOpen] = useState(false)
   const [editEventId, setEditEventId] = useState<string | null>(null)
   const { data: events } = useSuspenseQuery(getEventsQueryOptions())
+  const { data: groups = [] } = useSuspenseQuery(getEventGroupsQueryOptions())
+  const groupNameById = Object.fromEntries(groups.map(g => [g.id, g.name]))
+  const groupFilterOptions = [
+    { label: 'No Group', value: 'NULL' },
+    ...groups.map(g => ({ label: g.name, value: g.id })),
+  ]
 
-  const columns = getColumns((eventId) => setEditEventId(eventId))
+  const columns = getColumns((eventId) => setEditEventId(eventId), groupNameById)
 
   return (
     <>
@@ -43,6 +50,7 @@ function EventsPage() {
           columns={columns}
           data={events}
           onAdd={() => setCreateOpen(true)}
+          groupFilterOptions={groupFilterOptions}
         />
       </Main>
       <CreateEventDialog open={createOpen} onOpenChange={setCreateOpen} />

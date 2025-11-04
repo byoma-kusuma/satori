@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
@@ -24,6 +24,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
+import { Switch } from '@/components/ui/switch'
 import { useToast } from '@/hooks/use-toast'
 import { IconLoader } from '@tabler/icons-react'
 
@@ -34,6 +35,8 @@ import {
 } from '@/api/events'
 import { getEmpowermentsQueryOptions } from '@/api/empowerments'
 import { getGurusQueryOptions } from '@/features/gurus/data/api'
+import { getEventGroupsQueryOptions, useCreateEventGroup } from '@/api/event-groups'
+import { Textarea } from '@/components/ui/textarea'
 import { CreateEventPayload } from '../types'
 
 type Props = {
@@ -52,6 +55,8 @@ const formSchema = z
     endDate: z.string().optional().nullable(),
     empowermentId: z.string().uuid().optional().nullable(),
     guruId: z.string().uuid().optional().nullable(),
+    eventGroupId: z.string().uuid().optional().nullable(),
+    requiresFullAttendance: z.boolean().optional().nullable(),
   })
   .refine((data) => {
     if (!data.endDate) return true
@@ -77,6 +82,11 @@ export function EditEventDialog({ eventId, open, onOpenChange }: Props) {
     ...getGurusQueryOptions(),
     enabled: open,
   })
+  const { data: eventGroups = [], isLoading: groupsLoading, error: groupsError } = useQuery({ ...getEventGroupsQueryOptions(), enabled: open })
+  const createGroupMutation = useCreateEventGroup()
+  const [showNewGroup, setShowNewGroup] = useState(false)
+  const [newGroupName, setNewGroupName] = useState('')
+  const [newGroupDesc, setNewGroupDesc] = useState('')
   const { data: eventDetail } = useQuery({
     ...getEventQueryOptions(eventId ?? ''),
     enabled: open && Boolean(eventId),
@@ -93,6 +103,8 @@ export function EditEventDialog({ eventId, open, onOpenChange }: Props) {
       endDate: '',
       empowermentId: null,
       guruId: null,
+      eventGroupId: null as any,
+      requiresFullAttendance: null,
     },
   })
 
@@ -108,6 +120,8 @@ export function EditEventDialog({ eventId, open, onOpenChange }: Props) {
       endDate: eventDetail.endDate?.slice(0, 10) ?? '',
       empowermentId: eventDetail.empowermentId,
       guruId: eventDetail.guruId,
+      eventGroupId: (eventDetail as any).eventGroupId ?? null,
+      requiresFullAttendance: eventDetail.requiresFullAttendance,
     })
   }, [eventDetail, form])
 
@@ -164,6 +178,7 @@ export function EditEventDialog({ eventId, open, onOpenChange }: Props) {
       : startDateIso
 
     const payload: CreateEventPayload = {
+      eventGroupId: (values as any).eventGroupId ?? null,
       ...values,
       description: values.description ?? null,
       startDate: startDateIso,
@@ -202,6 +217,55 @@ export function EditEventDialog({ eventId, open, onOpenChange }: Props) {
         <DialogHeader>
           <DialogTitle>Edit Event</DialogTitle>
         </DialogHeader>
+        {showNewGroup && (
+          <div className='space-y-4 rounded-md border p-4 bg-muted/20'>
+            <div className='text-sm font-medium'>Create Event Group</div>
+            <div className='grid gap-3'>
+              <div>
+                <label className='mb-1 block text-sm'>Group Name</label>
+                <Input
+                  value={newGroupName}
+                  onChange={(e) => setNewGroupName(e.target.value)}
+                  placeholder='Enter group name'
+                />
+              </div>
+              <div>
+                <label className='mb-1 block text-sm'>Description (optional)</label>
+                <Textarea
+                  value={newGroupDesc}
+                  onChange={(e) => setNewGroupDesc(e.target.value)}
+                  placeholder='Describe this group'
+                />
+              </div>
+            </div>
+            <div className='flex justify-end gap-2'>
+              <Button type='button' variant='outline' onClick={() => { setShowNewGroup(false); setNewGroupName(''); setNewGroupDesc('') }}>Cancel</Button>
+              <Button
+                type='button'
+                disabled={createGroupMutation.isPending}
+                onClick={async () => {
+                  const name = newGroupName.trim()
+                  if (!name) {
+                    toast({ title: 'Validation error', description: 'Group name is required.', variant: 'destructive' })
+                    return
+                  }
+                  try {
+                    const created = await createGroupMutation.mutateAsync({ GroupName: name, Description: newGroupDesc || null })
+                    setShowNewGroup(false)
+                    setNewGroupName('')
+                    setNewGroupDesc('')
+                    form.setValue('eventGroupId', (created as any).id)
+                    toast({ title: 'Group created', description: `Selected ${ (created as any).name }` })
+                  } catch (e: any) {
+                    toast({ title: 'Unable to create group', description: e?.message || 'Please try again.', variant: 'destructive' })
+                  }
+                }}
+              >
+                {createGroupMutation.isPending ? 'Creating...' : 'Create'}
+              </Button>
+            </div>
+          </div>
+        )}
         {open && Boolean(eventId) && !eventDetail ? (
           <div className='flex justify-center py-8 text-muted-foreground'>
             <IconLoader className='h-6 w-6 animate-spin' />
@@ -265,6 +329,44 @@ export function EditEventDialog({ eventId, open, onOpenChange }: Props) {
                 )}
               />
             </div>
+            <FormField
+              control={form.control}
+              name='eventGroupId'
+              render={({ field }) => (
+                <FormItem>
+                  <div className='flex items-center justify-between'>
+                    <FormLabel>Event Group</FormLabel>
+                    <button
+                      type='button'
+                      className='text-sm text-primary hover:underline disabled:opacity-50'
+                      onClick={() => setShowNewGroup(true)}
+                      disabled={createGroupMutation.isPending}
+                    >
+                      + New Group
+                    </button>
+                  </div>
+                  <Select
+                    onValueChange={(val) => field.onChange(val === 'none' ? null : val)}
+                    value={field.value ?? 'none'}
+                    disabled={groupsLoading}
+                    key={field.value ?? 'none'}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder={groupsLoading ? 'Loading...' : groupsError ? 'Failed to load groups' : 'None'} />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value='none'>None</SelectItem>
+                      {eventGroups.map((g) => (
+                        <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <FormField
               control={form.control}
@@ -313,7 +415,7 @@ export function EditEventDialog({ eventId, open, onOpenChange }: Props) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Event Type</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value} disabled={categoriesLoading}>
+                  <Select onValueChange={field.onChange} value={field.value} disabled={categoriesLoading} key={field.value}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder='Select an event type' />
@@ -328,6 +430,27 @@ export function EditEventDialog({ eventId, open, onOpenChange }: Props) {
                     </SelectContent>
                   </Select>
                   <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name='requiresFullAttendance'
+              render={({ field }) => (
+                <FormItem className='flex items-center justify-between rounded-lg border p-3 space-y-0'>
+                  <div className='space-y-0.5'>
+                    <FormLabel>Requires Full Attendance</FormLabel>
+                    <FormDescription className='text-xs'>
+                      Attendees must attend all days to receive credit{selectedCategory ? ` (Category default: ${selectedCategory.requiresFullAttendance ? 'Yes' : 'No'})` : ''}
+                    </FormDescription>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={field.value ?? false}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
                 </FormItem>
               )}
             />
@@ -408,3 +531,5 @@ export function EditEventDialog({ eventId, open, onOpenChange }: Props) {
     </Dialog>
   )
 }
+
+

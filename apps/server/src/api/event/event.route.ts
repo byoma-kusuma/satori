@@ -17,6 +17,7 @@ import {
   setAttendeeCheckIn,
   updateAttendee,
   updateEvent,
+  updateEventCategory,
   bulkAddAttendees,
 } from './event.service'
 
@@ -33,7 +34,16 @@ const createEventSchema = z.object({
   categoryId: z.string().uuid('Category ID must be a valid UUID'),
   empowermentId: z.string().uuid().optional().nullable(),
   guruId: z.string().uuid().optional().nullable(),
+  eventGroupId: z.string().uuid().optional().nullable(),
+  NewGroup: z
+    .object({
+      GroupName: z.string().min(1).max(120),
+      Description: z.string().optional().nullable(),
+    })
+    .optional()
+    .nullable(),
   metadata: metadataSchema.optional().nullable(),
+  requiresFullAttendance: z.boolean().optional().nullable(),
 })
 
 const updateEventSchema = createEventSchema.partial().extend({
@@ -68,6 +78,7 @@ const checkInSchema = z.object({
 
 const closeEventSchema = z.object({
   attendeeIds: z.array(z.string().uuid('Attendee ID must be a valid UUID')),
+  adminOverride: z.boolean().optional(),
 })
 
 const bulkAddAttendeesSchema = z.object({
@@ -99,12 +110,26 @@ const handleServiceError = (error: unknown) => {
   throw new HTTPException(500, { message: 'An unexpected error occurred' })
 }
 
+const updateCategorySchema = z.object({
+  requiresFullAttendance: z.boolean(),
+})
+
 export const eventsRoutes = events
   .use(authenticated)
   .get('/types', async (c) => {
     try {
       const categories = await listEventCategories()
       return c.json(categories)
+    } catch (error) {
+      handleServiceError(error)
+    }
+  })
+  .put('/types/:id', zValidator('json', updateCategorySchema), async (c) => {
+    try {
+      const id = c.req.param('id')
+      const updates = c.req.valid('json')
+      const updated = await updateEventCategory(id, updates)
+      return c.json(updated)
     } catch (error) {
       handleServiceError(error)
     }
@@ -121,7 +146,16 @@ export const eventsRoutes = events
     try {
       const user = requireUser(c.get('user'))
       const payload = await c.req.valid('json')
-      const event = await createEvent(payload, user.id)
+      const mapped = {
+        ...payload,
+        newGroup: payload?.NewGroup
+          ? {
+              groupName: String(payload.NewGroup.GroupName || '').trim(),
+              description: payload.NewGroup.Description ?? null,
+            }
+          : undefined,
+      }
+      const event = await createEvent(mapped as any, user.id)
       return c.json(event, 201)
     } catch (error) {
       handleServiceError(error)
@@ -151,7 +185,16 @@ export const eventsRoutes = events
       const user = requireUser(c.get('user'))
       const { id } = c.req.valid('param')
       const payload = await c.req.valid('json')
-      const event = await updateEvent(id, payload, user.id)
+      const mapped = {
+        ...payload,
+        newGroup: payload?.NewGroup
+          ? {
+              groupName: String(payload.NewGroup.GroupName || '').trim(),
+              description: payload.NewGroup.Description ?? null,
+            }
+          : undefined,
+      }
+      const event = await updateEvent(id, mapped as any, user.id)
       return c.json(event)
     } catch (error) {
       handleServiceError(error)

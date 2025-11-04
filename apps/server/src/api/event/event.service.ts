@@ -17,6 +17,7 @@ import {
   UpdateAttendeeInput,
   UpdateEventInput,
 } from './event.types'
+import { EventGroupService } from '../event-group/event-group.service'
 
 const toIsoString = (value?: Date | string | null) => (value ? new Date(value).toISOString() : null)
 
@@ -117,6 +118,28 @@ export async function listEventCategories(): Promise<EventCategoryDto[]> {
   }))
 }
 
+export async function updateEventCategory(
+  id: string,
+  updates: { requiresFullAttendance?: boolean }
+): Promise<EventCategoryDto> {
+  const updated = await db
+    .updateTable('event_category')
+    .set({
+      requires_full_attendance: updates.requiresFullAttendance,
+      updated_at: new Date(),
+    })
+    .where('id', '=', id)
+    .returning(['id', 'code', 'name', 'requires_full_attendance'])
+    .executeTakeFirstOrThrow()
+
+  return {
+    id: updated.id,
+    code: updated.code,
+    name: updated.name,
+    requiresFullAttendance: Boolean(updated.requires_full_attendance),
+  }
+}
+
 export async function listEvents(): Promise<EventSummaryDto[]> {
   const rows = await db
     .selectFrom('event as e')
@@ -131,6 +154,7 @@ export async function listEvents(): Promise<EventSummaryDto[]> {
       'e.end_date as end_date',
       'e.registration_mode as registration_mode',
       'e.status as status',
+      'e.event_group_id as event_group_id',
       'c.code as category_code',
       'c.name as category_name',
       sql<number>`COUNT(DISTINCT ${eb.ref('ea.id')})`.as('total_attendees'),
@@ -149,6 +173,7 @@ export async function listEvents(): Promise<EventSummaryDto[]> {
     status: row.status as EventStatus,
     startDate: toIsoString(row.start_date)!,
     endDate: toIsoString(row.end_date)!,
+    eventGroupId: (row as any).event_group_id ?? null,
     categoryCode: row.category_code,
     categoryName: row.category_name,
     totalAttendees: Number(row.total_attendees ?? 0),
@@ -171,13 +196,15 @@ export async function getEventDetail(eventId: string): Promise<EventDetailDto> {
       'e.status as status',
       'e.empowerment_id as empowerment_id',
       'e.guru_id as guru_id',
+      'e.event_group_id as event_group_id',
       'e.closed_at as closed_at',
       'e.closed_by as closed_by',
       'e.metadata as metadata',
+      'e.requires_full_attendance as event_requires_full_attendance',
       'c.id as category_id',
       'c.code as category_code',
       'c.name as category_name',
-      'c.requires_full_attendance as requires_full_attendance',
+      'c.requires_full_attendance as category_requires_full_attendance',
     ])
     .where('e.id', '=', eventId)
     .executeTakeFirst()
@@ -295,6 +322,12 @@ export async function getEventDetail(eventId: string): Promise<EventDetailDto> {
     }
   })
 
+  // Event-level requiresFullAttendance overrides category default
+  const requiresFullAttendance =
+    (event as any).event_requires_full_attendance !== null
+      ? Boolean((event as any).event_requires_full_attendance)
+      : Boolean((event as any).category_requires_full_attendance)
+
   return {
     id: event.id,
     name: event.name,
@@ -305,13 +338,15 @@ export async function getEventDetail(eventId: string): Promise<EventDetailDto> {
     status: event.status as EventStatus,
     empowermentId: event.empowerment_id ?? null,
     guruId: event.guru_id ?? null,
+    eventGroupId: (event as any).event_group_id ?? null,
     closedAt: toIsoString(event.closed_at),
     closedBy: event.closed_by ?? null,
+    requiresFullAttendance,
     category: {
       id: event.category_id,
       code: event.category_code,
       name: event.category_name,
-      requiresFullAttendance: Boolean(event.requires_full_attendance),
+      requiresFullAttendance: Boolean((event as any).category_requires_full_attendance),
     },
     days: dayDtos,
     attendees: attendeeDtos,
@@ -351,6 +386,35 @@ export async function createEvent(input: CreateEventInput, userId: string): Prom
 
   const dayEntries = buildEventDays(startDate, endDate)
 
+  // Validate or create event group if provided
+  if (input.eventGroupId && input.newGroup) {
+    throw new Error('Provide either EventGroupId OR NewGroup, not both.')
+  }
+
+  let eventGroupId: string | null = input.eventGroupId ?? null
+  if (input.newGroup && !eventGroupId) {
+    const groupName = (input.newGroup.groupName || '').trim()
+    if (!groupName) {
+      throw new Error('GroupName is required to create a new group.')
+    }
+    const exists = await EventGroupService.findByGroupName(groupName)
+    if (exists) {
+      throw new Error('A group with this name already exists.')
+    }
+    const created = await EventGroupService.createEventGroup({ name: groupName, description: input.newGroup.description ?? null }, userId)
+    eventGroupId = created.id
+  }
+  if (eventGroupId) {
+    const eg = await db
+      .selectFrom('event_group')
+      .select(['id'])
+      .where('id', '=', eventGroupId)
+      .executeTakeFirst()
+    if (!eg) {
+      throw new Error('Event group not found.')
+    }
+  }
+
   const result = await db.transaction().execute(async (trx) => {
     const eventRow = await trx
       .insertInto('event')
@@ -366,7 +430,9 @@ export async function createEvent(input: CreateEventInput, userId: string): Prom
         category_id: category.id,
         empowerment_id: empowermentId,
         guru_id: guruId,
+        event_group_id: eventGroupId,
         metadata: metadataToStore as any,
+        requires_full_attendance: input.requiresFullAttendance ?? null,
       })
       .returning(['id'])
       .executeTakeFirstOrThrow()
@@ -489,6 +555,51 @@ export async function updateEvent(eventId: string, input: UpdateEventInput, user
       empowerment_id: empowermentId,
       guru_id: guruId,
       metadata: metadataToStore,
+    }
+
+    // Handle requiresFullAttendance updates (allow null to reset to category default)
+    if (input.requiresFullAttendance !== undefined) {
+      updatePayload.requires_full_attendance = input.requiresFullAttendance
+    }
+
+    // Mutually exclusive: eventGroupId vs newGroup
+    if (input.eventGroupId && input.newGroup) {
+      throw new Error('Provide either EventGroupId OR NewGroup, not both.')
+    }
+
+    // Handle inline new group creation
+    if (input.newGroup !== undefined) {
+      if (input.newGroup === null) {
+        // explicit null newGroup has no effect
+      } else {
+        const groupName = (input.newGroup.groupName || '').trim()
+        if (!groupName) {
+          throw new Error('GroupName is required to create a new group.')
+        }
+        const exists = await EventGroupService.findByGroupName(groupName)
+        if (exists) {
+          throw new Error('A group with this name already exists.')
+        }
+        const created = await EventGroupService.createEventGroup({ name: groupName, description: input.newGroup.description ?? null }, userId)
+        updatePayload.event_group_id = created.id
+      }
+    }
+
+    // Handle event group updates if provided (allow null to remove)
+    if (input.eventGroupId !== undefined) {
+      if (input.eventGroupId === null) {
+        updatePayload.event_group_id = null
+      } else {
+        const eg = await trx
+          .selectFrom('event_group')
+          .select(['id'])
+          .where('id', '=', input.eventGroupId)
+          .executeTakeFirst()
+        if (!eg) {
+          throw new Error('Event group not found.')
+        }
+        updatePayload.event_group_id = input.eventGroupId
+      }
     }
 
     if (input.status) {
@@ -903,8 +1014,9 @@ export async function closeEvent(eventId: string, input: CloseEventInput, userId
         'e.guru_id as guru_id',
         'e.start_date as start_date',
         'e.end_date as end_date',
+        'e.requires_full_attendance as event_requires_full_attendance',
         'c.code as category_code',
-        'c.requires_full_attendance as requires_full_attendance',
+        'c.requires_full_attendance as category_requires_full_attendance',
       ])
       .where('e.id', '=', eventId)
       .executeTakeFirst()
@@ -917,6 +1029,12 @@ export async function closeEvent(eventId: string, input: CloseEventInput, userId
       throw new Error('Event is already closed')
     }
 
+    // Event-level requiresFullAttendance overrides category default
+    const requiresFullAttendance =
+      (event as any).event_requires_full_attendance !== null
+        ? Boolean((event as any).event_requires_full_attendance)
+        : Boolean((event as any).category_requires_full_attendance)
+
     const dayRows = await trx
       .selectFrom('event_day')
       .select(['id'])
@@ -925,15 +1043,16 @@ export async function closeEvent(eventId: string, input: CloseEventInput, userId
 
     const dayCount = dayRows.length
 
-    if (event.requires_full_attendance && event.empowerment_id == null) {
+    if (requiresFullAttendance && event.empowerment_id == null) {
       throw new Error('Empowerment events must be linked to an empowerment')
     }
 
-    if (event.requires_full_attendance && event.guru_id == null) {
+    if (requiresFullAttendance && event.guru_id == null) {
       throw new Error('Empowerment events must identify a guru')
     }
 
-    if (event.requires_full_attendance && dayCount > 0 && input.attendeeIds.length > 0) {
+    // Only validate attendance if required and admin override is not enabled
+    if (requiresFullAttendance && !input.adminOverride && dayCount > 0 && input.attendeeIds.length > 0) {
       const attendanceCounts = await trx
         .selectFrom('event_attendance as att')
         .select([
@@ -971,7 +1090,7 @@ export async function closeEvent(eventId: string, input: CloseEventInput, userId
       (attendee) => !selected.has(attendee.id) && attendee.received_empowerment && attendee.empowerment_record_id,
     )
 
-    if (event.requires_full_attendance) {
+    if (requiresFullAttendance) {
       for (const attendee of toCredit) {
         let recordId = attendee.empowerment_record_id ?? null
 

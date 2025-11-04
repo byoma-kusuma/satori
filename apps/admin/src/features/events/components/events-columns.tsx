@@ -20,7 +20,10 @@ const statusVariant: Record<EventSummary['status'], 'default' | 'secondary' | 'o
 const formatUtcDate = (value: string, options: Intl.DateTimeFormatOptions) =>
   new Intl.DateTimeFormat(undefined, { timeZone: 'UTC', ...options }).format(new Date(value))
 
-export const getColumns = (onEdit?: (eventId: string) => void): ColumnDef<Event>[] => [
+export const getColumns = (
+  onEdit?: (eventId: string) => void,
+  groupNameById: Record<string, string> = {},
+): ColumnDef<Event>[] => [
   {
     accessorKey: 'name',
     header: ({ column }) => (
@@ -36,6 +39,27 @@ export const getColumns = (onEdit?: (eventId: string) => void): ColumnDef<Event>
     meta: {
       className: 'min-w-[200px]',
     },
+  },
+  {
+    accessorKey: 'eventGroupId',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Group" />
+    ),
+    cell: ({ row }) => {
+      const id = (row.original as Event).eventGroupId ?? null
+      const label = id ? groupNameById[id] ?? '—' : '—'
+      return <div>{label}</div>
+    },
+    filterFn: (row, _id, value: string[]) => {
+      const current = (row.original as Event).eventGroupId ?? null
+      // If 'NULL' selected, match nulls
+      const wantsNull = value?.includes('NULL')
+      const wantsIds = value?.filter((v) => v !== 'NULL') ?? []
+      if (!value || value.length === 0) return true
+      if (current === null) return wantsNull
+      return wantsIds.includes(current)
+    },
+    meta: { className: 'w-[160px]' },
   },
   {
     accessorKey: 'categoryName',

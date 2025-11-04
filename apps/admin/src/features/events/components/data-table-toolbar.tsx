@@ -9,6 +9,7 @@ import { DataTableFacetedFilter } from './data-table-faceted-filter'
 interface DataTableToolbarProps<TData> {
   table: Table<TData>
   onAdd?: () => void
+  groupOptions?: { label: string; value: string }[]
 }
 
 const statusOptions = [
@@ -20,6 +21,7 @@ const statusOptions = [
 export function DataTableToolbar<TData>({
   table,
   onAdd,
+  groupOptions = [],
 }: DataTableToolbarProps<TData>) {
   const isFiltered = table.getState().columnFilters.length > 0
 
@@ -46,6 +48,13 @@ export function DataTableToolbar<TData>({
             column={table.getColumn('status')}
             title="Status"
             options={statusOptions}
+          />
+        )}
+        {table.getColumn('eventGroupId') && groupOptions.length > 0 && (
+          <DataTableFacetedFilter
+            column={table.getColumn('eventGroupId')}
+            title="Filter by Group"
+            options={groupOptions}
           />
         )}
         {isFiltered && (

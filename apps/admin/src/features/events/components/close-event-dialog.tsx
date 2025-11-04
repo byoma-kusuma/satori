@@ -5,9 +5,12 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useToast } from '@/hooks/use-toast'
+import { Switch } from '@/components/ui/switch'
+import { Label } from '@/components/ui/label'
 
 import { useCloseEvent } from '@/api/events'
 import { EventDetail } from '../types'
+import { usePermissions } from '@/contexts/permission-context'
 
 type Props = {
   event: EventDetail
@@ -20,9 +23,13 @@ type AttendanceFilter = 'all' | 'complete' | 'incomplete'
 export function CloseEventDialog({ event, open, onOpenChange }: Props) {
   const { toast } = useToast()
   const closeEventMutation = useCloseEvent()
+  const { hasPermission } = usePermissions()
 
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [attendanceFilter, setAttendanceFilter] = useState<AttendanceFilter>('all')
+  const [adminOverride, setAdminOverride] = useState(false)
+
+  const isAdmin = hasPermission('canEditEvents')
 
   useEffect(() => {
     if (open) {
@@ -33,11 +40,14 @@ export function CloseEventDialog({ event, open, onOpenChange }: Props) {
       )
       setSelected(initial)
       setAttendanceFilter('all')
+      setAdminOverride(false)
     }
   }, [event.attendees, open])
 
-  const requiresAttendance = event.category.requiresFullAttendance
+  const requiresAttendance = event.requiresFullAttendance
   const disableSelection = (attendeeId: string) => {
+    // Admin can override attendance requirement
+    if (adminOverride && isAdmin) return false
     if (!requiresAttendance) return false
     const attendee = event.attendees.find((item) => item.attendeeId === attendeeId)
     return attendee ? !attendee.attendedAllDays : false
@@ -91,7 +101,10 @@ export function CloseEventDialog({ event, open, onOpenChange }: Props) {
     try {
       await closeEventMutation.mutateAsync({
         eventId: event.id,
-        payload: { attendeeIds: Array.from(selected) },
+        payload: {
+          attendeeIds: Array.from(selected),
+          adminOverride: adminOverride || undefined,
+        },
       })
       toast({
         title: 'Event closed',
@@ -107,7 +120,7 @@ export function CloseEventDialog({ event, open, onOpenChange }: Props) {
     }
   }
 
-  const cannotSelectWarning = requiresAttendance
+  const cannotSelectWarning = requiresAttendance && !adminOverride
     ? 'Attendees must be checked in for every day to receive empowerment credit.'
     : undefined
 
@@ -120,6 +133,23 @@ export function CloseEventDialog({ event, open, onOpenChange }: Props) {
             Select which attendees should receive empowerment credit before closing the event.
           </DialogDescription>
         </DialogHeader>
+        {isAdmin && requiresAttendance && (
+          <div className='flex items-center justify-between rounded-lg border p-3 bg-muted/30'>
+            <div className='space-y-0.5'>
+              <Label htmlFor='admin-override' className='text-sm font-medium'>
+                Admin Override
+              </Label>
+              <p className='text-xs text-muted-foreground'>
+                Allow granting credit to attendees who haven't attended all days
+              </p>
+            </div>
+            <Switch
+              id='admin-override'
+              checked={adminOverride}
+              onCheckedChange={setAdminOverride}
+            />
+          </div>
+        )}
         <div className='flex flex-wrap items-center justify-between gap-2 px-1'>
           <div className='flex gap-2'>
             <Button
@@ -179,8 +209,11 @@ export function CloseEventDialog({ event, open, onOpenChange }: Props) {
                     <div className='text-xs text-muted-foreground'>
                       {attendee.attendance.filter((entry) => entry.checkedIn).length} / {event.days.length} days attended
                     </div>
-                    {disabledCheckbox && (
+                    {disabledCheckbox && !adminOverride && (
                       <div className='text-xs text-destructive'>Must attend every day to receive credit</div>
+                    )}
+                    {!attendee.attendedAllDays && adminOverride && isAdmin && (
+                      <div className='text-xs text-amber-600 font-medium'>⚠️ Admin override enabled - can receive credit</div>
                     )}
                   </div>
                 </label>
