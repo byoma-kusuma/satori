@@ -1,4 +1,4 @@
-import Logo from '@/assets/byoma-kusuma-logo.gif'
+import Logo from '@/assets/byoma-kusuma-logo.png'
 import { SignUpForm } from './components/sign-up-form'
 import { Link } from '@tanstack/react-router'
 

@@ -1,4 +1,4 @@
-import React, { Suspense, useMemo, useRef, useState } from 'react'
+import React, { Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { useParams } from '@tanstack/react-router'
 import { useQuery, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import { IconLoader } from '@tabler/icons-react'
@@ -220,6 +220,24 @@ function EventDetailContent({ eventId }: { eventId: string }) {
   const formatUtcDate = (value: string, options: Intl.DateTimeFormatOptions) =>
     new Intl.DateTimeFormat(undefined, { timeZone: 'UTC', ...options }).format(new Date(value))
 
+  // Read attendee filter from URL (e.g., ?attendee=John%20Doe)
+  const [attendeeFilter, setAttendeeFilter] = useState<string | undefined>(undefined)
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search)
+      const q = params.get('attendee') ?? undefined
+      setAttendeeFilter(q || undefined)
+      if (q) {
+        const el = document.getElementById('attendee-section')
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }, [])
+
   return (
     <div className='space-y-6'>
       <div ref={printRef} className='space-y-6 print:space-y-4'>
@@ -306,7 +324,7 @@ function EventDetailContent({ eventId }: { eventId: string }) {
         </CardContent>
       </Card>
 
-      <div className='print:hidden'>
+      <div className='print:hidden' id='attendee-section'>
         <AttendeeTable
           event={event}
           onToggleCheckIn={handleToggleCheckIn}
@@ -314,6 +332,7 @@ function EventDetailContent({ eventId }: { eventId: string }) {
           disabled={isClosed || setCheckInMutation.isPending}
           onUpdateMetadataField={attendeeMetadataField ? handleUpdateMetadataField : undefined}
           updatingAttendeeId={updatingAttendeeId}
+          initialFilter={attendeeFilter}
         />
       </div>
 

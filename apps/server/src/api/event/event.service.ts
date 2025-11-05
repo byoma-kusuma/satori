@@ -186,6 +186,7 @@ export async function getEventDetail(eventId: string): Promise<EventDetailDto> {
   const event = await db
     .selectFrom('event as e')
     .innerJoin('event_category as c', 'c.id', 'e.category_id')
+    .leftJoin('event_group as eg', 'eg.id', 'e.event_group_id')
     .select([
       'e.id as id',
       'e.name as name',
@@ -197,6 +198,7 @@ export async function getEventDetail(eventId: string): Promise<EventDetailDto> {
       'e.empowerment_id as empowerment_id',
       'e.guru_id as guru_id',
       'e.event_group_id as event_group_id',
+      'eg.name as event_group_name',
       'e.closed_at as closed_at',
       'e.closed_by as closed_by',
       'e.metadata as metadata',
@@ -339,6 +341,7 @@ export async function getEventDetail(eventId: string): Promise<EventDetailDto> {
     empowermentId: event.empowerment_id ?? null,
     guruId: event.guru_id ?? null,
     eventGroupId: (event as any).event_group_id ?? null,
+    eventGroupName: (event as any).event_group_name ?? null,
     closedAt: toIsoString(event.closed_at),
     closedBy: event.closed_by ?? null,
     requiresFullAttendance,

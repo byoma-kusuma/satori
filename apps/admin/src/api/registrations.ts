@@ -59,3 +59,12 @@ export async function listImportHistory() {
   if (!res.ok) throw new Error('Failed to load import history')
   return res.json() as Promise<{ import_batch_id: string; imported_at: string; imported_by: string; count: number }[]>
 }
+
+export async function clearAllRegistrations() {
+  const res = await fetchWithCredentials(`${API_BASE_URL}/api/registration/clear-all`, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+  })
+  if (!res.ok) throw new Error('Failed to clear registrations')
+  return res.json() as Promise<{ deletedCount: number }>
+}

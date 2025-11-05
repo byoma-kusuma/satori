@@ -23,6 +23,7 @@ const formatUtcDate = (value: string, options: Intl.DateTimeFormatOptions) =>
 export const getColumns = (
   onEdit?: (eventId: string) => void,
   groupNameById: Record<string, string> = {},
+  onPrintBadges?: (eventId: string) => void,
 ): ColumnDef<Event>[] => [
   {
     accessorKey: 'name',
@@ -157,7 +158,7 @@ export const getColumns = (
   },
   {
     id: 'actions',
-    cell: ({ row }) => <DataTableRowActions row={row} onEdit={onEdit} />,
+    cell: ({ row }) => <DataTableRowActions row={row} onEdit={onEdit} onPrintBadges={onPrintBadges} />,
     meta: {
       className: 'w-[50px]',
     },

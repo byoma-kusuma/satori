@@ -78,6 +78,7 @@ export interface EventDetail {
   empowermentId: string | null
   guruId: string | null
   eventGroupId?: string | null
+  eventGroupName?: string | null
   closedAt: string | null
   closedBy: string | null
   requiresFullAttendance: boolean

@@ -112,11 +112,13 @@ export function GeneralInfoTab({ form, person, formRef, onSubmit }: GeneralInfoT
   const [showPhotoIdDialog, setShowPhotoIdDialog] = useState(false)
   const [primaryPhoneCountry, setPrimaryPhoneCountry] = useState<string>('NP')
   const [secondaryPhoneCountry, setSecondaryPhoneCountry] = useState<string>('NP')
+  const [viberNumberCountry, setViberNumberCountry] = useState<string>('NP')
 
   const personType = form.watch('type')
   const selectedCountry = form.watch('country')
   const primaryPhone = form.watch('primaryPhone')
   const secondaryPhone = form.watch('secondaryPhone')
+  const viberNumber = form.watch('viberNumber')
   
   // Initialize phone country codes based on existing data
   React.useEffect(() => {
@@ -124,6 +126,7 @@ export function GeneralInfoTab({ form, person, formRef, onSubmit }: GeneralInfoT
       const countryCode = countryToPhoneCode[person.country]
       setPrimaryPhoneCountry(countryCode)
       setSecondaryPhoneCountry(countryCode)
+      setViberNumberCountry(countryCode)
     }
   }, [person.country])
   
@@ -131,16 +134,20 @@ export function GeneralInfoTab({ form, person, formRef, onSubmit }: GeneralInfoT
   React.useEffect(() => {
     if (selectedCountry && countryToPhoneCode[selectedCountry]) {
       const newCountryCode = countryToPhoneCode[selectedCountry]
-      
+
       if (!primaryPhone || primaryPhone.trim() === '') {
         setPrimaryPhoneCountry(newCountryCode)
       }
-      
+
       if (!secondaryPhone || secondaryPhone.trim() === '') {
         setSecondaryPhoneCountry(newCountryCode)
       }
+
+      if (!viberNumber || viberNumber.trim() === '') {
+        setViberNumberCountry(newCountryCode)
+      }
     }
-  }, [selectedCountry, primaryPhone, secondaryPhone])
+  }, [selectedCountry, primaryPhone, secondaryPhone, viberNumber])
   
   // Fetch Krama Instructors when person type is attended_orientation or sangha_member
   const { data: kramaInstructors = [] } = useQuery({
@@ -539,6 +546,29 @@ export function GeneralInfoTab({ form, person, formRef, onSubmit }: GeneralInfoT
                       countryCallingCodeEditable={true}
                       defaultCountry={secondaryPhoneCountry as any}
                       placeholder="Enter secondary phone"
+                      value={field.value || ''}
+                      onChange={(value) => field.onChange(value || '')}
+                      className="phone-input h-10 w-full"
+                    />
+                  </div>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="viberNumber"
+            render={({ field }) => (
+              <FormItem className="space-y-1">
+                <FormLabel>Viber Number</FormLabel>
+                <FormControl>
+                  <div className="relative">
+                    <PhoneInput
+                      international
+                      countryCallingCodeEditable={true}
+                      defaultCountry={viberNumberCountry as any}
+                      placeholder="Enter Viber number"
                       value={field.value || ''}
                       onChange={(value) => field.onChange(value || '')}
                       className="phone-input h-10 w-full"

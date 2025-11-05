@@ -43,6 +43,7 @@ export type PersonInput = {
   personCode?: string | null;
   phoneNumber?: string | null;
   primaryPhone?: string | null;
+  viberNumber?: string | null;
   photo?: string | null;
   referredBy?: string | null;
   refugeName?: string | null;

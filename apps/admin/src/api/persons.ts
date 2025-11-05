@@ -96,6 +96,11 @@ export const getPersonWithKramaInstructor = async (id: string) => {
   return fetchWithCredentials(`${PERSON_API_URL}/${id}/with-krama-instructor`)
 }
 
+// Person Events API functions
+export const getPersonEvents = async (id: string) => {
+  return fetchWithCredentials(`${PERSON_API_URL}/${id}/events`)
+}
+
 // React Query options
 export const getPersonsQueryOptions = () => queryOptions({
   queryKey: ['persons'],
@@ -118,6 +123,12 @@ export const getPersonWithKramaInstructorQueryOptions = (id: string) =>
   queryOptions({
     queryKey: ['person-with-krama-instructor', id],
     queryFn: () => getPersonWithKramaInstructor(id),
+  })
+
+export const getPersonEventsQueryOptions = (id: string) =>
+  queryOptions({
+    queryKey: ['person-events', id],
+    queryFn: () => getPersonEvents(id),
   })
 
 // React Query mutation hooks

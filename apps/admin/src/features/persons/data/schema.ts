@@ -25,6 +25,7 @@ export const personSchema = z.object({
   middleName: z.string().nullable(),
   primaryPhone: z.string().nullable(),
   secondaryPhone: z.string().nullable(),
+  viberNumber: z.string().nullable(),
   country: z.string().nullable(),
   nationality: z.string().nullable(),
   languagePreference: z.string().nullable(),
@@ -55,6 +56,7 @@ export const personInputSchema = z.object({
   emailId: z.string().email().optional().or(z.literal('')),
   primaryPhone: z.string().optional(),
   secondaryPhone: z.string().optional(),
+  viberNumber: z.string().optional(),
   yearOfBirth: z.number().int().min(1900).optional(),
   photo: z.string().optional().refine(
     (val) => {

@@ -273,3 +273,28 @@ export async function getPersonWithKramaInstructor(id: string) {
     .where('p.id', '=', id)
     .executeTakeFirstOrThrow();
 }
+
+export async function getPersonEvents(personId: string) {
+  const events = await db
+    .selectFrom('event_attendee as ea')
+    .innerJoin('event as e', 'e.id', 'ea.event_id')
+    .leftJoin('event_group as eg', 'eg.id', 'e.event_group_id')
+    .select([
+      'ea.id as attendeeId',
+      'e.id as eventId',
+      'e.name as eventName',
+      'e.start_date as startDate',
+      'e.end_date as endDate',
+      'e.status as eventStatus',
+      'ea.registration_mode as registrationMode',
+      'ea.registered_at as registeredAt',
+      'ea.is_cancelled as isCancelled',
+      'eg.id as eventGroupId',
+      'eg.name as eventGroupName',
+    ])
+    .where('ea.person_id', '=', personId)
+    .orderBy('e.start_date', 'desc')
+    .execute();
+
+  return events;
+}

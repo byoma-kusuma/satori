@@ -12,7 +12,9 @@ import {
   getKramaInstructors,
   getPersonWithKramaInstructor,
   getKramaInstructorsQueryOptions,
-  getPersonWithKramaInstructorQueryOptions
+  getPersonWithKramaInstructorQueryOptions,
+  getPersonEvents,
+  getPersonEventsQueryOptions
 } from '@/api/persons'
 import {
   getMahakramaSteps,
@@ -39,6 +41,8 @@ export {
   getPersonWithKramaInstructor,
   getKramaInstructorsQueryOptions,
   getPersonWithKramaInstructorQueryOptions,
+  getPersonEvents,
+  getPersonEventsQueryOptions,
   getMahakramaSteps,
   getMahakramaHistory,
   addInitialMahakramaStep,

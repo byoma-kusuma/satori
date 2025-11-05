@@ -1,4 +1,4 @@
-import ByomaKusumaLogo from '@/assets/byoma-kusuma-logo.gif'
+import ByomaKusumaLogo from '@/assets/byoma-kusuma-logo.png'
 
 interface ByomaKusumaIconProps {
   className?: string
