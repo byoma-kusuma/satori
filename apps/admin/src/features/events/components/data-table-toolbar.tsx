@@ -9,6 +9,7 @@ import { DataTableFacetedFilter } from './data-table-faceted-filter'
 interface DataTableToolbarProps<TData> {
   table: Table<TData>
   onAdd?: () => void
+  groupOptions?: { label: string; value: string }[]
 }
 
 const statusOptions = [
@@ -20,8 +21,12 @@ const statusOptions = [
 export function DataTableToolbar<TData>({
   table,
   onAdd,
+  groupOptions = [],
 }: DataTableToolbarProps<TData>) {
   const isFiltered = table.getState().columnFilters.length > 0
+  const groupFilter = (table.getColumn('eventGroupId')?.getFilterValue() as string[] | undefined) ?? []
+  const selectedGroup = groupFilter.find((v) => v !== 'NULL')
+  const canPrintGroup = Boolean(selectedGroup)
 
   return (
     <div className="flex items-center justify-between">
@@ -48,6 +53,13 @@ export function DataTableToolbar<TData>({
             options={statusOptions}
           />
         )}
+        {table.getColumn('eventGroupId') && groupOptions.length > 0 && (
+          <DataTableFacetedFilter
+            column={table.getColumn('eventGroupId')}
+            title="Filter by Group"
+            options={groupOptions}
+          />
+        )}
         {isFiltered && (
           <Button
             variant="ghost"
@@ -64,6 +76,20 @@ export function DataTableToolbar<TData>({
         {onAdd && (
           <Button size="sm" onClick={onAdd}>
             Create Event
+          </Button>
+        )}
+        {groupOptions.length > 0 && (
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={!canPrintGroup}
+            onClick={() => {
+              // noop: we signal via a custom event for parent page
+              const ev = new CustomEvent('print-group-badges', { detail: { groupId: selectedGroup } })
+              window.dispatchEvent(ev)
+            }}
+          >
+            Print Group Badges
           </Button>
         )}
       </div>

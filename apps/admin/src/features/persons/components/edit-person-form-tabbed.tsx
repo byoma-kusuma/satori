@@ -17,13 +17,14 @@ import { Main } from '@/components/layout/main'
 import { ProfileDropdown } from '@/components/profile-dropdown'
 import { Search } from '@/components/search'
 import { ThemeSwitch } from '@/components/theme-switch'
-import { IconChevronLeft, IconUserCircle, IconUsers, IconSparkles, IconCalendarPlus, IconUsersGroup } from '@tabler/icons-react'
+import { IconChevronLeft, IconUserCircle, IconUsers, IconSparkles, IconCalendarPlus, IconUsersGroup, IconCalendar } from '@tabler/icons-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Suspense } from 'react'
 import { GeneralInfoTab } from './general-info-tab'
 import { EmpowermentsTab } from './empowerments-tab'
 import { FamilyRelationshipsTab } from './family-relationships-tab'
 import { MahakramaTab } from './mahakrama-tab'
+import { EventsTab } from './events-tab'
 import { PersonsAddToEventsDialog } from './persons-add-to-events-dialog'
 import { PersonsAddToGroupsDialog } from './persons-add-to-groups-dialog'
 import { usePermissions } from '@/contexts/permission-context'
@@ -54,6 +55,7 @@ function EditPersonForm({ personId }: { personId: string }) {
       emailId: person.emailId || undefined,
       primaryPhone: person.primaryPhone || undefined,
       secondaryPhone: person.secondaryPhone || undefined,
+      viberNumber: person.viberNumber || undefined,
       yearOfBirth: person.yearOfBirth || undefined,
       photo: person.photo || undefined,
       gender: person.gender || undefined,
@@ -93,6 +95,7 @@ function EditPersonForm({ personId }: { personId: string }) {
       emailId: vals.emailId || null,
       primaryPhone: vals.primaryPhone || null,
       secondaryPhone: vals.secondaryPhone || null,
+      viberNumber: vals.viberNumber || null,
       yearOfBirth: vals.yearOfBirth || null,
       gender: vals.gender || null,
       country: vals.country || null,
@@ -193,6 +196,13 @@ function EditPersonForm({ personId }: { personId: string }) {
               <IconSparkles className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0 text-muted-foreground transition-colors group-data-[state=active]:text-primary" />
               <span className="truncate"><span className="sm:hidden">Empower</span><span className="hidden sm:inline">Empowerments</span></span>
             </TabsTrigger>
+            <TabsTrigger
+              value="events"
+              className="group inline-flex h-8 sm:h-10 items-center gap-1.5 sm:gap-2 rounded-xl bg-transparent px-2 sm:px-3 py-0 text-[11px] font-semibold text-muted-foreground transition-all hover:bg-muted/40 hover:text-foreground sm:text-sm data-[state=active]:bg-background data-[state=active]:text-primary"
+            >
+              <IconCalendar className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0 text-muted-foreground transition-colors group-data-[state=active]:text-primary" />
+              <span className="truncate">Events</span>
+            </TabsTrigger>
           </TabsList>
           <TabsContent value="general" className="mt-6">
             <GeneralInfoTab 
@@ -230,6 +240,10 @@ function EditPersonForm({ personId }: { personId: string }) {
 
           <TabsContent value="empowerments" className="mt-6">
             <EmpowermentsTab personId={personId} />
+          </TabsContent>
+
+          <TabsContent value="events" className="mt-6">
+            <EventsTab personId={personId} />
           </TabsContent>
         </Tabs>
         <PersonsAddToEventsDialog

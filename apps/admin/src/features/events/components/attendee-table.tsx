@@ -73,6 +73,7 @@ interface Props {
   disabled?: boolean
   onUpdateMetadataField?: (attendeeId: string, value: string) => Promise<void> | void
   updatingAttendeeId?: string | null
+  initialFilter?: string
 }
 
 type Attendee = EventDetail['attendees'][number]
@@ -90,6 +91,7 @@ export function AttendeeTable({
   disabled,
   onUpdateMetadataField,
   updatingAttendeeId,
+  initialFilter,
 }: Props) {
   const metadataField = event.category.code === 'REFUGE'
     ? 'refugeName'
@@ -300,6 +302,13 @@ export function AttendeeTable({
       },
     },
   })
+
+  // Seed the attendee name filter from an external value (e.g., URL param)
+  useEffect(() => {
+    if (!initialFilter) return
+    const col = table.getColumn('attendeeName')
+    if (col) col.setFilterValue(initialFilter)
+  }, [initialFilter])
 
   return (
     <div className='space-y-4'>

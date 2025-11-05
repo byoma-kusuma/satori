@@ -31,7 +31,6 @@ declare module '@tanstack/react-table' {
 }
 
 export function RegistrationsTable() {
-  const [rowSelection, setRowSelection] = useState({})
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
 
@@ -54,11 +53,9 @@ export function RegistrationsTable() {
     columns: dynamicColumns,
     state: {
       columnVisibility,
-      rowSelection,
       columnFilters,
     },
-    enableRowSelection: true,
-    onRowSelectionChange: setRowSelection,
+    enableRowSelection: false,
     onColumnFiltersChange: setColumnFilters,
     onColumnVisibilityChange: setColumnVisibility,
     getCoreRowModel: getCoreRowModel(),
@@ -103,7 +100,6 @@ export function RegistrationsTable() {
               table.getRowModel().rows.map((row) => (
                 <TableRow
                   key={row.id}
-                  data-state={row.getIsSelected() && 'selected'}
                   className='group/row hover:bg-muted/50'
                 >
                   {row.getVisibleCells().map((cell) => (

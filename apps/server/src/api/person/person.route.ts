@@ -7,7 +7,8 @@ import {
   deletePerson,
   getPersonsByType,
   getAllKramaInstructors,
-  getPersonWithKramaInstructor
+  getPersonWithKramaInstructor,
+  getPersonEvents
 } from "./person.service";
 import { authenticated } from "../../middlewares/session";
 import { requirePermission, adminOnly } from "../../middlewares/authorization";
@@ -54,6 +55,7 @@ const personInputSchema = z.object({
   gender: z.enum(["male", "female", "other", "prefer_not_to_say"]).nullable().optional().default(null),
   primaryPhone: z.string().nullable().optional().default(null),
   secondaryPhone: z.string().nullable().optional().default(null),
+  viberNumber: z.string().nullable().optional().default(null),
   photo: z.string().nullable().optional().default(null).refine(
     (val) => {
       if (!val) return true;
@@ -152,6 +154,11 @@ export const personsRoutes = persons
     const id = c.req.param("id");
     const groups = await getPersonGroups(id);
     return c.json(groups);
+  })
+  .get("/:id/events", requirePermission("canViewPersons"), async (c) => {
+    const id = c.req.param("id");
+    const events = await getPersonEvents(id);
+    return c.json(events);
   })
   .get("/:id/with-krama-instructor", zValidator("param", paramsSchema), requirePermission("canViewPersons"), async (c) => {
     const { id } = c.req.valid("param");

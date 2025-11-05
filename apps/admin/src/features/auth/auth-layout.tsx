@@ -1,4 +1,4 @@
-import ByomaKusumaLogo from '@/assets/byoma-kusuma-logo.gif'
+import ByomaKusumaLogo from '@/assets/byoma-kusuma-logo.png'
 
 interface Props {
   children: React.ReactNode
@@ -11,7 +11,7 @@ export default function AuthLayout({ children }: Props) {
         <div className='mb-4 flex items-center justify-center'>
           <img
             src={ByomaKusumaLogo}
-            className='h-20 w-auto mr-3'
+            className='h-40 w-auto mr-3'
             alt='Byoma Kusuma'
           />
           <h1 className='text-xl font-medium'>Byoma Kusuma</h1>

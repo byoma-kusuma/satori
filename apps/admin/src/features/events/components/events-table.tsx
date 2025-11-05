@@ -31,12 +31,14 @@ interface EventsTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[]
   data: TData[]
   onAdd?: () => void
+  groupFilterOptions?: { label: string; value: string }[]
 }
 
 export function EventsTable<TData, TValue>({
   columns,
   data,
   onAdd,
+  groupFilterOptions = [],
 }: EventsTableProps<TData, TValue>) {
   const navigate = useNavigate()
   const [rowSelection, setRowSelection] = React.useState({})
@@ -78,7 +80,7 @@ export function EventsTable<TData, TValue>({
 
   return (
     <div className="space-y-4">
-      <DataTableToolbar table={table} onAdd={onAdd} />
+      <DataTableToolbar table={table} onAdd={onAdd} groupOptions={groupFilterOptions} />
       <div className="rounded-md border">
         <Table>
           <TableHeader>

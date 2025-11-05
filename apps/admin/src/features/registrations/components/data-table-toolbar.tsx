@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { DataTableFacetedFilter } from './data-table-faceted-filter'
 import { Registration } from '@/api/registrations'
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query'
-import { importRegistrationRows, convertRegistrations, setRegistrationsInvalid, listImportHistory } from '@/api/registrations'
+import { importRegistrationRows, convertRegistrations, listImportHistory, clearAllRegistrations } from '@/api/registrations'
 import { toast } from '@/hooks/use-toast'
 import { useState } from 'react'
 
@@ -71,11 +71,17 @@ export function DataTableToolbar({
     queryKey: ['registrations-import-history'],
     queryFn: () => listImportHistory(),
     staleTime: 1000 * 30,
-    enabled: showHistory,
   })
 
-  const selectedRows = table.getFilteredSelectedRowModel().rows
-  const selectedIds = selectedRows.map(row => row.original.id)
+  const [progress, setProgress] = useState(0)
+  const [converting, setConverting] = useState(false)
+  const [convertedOk, setConvertedOk] = useState(0)
+  const [convertedFail, setConvertedFail] = useState(0)
+  const [errorDetails, setErrorDetails] = useState<Array<{ id: string; name: string; error: string }>>([])
+  const [showErrors, setShowErrors] = useState(false)
+  const allIds: string[] = (table.options.data as Registration[])
+    .filter((r) => r.status === 'new')
+    .map((r) => r.id)
 
   const importMutation = useMutation({
     mutationFn: async (file: File) => {
@@ -90,26 +96,14 @@ export function DataTableToolbar({
     onError: (e: any) => toast({ title: 'Import failed', description: e?.message || 'Unable to import', variant: 'destructive' }),
   })
 
-  const convertMutation = useMutation({
-    mutationFn: convertRegistrations,
+  const clearAllMutation = useMutation({
+    mutationFn: clearAllRegistrations,
     onSuccess: (res) => {
-      const ok = res.results.filter((r) => !r.error).length
-      const fail = res.results.length - ok
-      toast({ title: 'Conversion finished', description: `${ok} converted, ${fail} failed.` })
+      toast({ title: 'Cleared all registrations', description: `${res.deletedCount} registrations deleted.` })
       qc.invalidateQueries({ queryKey: ['registrations'] })
       table.resetRowSelection()
     },
-    onError: (e: any) => toast({ title: 'Conversion failed', description: e?.message || 'Unable to convert', variant: 'destructive' }),
-  })
-
-  const invalidMutation = useMutation({
-    mutationFn: async (reason: string) => setRegistrationsInvalid(selectedIds, reason),
-    onSuccess: () => {
-      toast({ title: 'Marked invalid', description: 'Selected registrations marked invalid.' })
-      qc.invalidateQueries({ queryKey: ['registrations'] })
-      table.resetRowSelection()
-    },
-    onError: (e: any) => toast({ title: 'Failed to set invalid', description: e?.message || 'Unable to set invalid', variant: 'destructive' }),
+    onError: (e: any) => toast({ title: 'Failed to clear', description: e?.message || 'Unable to clear registrations', variant: 'destructive' }),
   })
 
   const onImportClick = () => {
@@ -123,19 +117,97 @@ export function DataTableToolbar({
     input.click()
   }
 
-  const onConvertClick = () => {
-    if (selectedIds.length === 0) return
-    convertMutation.mutate(selectedIds)
+  const onConvertClick = async () => {
+    if (allIds.length === 0) {
+      toast({ title: 'No registrations to process', description: 'All registrations have already been processed or are marked as invalid.', variant: 'destructive' })
+      return
+    }
+    setConverting(true)
+    setProgress(0)
+    setConvertedOk(0)
+    setConvertedFail(0)
+    setErrorDetails([])
+    setShowErrors(false)
+
+    let okTotal = 0
+    let failTotal = 0
+    const errors: Array<{ id: string; name: string; error: string }> = []
+
+    // Get all registration data for name lookup
+    const allRegistrations = table.options.data as Registration[]
+    const registrationMap = new Map(allRegistrations.map(r => [r.id, r]))
+
+    const batchSize = 25
+    for (let i = 0; i < allIds.length; i += batchSize) {
+      const slice = allIds.slice(i, i + batchSize)
+      try {
+        const res = await convertRegistrations(slice)
+        const ok = res.results.filter((r) => !r.error).length
+        const fail = res.results.length - ok
+        okTotal += ok
+        failTotal += fail
+
+        // Collect error details
+        res.results.forEach((result) => {
+          if (result.error) {
+            const reg = registrationMap.get(result.id)
+            const name = reg ? `${reg.first_name} ${reg.last_name}` : 'Unknown'
+            errors.push({
+              id: result.id,
+              name,
+              error: result.error
+            })
+          }
+        })
+
+        setConvertedOk(okTotal)
+        setConvertedFail(failTotal)
+      } catch (e: any) {
+        failTotal += slice.length
+        setConvertedFail(failTotal)
+
+        // Add batch error
+        slice.forEach((id) => {
+          const reg = registrationMap.get(id)
+          const name = reg ? `${reg.first_name} ${reg.last_name}` : 'Unknown'
+          errors.push({
+            id,
+            name,
+            error: e?.message || 'Batch conversion failed'
+          })
+        })
+
+        toast({ title: 'Conversion error', description: e?.message || 'Batch failed', variant: 'destructive' })
+      }
+      setProgress(Math.min(1, (i + slice.length) / allIds.length))
+    }
+
+    setConverting(false)
+    setErrorDetails(errors)
+    if (errors.length > 0) {
+      setShowErrors(true)
+    }
+    qc.invalidateQueries({ queryKey: ['registrations'] })
+    toast({
+      title: 'Conversion finished',
+      description: `${okTotal + failTotal} processed (${okTotal} succeeded, ${failTotal} failed)${failTotal > 0 ? '. See error details below.' : ''}`
+    })
   }
 
-  const onSetInvalidClick = () => {
-    const reason = window.prompt('Enter reason for invalid:')
-    if (reason && reason.trim().length) invalidMutation.mutate(reason.trim())
-  }
+  // Removed: Set Invalid action per requirement
 
   const onToggleHistory = () => {
     setShowHistory((s) => !s)
     if (!showHistory) refetchHistory()
+  }
+
+  const onClearAllClick = () => {
+    const confirmed = window.confirm(
+      'Are you sure you want to delete ALL registrations?\n\nThis will permanently delete all registration records from the database. This action cannot be undone.'
+    )
+    if (confirmed) {
+      clearAllMutation.mutate()
+    }
   }
 
   const isFiltered = table.getState().columnFilters.length > 0
@@ -172,17 +244,26 @@ export function DataTableToolbar({
           <Button onClick={onImportClick} variant='secondary' size="sm" className="h-8">
             Import CSV
           </Button>
-          <Button onClick={onConvertClick} disabled={selectedIds.length === 0} size="sm" className="h-8">
+          <Button onClick={onConvertClick} disabled={converting || allIds.length === 0} size="sm" className="h-8">
             Create Person
-          </Button>
-          <Button onClick={onSetInvalidClick} disabled={selectedIds.length === 0} variant='destructive' size="sm" className="h-8">
-            Set Invalid
           </Button>
           <Button onClick={onToggleHistory} variant='outline' size="sm" className="h-8">
             Import History
           </Button>
+          <Button onClick={onClearAllClick} variant='destructive' size="sm" className="h-8">
+            Clear Import
+          </Button>
         </div>
       </div>
+      {converting && (
+        <div className='mt-2 rounded border p-2'>
+          <div className='mb-1 text-sm'>Converting registrations… {Math.round(progress * 100)}%</div>
+          <div className='h-2 w-full rounded bg-muted'>
+            <div className='h-2 rounded bg-primary transition-all' style={{ width: `${Math.round(progress * 100)}%` }} />
+          </div>
+          <div className='mt-1 text-xs text-muted-foreground'>Processed OK: {convertedOk} • Failed: {convertedFail}</div>
+        </div>
+      )}
       {showHistory && (
         <div className='rounded-md border p-3'>
           <div className='mb-2 font-semibold'>Recent Imports</div>
@@ -210,6 +291,46 @@ export function DataTableToolbar({
           </div>
         </div>
       )}
+      {showErrors && errorDetails.length > 0 && (
+        <div className='mt-2 rounded-md border border-destructive/50 bg-destructive/5 p-3'>
+          <div className='flex items-center justify-between mb-2'>
+            <div className='font-semibold text-destructive'>Conversion Errors ({errorDetails.length})</div>
+            <Button
+              variant='ghost'
+              size='sm'
+              onClick={() => setShowErrors(false)}
+              className='h-6 px-2'
+            >
+              Hide
+            </Button>
+          </div>
+          <div className='max-h-[400px] overflow-auto'>
+            <table className='w-full text-sm'>
+              <thead className='sticky top-0 bg-destructive/10'>
+                <tr>
+                  <th className='p-2 text-left font-medium'>Name</th>
+                  <th className='p-2 text-left font-medium'>Error</th>
+                </tr>
+              </thead>
+              <tbody>
+                {errorDetails.map((error, idx) => (
+                  <tr key={error.id} className={idx > 0 ? 'border-t border-destructive/20' : ''}>
+                    <td className='p-2 align-top font-medium'>{error.name}</td>
+                    <td className='p-2 align-top text-destructive'>
+                      <div className='whitespace-pre-wrap break-words'>{error.error}</div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </>
   )
 }
+
+
+
+
+

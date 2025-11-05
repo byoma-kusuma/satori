@@ -6,6 +6,7 @@ export interface RegistrationInput {
   middle_name?: string | null
   last_name: string
   phone?: string | null
+  viberNumber?: string | null
   email?: string | null
   address?: string | null
   country?: string | null

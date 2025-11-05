@@ -5,6 +5,7 @@ import { HTTPException } from 'hono/http-exception'
 import { authenticated } from '../../middlewares/session'
 import { auth } from '../../lib/auth'
 import {
+  clearAllRegistrations,
   createRegistration,
   deleteRegistration,
   getRegistration,
@@ -15,7 +16,7 @@ import {
 } from './registration.service'
 import { db } from '../../database'
 import { adminOnly } from '../../middlewares/authorization'
-import { addAttendee, bulkAddAttendees } from '../event/event.service'
+import { bulkAddAttendees } from '../event/event.service'
 import { generatePersonCode } from '../person/person.service'
 
 const app = new Hono<{
@@ -31,6 +32,7 @@ const registrationInput = z.object({
   middle_name: z.string().optional().nullable(),
   last_name: z.string().min(1),
   phone: z.string().optional().nullable(),
+  viberNumber: z.string().optional().nullable(),
   email: z.string().email().optional().nullable(),
   address: z.string().optional().nullable(),
   country: z.string().optional().nullable(),
@@ -126,13 +128,33 @@ async function fuzzyFindEmpowerments(names: string[]): Promise<string[]> {
 
 async function fuzzyFindEvents(names: string[]): Promise<string[]> {
   if (!names.length) return []
-  const all = await db.selectFrom('event').select(['id', 'name']).execute()
+  const all = await db
+    .selectFrom('event')
+    .select(['id', 'name'])
+    .where('status', '=', 'ACTIVE')
+    .execute()
+
   const ids: string[] = []
   for (const n of names) {
-    const best = all
-      .map((e) => ({ id: e.id, s: similarity(n, e.name || '') }))
-      .sort((a, b) => b.s - a.s)[0]
-    if (best && best.s >= 0.75) ids.push(best.id)
+    const trimmed = n.trim()
+    if (!trimmed) continue
+
+    const normalizedSession = trimmed.toLowerCase()
+
+    // Find all matching events and prefer the longest match (more specific)
+    const matches = all
+      .filter((e) => {
+        const eventName = e.name || ''
+        const normalizedEventName = eventName.toLowerCase()
+        return normalizedSession.includes(normalizedEventName)
+      })
+      .sort((a, b) => (b.name?.length || 0) - (a.name?.length || 0)) // Prefer longer event names
+
+    if (matches.length > 0) {
+      const best = matches[0]
+      console.log(`[Event Match] "${trimmed}" → "${best.name}" (matched)`)
+      ids.push(best.id)
+    }
   }
   return Array.from(new Set(ids))
 }
@@ -230,18 +252,48 @@ const COUNTRY_CODES: Record<string, string[]> = {
   '998': ['Uzbekistan'],
 }
 
-function normalizePhoneWithCountryCode(phone: string | null | undefined, _country: string | null | undefined): string | null {
-  // Do NOT auto-prefix a country code. Preserve an existing leading '+' if present,
-  // otherwise return digits-only as entered.
+function getCountryCodeFromCountryName(countryName: string | null | undefined): string | null {
+  if (!countryName) return null
+
+  // Search through COUNTRY_CODES mapping to find the code for this country
+  for (const [code, countries] of Object.entries(COUNTRY_CODES)) {
+    if (countries.some(c => c.toLowerCase() === countryName.toLowerCase())) {
+      return code
+    }
+  }
+
+  return null
+}
+
+function normalizePhoneWithCountryCode(phone: string | null | undefined, country: string | null | undefined): string | null {
   if (!phone) return null
 
   let trimmed = phone.trim()
-  const hasPlus = trimmed.startsWith('+')
   // Strip all non-digits
   const digits = trimmed.replace(/[^0-9]/g, '')
   if (!digits) return null
 
-  return hasPlus ? `+${digits}` : digits
+  // If phone already starts with '+', keep it as is
+  if (trimmed.startsWith('+')) {
+    return `+${digits}`
+  }
+
+  // Get country code from country name
+  const countryCode = getCountryCodeFromCountryName(country)
+
+  // If we have a country code and the phone doesn't already start with it, add it
+  if (countryCode) {
+    // Check if phone already starts with this country code
+    if (digits.startsWith(countryCode)) {
+      return `+${digits}`
+    } else {
+      return `+${countryCode}${digits}`
+    }
+  }
+
+  // If no country or no matching country code found, return with + if it's an international-looking number (more than 10 digits)
+  // Otherwise return just digits
+  return digits.length > 10 ? `+${digits}` : digits
 }
 
 function parseCountry(countryText: string | null | undefined): string | null {
@@ -313,6 +365,8 @@ export const registrationRoutes = app
     if (!user) throw new HTTPException(401, { message: 'Unauthorized' })
     const { ids } = c.req.valid('json')
 
+    console.log(`[Convert] Processing ${ids.length} registration IDs`)
+
     const regs = await db
       .selectFrom('registration')
       .selectAll()
@@ -320,18 +374,23 @@ export const registrationRoutes = app
       .where('status', '=', 'new')
       .execute()
 
+    console.log(`[Convert] Found ${regs.length} registrations with status 'new'`)
+
     const results: { id: string; personId?: string; error?: string }[] = []
 
-    await db.transaction().execute(async (trx) => {
-      for (const r of regs as any[]) {
-        try {
+    for (const r of regs as any[]) {
+      console.log(`[Convert] Processing registration ${r.id}, session_text: "${r.session_text}"`)
+
+      try {
+        await db.transaction().execute(async (trx) => {
           const instructorId = r.krama_instructor_text
             ? await fuzzyFindPersonByName(r.krama_instructor_text)
             : null
-            
+
           const personCode = await generatePersonCode(r.first_name, r.last_name)
           const parsedCountry = parseCountry(r.country)
           const normalizedPhone = normalizePhoneWithCountryCode(r.phone, parsedCountry)
+          const normalizedViberNumber = normalizePhoneWithCountryCode(r.viberNumber, parsedCountry)
 
           const person = await trx
             .insertInto('person')
@@ -344,6 +403,7 @@ export const registrationRoutes = app
               country: parsedCountry,
               emailId: r.email ?? null,
               primaryPhone: normalizedPhone,
+              viberNumber: normalizedViberNumber,
               gender: r.gender ?? null,
               personCode: personCode,
               krama_instructor_person_id: instructorId,
@@ -374,9 +434,32 @@ export const registrationRoutes = app
             .split(/[,;\n]/)
             .map((s: string) => s.trim())
             .filter(Boolean)
+          console.log(`[Registration] Parsed session names: ${JSON.stringify(sessionNames)}`)
           const eventIds = await fuzzyFindEvents(sessionNames)
+          console.log(`[Registration] Found ${eventIds.length} matching events for person ${person.id}: ${JSON.stringify(eventIds)}`)
           for (const eventId of eventIds) {
-            await addAttendee(eventId, { personId: person.id }, user.id)
+            // Check if already registered
+            const existing = await trx
+              .selectFrom('event_attendee')
+              .select('id')
+              .where('event_id', '=', eventId)
+              .where('person_id', '=', person.id)
+              .executeTakeFirst()
+
+            if (!existing) {
+              await trx
+                .insertInto('event_attendee')
+                .values({
+                  event_id: eventId,
+                  person_id: person.id,
+                  registration_mode: 'PRE_REGISTRATION',
+                  registered_by: user.id,
+                })
+                .execute()
+              console.log(`[Registration] Registered person ${person.id} to event ${eventId}`)
+            } else {
+              console.log(`[Registration] Person ${person.id} already registered to event ${eventId}`)
+            }
           }
 
           await trx
@@ -386,13 +469,20 @@ export const registrationRoutes = app
             .execute()
 
           results.push({ id: r.id, personId: person.id })
-        } catch (e: any) {
-          results.push({ id: r.id, error: e?.message || 'Failed to convert' })
-        }
+        })
+      } catch (e: any) {
+        console.error(`[Registration] Failed to convert registration ${r.id}:`, e)
+        results.push({ id: r.id, error: e?.message || 'Failed to convert' })
       }
-    })
+    }
 
     return c.json({ results })
+  })
+  .delete('/clear-all', adminOnly, async (c) => {
+    const user = c.get('user')
+    if (!user) throw new HTTPException(401, { message: 'Unauthorized' })
+    const result = await clearAllRegistrations()
+    return c.json(result)
   })
   .get('/:id', async (c) => {
     const id = c.req.param('id')

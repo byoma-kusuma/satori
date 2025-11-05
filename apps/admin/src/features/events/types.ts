@@ -25,6 +25,8 @@ export interface EventSummary {
   status: EventStatus
   startDate: string
   endDate: string
+  // Optional group id from backend
+  eventGroupId?: string | null
   totalAttendees: number
   checkedInAttendees: number
   daysCount: number
@@ -75,8 +77,11 @@ export interface EventDetail {
   category: EventCategory
   empowermentId: string | null
   guruId: string | null
+  eventGroupId?: string | null
+  eventGroupName?: string | null
   closedAt: string | null
   closedBy: string | null
+  requiresFullAttendance: boolean
   days: EventDay[]
   attendees: EventAttendee[]
   metadata: EventMetadata | null
@@ -91,7 +96,9 @@ export interface CreateEventPayload {
   categoryId: string
   empowermentId?: string | null
   guruId?: string | null
+  eventGroupId?: string | null
   metadata?: EventMetadata
+  requiresFullAttendance?: boolean | null
 }
 
 export type UpdateEventPayload = Partial<CreateEventPayload> & {
@@ -117,4 +124,5 @@ export interface CheckInPayload {
 
 export interface CloseEventPayload {
   attendeeIds: string[]
+  adminOverride?: boolean
 }

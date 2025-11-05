@@ -16,9 +16,10 @@ import { useEvents } from '../hooks/use-events'
 interface DataTableRowActionsProps {
   row: Row<Event>
   onEdit?: (eventId: string) => void
+  onPrintBadges?: (eventId: string) => void
 }
 
-export function DataTableRowActions({ row, onEdit }: DataTableRowActionsProps) {
+export function DataTableRowActions({ row, onEdit, onPrintBadges }: DataTableRowActionsProps) {
   const navigate = useNavigate()
   const { setOpen, setCurrentRow } = useEvents()
   const event = row.original
@@ -58,6 +59,13 @@ export function DataTableRowActions({ row, onEdit }: DataTableRowActionsProps) {
         <DropdownMenuItem onClick={handleView}>
           View Event
         </DropdownMenuItem>
+        {onPrintBadges && (
+          <DropdownMenuItem
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); onPrintBadges(event.id) }}
+          >
+            Print Badges
+          </DropdownMenuItem>
+        )}
         <DropdownMenuItem
           onClick={handleEdit}
           disabled={isClosed}
