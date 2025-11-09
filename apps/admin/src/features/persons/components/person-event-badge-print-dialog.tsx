@@ -191,37 +191,68 @@ export function PersonEventBadgePrintDialog({ open, onOpenChange, person, events
             </div>
           )}
 
-          {/* Badge Preview - match Events page badge layout, but doubled size */}
+          {/* Badge Preview */}
           <div className='min-h-[120px]'>
             <div ref={printRef} className='grid grid-cols-1 gap-4'>
-              <div className='rounded border p-6 w-[420px]'>
-                <div className='flex items-center justify-center mb-3'>
-                  <ByomaKusumaIcon className='w-24 h-auto' />
+              <div
+                style={{
+                  width: '3.5in',
+                  height: '4.7in',
+                  border: '4px double #800000',
+                  borderRadius: '12px',
+                  padding: '0.25in',
+                  boxSizing: 'border-box',
+                  overflow: 'hidden',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  background: 'linear-gradient(135deg, #e6f3ff 0%, #f0f8ff 100%)',
+                  boxShadow: 'inset 0 0 0 1px rgba(128, 0, 0, 0.2)'
+                }}
+              >
+                <div className='flex items-center justify-center' style={{ marginBottom: '8px' }}>
+                  <ByomaKusumaIcon className='h-20 w-auto' />
                 </div>
+                <h2 className='text-center font-bold' style={{ color: '#800000', fontSize: '17px', marginBottom: '4px', lineHeight: '1.2' }}>
+                  Byoma Kusuma Buddhadharma Sangha
+                </h2>
+                <h3 className='text-center font-bold' style={{ color: '#800000', fontSize: '14px', marginBottom: '8px', lineHeight: '1.2' }}>
+                  व्योमकुसुमा बुद्धधर्म संघ
+                </h3>
                 {(() => {
                   const uniqueGroupNames = Array.from(new Set(eventsToShow.map(e => e.eventGroupName).filter(Boolean)))
                   return uniqueGroupNames.length === 1 && uniqueGroupNames[0] ? (
-                    <h2 className='text-center text-xl font-bold mb-3'>{uniqueGroupNames[0]}</h2>
+                    <h2 className='text-center font-bold' style={{ fontSize: '15px', marginBottom: '12px', lineHeight: '1.2' }}>{uniqueGroupNames[0]}</h2>
                   ) : null
                 })()}
-                <div className='flex items-start gap-3'>
+                <div className='flex items-start gap-2 flex-1'>
                   <div className='flex flex-col items-center gap-2 flex-shrink-0'>
                     {person.photo ? (
                       <img
                         src={person.photo}
                         alt={`${person.firstName} ${person.lastName}`}
-                        className='w-40 h-40 rounded-full object-cover'
+                        className='rounded-full object-cover'
+                        style={{ width: '80px', height: '80px' }}
                       />
                     ) : (
-                      <div className='w-40 h-40 rounded-full bg-muted flex items-center justify-center'>
-                        <span className='text-4xl font-semibold text-muted-foreground'>
+                      <div className='rounded-full bg-muted flex items-center justify-center' style={{ width: '80px', height: '80px' }}>
+                        <span className='font-semibold text-muted-foreground' style={{ fontSize: '24px' }}>
                           {person.firstName.charAt(0)}{person.lastName.charAt(0)}
                         </span>
                       </div>
                     )}
                     {(() => {
                       const attendeeName = `${person.firstName} ${person.lastName}`
-                      const selectedEventId = eventsToShow.length > 0 ? eventsToShow[0].eventId : ''
+                      // Find an event that is happening today (date only, not time)
+                      const today = new Date()
+                      today.setHours(0, 0, 0, 0)
+                      const activeEvent = eventsToShow.find(e => {
+                        const start = new Date(e.startDate)
+                        const end = new Date(e.endDate)
+                        start.setHours(0, 0, 0, 0)
+                        end.setHours(0, 0, 0, 0)
+                        return start <= today && today <= end
+                      })
+                      const selectedEventId = activeEvent?.eventId ?? (eventsToShow.length > 0 ? eventsToShow[0].eventId : '')
                       const origin = typeof window !== 'undefined' ? window.location.origin : ''
                       const qrValue = selectedEventId
                         ? `${origin}/events/${selectedEventId}/view?attendee=${encodeURIComponent(attendeeName)}`
@@ -229,38 +260,38 @@ export function PersonEventBadgePrintDialog({ open, onOpenChange, person, events
                       return (
                         <QRCodeSVG
                           value={qrValue}
-                          size={128}
+                          size={70}
                           level="M"
                           includeMargin={false}
                         />
                       )
                     })()}
-                    <div className='text-sm text-muted-foreground'>Person Code: {person.personCode ?? person.id}</div>
+                    <div className='text-muted-foreground' style={{ fontSize: '10px' }}>Code: {person.personCode ?? person.id}</div>
                   </div>
-                  <div className='flex-1 min-w-0'>
-                    <div className='text-2xl font-semibold'>{person.firstName} {person.lastName}</div>
+                  <div className='flex-1 min-w-0 flex flex-col' style={{ fontSize: '11px' }}>
+                    <div className='font-semibold break-words' style={{ fontSize: '20px', marginBottom: '6px' }}>{person.firstName} {person.lastName}</div>
                     {person.address && (
-                      <div className='mt-1 text-sm text-muted-foreground'>Address: {person.address}</div>
+                      <div className='text-muted-foreground' style={{ fontSize: '10px', marginBottom: '4px' }}>Address: {person.address}</div>
                     )}
                     {person.primaryPhone && (
-                      <div className='mt-1 text-sm text-muted-foreground'>Phone: {person.primaryPhone}</div>
+                      <div className='text-muted-foreground' style={{ fontSize: '10px', marginBottom: '8px' }}>Phone: {person.primaryPhone}</div>
                     )}
                     {eventsToShow.length > 0 ? (
                       <>
-                        <div className='mt-3 text-sm text-muted-foreground'>Registered for:</div>
-                        <ul className='mt-1 text-base list-disc pl-5'>
+                        <div className='text-muted-foreground' style={{ fontSize: '11px', marginTop: '4px', marginBottom: '4px' }}>Registered for:</div>
+                        <ul className='list-disc' style={{ fontSize: '11px', paddingLeft: '16px', lineHeight: '1.4' }}>
                           {eventsToShow.map(e => (
-                            <li key={e.eventId}>{e.eventName}</li>
+                            <li key={e.eventId} style={{ marginBottom: '2px' }}>{e.eventName}</li>
                           ))}
                         </ul>
                       </>
                     ) : (
-                      <div className='mt-3 text-sm text-muted-foreground'>No events selected</div>
+                      <div className='text-muted-foreground' style={{ fontSize: '11px', marginTop: '4px' }}>No events selected</div>
                     )}
                   </div>
                 </div>
+                </div>
               </div>
-            </div>
           </div>
         </div>
 

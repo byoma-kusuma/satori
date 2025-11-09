@@ -37,7 +37,7 @@ export function EventBadgesPrintDialog({ open, onOpenChange, eventIds }: Props) 
   const printRef = useRef<HTMLDivElement>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [attendeeEvents, setAttendeeEvents] = useState<Record<string, { person: Attendee; events: { id: string; name: string; groupName: string | null }[] }>>({})
+  const [attendeeEvents, setAttendeeEvents] = useState<Record<string, { person: Attendee; events: { id: string; name: string; groupName: string | null; startDate: string; endDate: string }[] }>>({})
   const [attendeeDetails, setAttendeeDetails] = useState<Record<string, { address: string | null; personCode: string | null; primaryPhone: string | null }>>({})
   const [detailsLoading, setDetailsLoading] = useState(false)
   const [nameFilter, setNameFilter] = useState('')
@@ -51,7 +51,7 @@ export function EventBadgesPrintDialog({ open, onOpenChange, eventIds }: Props) 
       setError(null)
       try {
         const results = await Promise.all(eventIds.map((id) => getEvent(id)))
-        const agg: Record<string, { person: Attendee; events: { id: string; name: string; groupName: string | null }[] }> = {}
+        const agg: Record<string, { person: Attendee; events: { id: string; name: string; groupName: string | null; startDate: string; endDate: string }[] }> = {}
         for (const ev of results) {
           for (const at of ev.attendees) {
             const key = at.personId
@@ -61,7 +61,7 @@ export function EventBadgesPrintDialog({ open, onOpenChange, eventIds }: Props) 
                 events: [],
               }
             }
-            agg[key].events.push({ id: ev.id, name: ev.name, groupName: ev.eventGroupName ?? null })
+            agg[key].events.push({ id: ev.id, name: ev.name, groupName: ev.eventGroupName ?? null, startDate: ev.startDate, endDate: ev.endDate })
           }
         }
         if (!ignore) setAttendeeEvents(agg)
@@ -246,64 +246,97 @@ export function EventBadgesPrintDialog({ open, onOpenChange, eventIds }: Props) 
                     const primaryPhone = details?.primaryPhone ?? null
                     const personCode = details?.personCode ?? null
                     const attendeeName = `${p.firstName} ${p.lastName}`
+                    // Find an event that is happening today (date only, not time)
+                    const today = new Date()
+                    today.setHours(0, 0, 0, 0)
+                    const activeEvent = evs.find(e => {
+                      const start = new Date(e.startDate)
+                      const end = new Date(e.endDate)
+                      start.setHours(0, 0, 0, 0)
+                      end.setHours(0, 0, 0, 0)
+                      return start <= today && today <= end
+                    })
                     const chosenEventId = (eventIds && eventIds.length === 1)
                       ? eventIds[0]
-                      : (evs[0]?.id ?? '')
+                      : (activeEvent?.id ?? evs[0]?.id ?? '')
                     const origin = typeof window !== 'undefined' ? window.location.origin : ''
                     const qrValue = chosenEventId
                       ? `${origin}/events/${chosenEventId}/view?attendee=${encodeURIComponent(attendeeName)}`
                       : `${origin}/events?attendee=${encodeURIComponent(attendeeName)}`
                     const uniqueGroupNames = Array.from(new Set(evs.map(e => e.groupName).filter(Boolean)))
                     return (
-                      <div key={p.personId} className='rounded border p-6 w-[420px] break-inside-avoid overflow-hidden'>
-                        <div className='flex items-center justify-center mb-3'>
-                          <ByomaKusumaIcon className='w-24 h-auto' />
+                      <div
+                        key={p.personId}
+                        className='break-inside-avoid'
+                        style={{
+                          width: '3.5in',
+                          height: '4.7in',
+                          border: '4px double #800000',
+                          borderRadius: '12px',
+                          padding: '0.25in',
+                          boxSizing: 'border-box',
+                          overflow: 'hidden',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          background: 'linear-gradient(135deg, #e6f3ff 0%, #f0f8ff 100%)',
+                          boxShadow: 'inset 0 0 0 1px rgba(128, 0, 0, 0.2)'
+                        }}
+                      >
+                        <div className='flex items-center justify-center' style={{ marginBottom: '8px' }}>
+                          <ByomaKusumaIcon className='h-20 w-auto' />
                         </div>
+                        <h2 className='text-center font-bold' style={{ color: '#800000', fontSize: '17px', marginBottom: '4px', lineHeight: '1.2' }}>
+                          Byoma Kusuma Buddhadharma Sangha
+                        </h2>
+                        <h3 className='text-center font-bold' style={{ color: '#800000', fontSize: '14px', marginBottom: '8px', lineHeight: '1.2' }}>
+                          व्योमकुसुमा बुद्धधर्म संघ
+                        </h3>
                         {uniqueGroupNames.length === 1 && uniqueGroupNames[0] ? (
-                          <h2 className='text-center text-xl font-bold mb-3'>{uniqueGroupNames[0]}</h2>
+                          <h2 className='text-center font-bold' style={{ fontSize: '15px', marginBottom: '12px', lineHeight: '1.2' }}>{uniqueGroupNames[0]}</h2>
                         ) : null}
-                        <div className='flex items-start gap-3'>
+                        <div className='flex items-start gap-2 flex-1'>
                           <div className='flex flex-col items-center gap-2 flex-shrink-0'>
                             {p.photo ? (
                               <img
                                 src={p.photo}
                                 alt={`${p.firstName} ${p.lastName}`}
-                                className='w-40 h-40 rounded-full object-cover'
+                                className='rounded-full object-cover'
+                                style={{ width: '80px', height: '80px' }}
                               />
                             ) : (
-                              <div className='w-40 h-40 rounded-full bg-muted flex items-center justify-center'>
-                                <span className='text-4xl font-semibold text-muted-foreground'>
+                              <div className='rounded-full bg-muted flex items-center justify-center' style={{ width: '80px', height: '80px' }}>
+                                <span className='font-semibold text-muted-foreground' style={{ fontSize: '24px' }}>
                                   {p.firstName.charAt(0)}{p.lastName.charAt(0)}
                                 </span>
                               </div>
                             )}
                             <QRCodeSVG
                               value={qrValue}
-                              size={128}
+                              size={70}
                               level="M"
                               includeMargin={false}
                             />
-                            <div className='text-sm text-muted-foreground'>Person Code: {personCode ?? '—'}</div>
+                            <div className='text-muted-foreground' style={{ fontSize: '10px' }}>Code: {personCode ?? '—'}</div>
                           </div>
-                          <div className='flex-1 min-w-0'>
-                            <div className='text-2xl font-semibold break-words'>{p.firstName} {p.lastName}</div>
+                          <div className='flex-1 min-w-0 flex flex-col' style={{ fontSize: '11px' }}>
+                            <div className='font-semibold break-words' style={{ fontSize: '20px', marginBottom: '6px' }}>{p.firstName} {p.lastName}</div>
                             {addr && (
-                              <div className='mt-1 text-sm text-muted-foreground'>Address: {addr}</div>
+                              <div className='text-muted-foreground' style={{ fontSize: '10px', marginBottom: '4px' }}>Address: {addr}</div>
                             )}
                             {primaryPhone && (
-                              <div className='mt-1 text-sm text-muted-foreground'>Phone: {primaryPhone}</div>
+                              <div className='text-muted-foreground' style={{ fontSize: '10px', marginBottom: '8px' }}>Phone: {primaryPhone}</div>
                             )}
                             {evs.length > 0 ? (
                               <>
-                                <div className='mt-3 text-sm text-muted-foreground'>Registered for:</div>
-                                <ul className='mt-1 text-base list-disc pl-5'>
+                                <div className='text-muted-foreground' style={{ fontSize: '11px', marginTop: '4px', marginBottom: '4px' }}>Registered for:</div>
+                                <ul className='list-disc' style={{ fontSize: '11px', paddingLeft: '16px', lineHeight: '1.4' }}>
                                   {evs.map(e => (
-                                    <li key={e.id}>{e.name}</li>
+                                    <li key={e.id} style={{ marginBottom: '2px' }}>{e.name}</li>
                                   ))}
                                 </ul>
                               </>
                             ) : (
-                              <div className='mt-3 text-sm text-muted-foreground'>No events selected</div>
+                              <div className='text-muted-foreground' style={{ fontSize: '11px', marginTop: '4px' }}>No events selected</div>
                             )}
                           </div>
                         </div>
