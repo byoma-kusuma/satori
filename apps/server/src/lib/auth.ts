@@ -45,7 +45,7 @@ export const auth = betterAuth({
   hooks: {
     user: {
       create: {
-        before: async (user) => {
+        before: async (user: any) => {
           validateEmailForSignup(user.email);
           return user;
         },

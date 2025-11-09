@@ -30,6 +30,7 @@ import { personTypeLabels } from '@/features/persons/data/schema'
 import { AttendeeTable } from './attendee-table'
 import { AddAttendeeControl, PendingPerson } from './add-attendee-control'
 import { CloseEventDialog } from './close-event-dialog'
+import { CsvExportDialog } from './csv-export-dialog'
 
 const registrationLabels = {
   PRE_REGISTRATION: 'Pre-Registration',
@@ -46,6 +47,7 @@ function EventDetailContent({ eventId }: { eventId: string }) {
   const { toast } = useToast()
   const printRef = useRef<HTMLDivElement | null>(null)
   const [closeDialogOpen, setCloseDialogOpen] = useState(false)
+  const [csvExportDialogOpen, setCsvExportDialogOpen] = useState(false)
   const [updatingAttendeeId, setUpdatingAttendeeId] = useState<string | null>(null)
   const queryClient = useQueryClient()
 
@@ -275,6 +277,14 @@ function EventDetailContent({ eventId }: { eventId: string }) {
           <div className='flex flex-col items-end gap-2 sm:items-end'>
             <div className='flex gap-2 print:hidden'>
               <Button variant='outline' size='sm' onClick={handlePrint}>Print</Button>
+              <Button 
+                variant='outline' 
+                size='sm' 
+                onClick={() => setCsvExportDialogOpen(true)}
+                className='bg-green-600 text-white hover:bg-green-700 border-green-600 hover:border-green-700'
+              >
+                Export CSV
+              </Button>
               {!isClosed && (
                 <Button
                   variant='destructive'
@@ -391,6 +401,7 @@ function EventDetailContent({ eventId }: { eventId: string }) {
       </div>
 
       <CloseEventDialog event={event} open={closeDialogOpen} onOpenChange={setCloseDialogOpen} />
+      <CsvExportDialog open={csvExportDialogOpen} onOpenChange={setCsvExportDialogOpen} event={event} />
       </div>
     </div>
   )

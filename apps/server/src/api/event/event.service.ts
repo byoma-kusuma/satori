@@ -225,6 +225,8 @@ export async function getEventDetail(eventId: string): Promise<EventDetailDto> {
   const attendees = await db
     .selectFrom('event_attendee as ea')
     .innerJoin('person as p', 'p.id', 'ea.person_id')
+    .leftJoin('center as c', 'c.id', 'p.center_id')
+    .leftJoin('person as ki', 'ki.id', 'p.krama_instructor_person_id')
     .select([
       'ea.id as attendee_id',
       'ea.person_id as person_id',
@@ -232,6 +234,12 @@ export async function getEventDetail(eventId: string): Promise<EventDetailDto> {
       'p.lastName as last_name',
       'p.photo as photo',
       'p.type as person_type',
+      'p.primaryPhone as primary_phone',
+      'p.emailId as email_id',
+      'p.is_krama_instructor as is_krama_instructor',
+      'c.name as center_name',
+      'ki.firstName as krama_instructor_first_name',
+      'ki.lastName as krama_instructor_last_name',
       'ea.registration_mode as registration_mode',
       'ea.registered_at as registered_at',
       'ea.is_cancelled as is_cancelled',
@@ -317,6 +325,13 @@ export async function getEventDetail(eventId: string): Promise<EventDetailDto> {
       empowermentRecordId: attendee.empowerment_record_id ?? null,
       photo: attendee.photo ?? null,
       personType: attendee.person_type ?? null,
+      primaryPhone: attendee.primary_phone ?? null,
+      emailId: attendee.email_id ?? null,
+      centerName: attendee.center_name ?? null,
+      isKramaInstructor: Boolean(attendee.is_krama_instructor),
+      kramaInstructorName: attendee.krama_instructor_first_name && attendee.krama_instructor_last_name 
+        ? `${attendee.krama_instructor_first_name} ${attendee.krama_instructor_last_name}` 
+        : null,
       hasMajorEmpowerment: Boolean(attendee.has_major_empowerment),
       attendance: attendanceByDay,
       attendedAllDays,
@@ -734,6 +749,11 @@ export async function addAttendee(eventId: string, input: AddAttendeeInput, user
       lastName: person.lastName,
       photo: person.photo ?? null,
       personType: person.type ?? null,
+      primaryPhone: null,
+      emailId: null,
+      centerName: null,
+      isKramaInstructor: false,
+      kramaInstructorName: null,
       hasMajorEmpowerment: Boolean(person.hasMajorEmpowerment),
       registrationMode: attendee.registration_mode as EventRegistrationMode,
       registeredAt: toIsoString(attendee.registered_at)!,
@@ -853,6 +873,11 @@ export async function updateAttendee(
       lastName: updated.last_name,
       photo: updated.photo ?? null,
       personType: updated.person_type,
+      primaryPhone: null,
+      emailId: null,
+      centerName: null,
+      isKramaInstructor: false,
+      kramaInstructorName: null,
       hasMajorEmpowerment: Boolean(updated.has_major_empowerment),
       registrationMode: updated.registration_mode as EventRegistrationMode,
       registeredAt: toIsoString(updated.registered_at)!,

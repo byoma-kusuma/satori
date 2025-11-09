@@ -54,6 +54,11 @@ export interface EventAttendee {
   lastName: string
   photo: string | null
   personType: string | null
+  primaryPhone: string | null
+  emailId: string | null
+  centerName: string | null
+  isKramaInstructor: boolean
+  kramaInstructorName: string | null
   hasMajorEmpowerment: boolean
   registrationMode: EventRegistrationMode
   registeredAt: string
