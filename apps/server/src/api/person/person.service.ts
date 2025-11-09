@@ -100,7 +100,7 @@ export async function getPersonById(id: string, userRole?: UserRole, userPersonI
 
 export async function createPerson(personData: PersonInput, createdBy: string) {
   const personCode = await generatePersonCode(personData.firstName, personData.lastName)
-  const { centerId, ...rest } = personData
+  const { centerId, viberNumber, ...rest } = personData
 
   return db.transaction().execute(async (trx) => {
     const inserted = await trx
@@ -108,6 +108,7 @@ export async function createPerson(personData: PersonInput, createdBy: string) {
       .values({
         ...rest,
         center_id: centerId ?? null,
+        viber_number: viberNumber ?? null,
         personCode,
         createdBy,
         lastUpdatedBy: createdBy,
@@ -132,7 +133,7 @@ export async function createPerson(personData: PersonInput, createdBy: string) {
 }
 
 export async function updatePerson(id: string, updateData: Partial<PersonInput>, lastUpdatedBy: string) {
-  const { centerId, ...rest } = updateData
+  const { centerId, viberNumber, ...rest } = updateData
 
   return db.transaction().execute(async (trx) => {
     const existing = await trx
@@ -148,6 +149,10 @@ export async function updatePerson(id: string, updateData: Partial<PersonInput>,
 
     if (centerId !== undefined) {
       dataToUpdate.center_id = centerId ?? null
+    }
+
+    if (viberNumber !== undefined) {
+      dataToUpdate.viber_number = viberNumber ?? null
     }
 
     const updated = await trx
