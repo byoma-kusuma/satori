@@ -54,7 +54,7 @@ export async function createRegistration(input: RegistrationInput, userId: strin
     middle_name: input.middle_name ?? null,
     last_name: input.last_name.trim(),
     phone: normalizePhone(input.phone ?? null),
-    viberNumber: normalizePhone(input.viberNumber ?? null),
+    viber_number: normalizePhone(input.viberNumber ?? null),
     email: input.email?.trim().toLowerCase() ?? null,
     address: input.address ?? null,
     country: input.country ?? null,
@@ -83,7 +83,7 @@ export async function updateRegistration(id: string, input: Partial<Registration
   if (input.middle_name !== undefined) updates.middle_name = input.middle_name ?? null
   if (input.last_name !== undefined) updates.last_name = input.last_name?.trim()
   if (input.phone !== undefined) updates.phone = normalizePhone(input.phone)
-  if (input.viberNumber !== undefined) updates.viberNumber = normalizePhone(input.viberNumber)
+  if (input.viberNumber !== undefined) updates.viber_number = normalizePhone(input.viberNumber)
   if (input.email !== undefined) updates.email = input.email?.trim().toLowerCase() ?? null
   if (input.address !== undefined) updates.address = input.address ?? null
   if (input.country !== undefined) updates.country = input.country ?? null
@@ -215,7 +215,7 @@ export async function importRegistrations(rows: ImportPayloadRow[], userId: stri
           middle_name: rec.middle_name,
           last_name: rec.last_name,
           phone: rec.phone,
-          viberNumber: rec.viberNumber,
+          viber_number: rec.viberNumber,
           email: rec.email,
           address: rec.address,
           country: rec.country,

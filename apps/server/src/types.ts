@@ -29,7 +29,7 @@ export type JsonValue = JsonArray | JsonObject | JsonPrimitive;
 
 export type MembershipType = "Board Member" | "General Member" | "Honorary Member" | "Life Time";
 
-export type PersonTitle = "dharma_dhar" | "sahayak_dharmacharya" | "sahayak_samathacharya";
+export type PersonTitle = "dharma_dhar" | "dharmacharya" | "khenpo" | "sahayak_dharmacharya" | "sahayak_samathacharya";
 
 export type PersonType = "attended_orientation" | "contact" | "interested" | "sangha_member";
 
@@ -98,12 +98,17 @@ export interface Event {
   description: string | null;
   empowerment_id: string | null;
   end_date: Timestamp;
+  event_group_id: string | null;
   guru_id: string | null;
   id: Generated<string>;
   last_updated_by: string;
   metadata: Generated<Json>;
   name: string;
   registration_mode: EventRegistrationMode;
+  /**
+   * Overrides the category default when set. NULL means use category default.
+   */
+  requires_full_attendance: boolean | null;
   start_date: Timestamp;
   status: Generated<EventStatus>;
   updated_at: Generated<Timestamp | null>;
@@ -146,6 +151,15 @@ export interface EventDay {
   event_date: Timestamp;
   event_id: string;
   id: Generated<string>;
+}
+
+export interface EventGroup {
+  created_at: Generated<Timestamp | null>;
+  created_by: string | null;
+  description: string | null;
+  id: Generated<string>;
+  name: string;
+  updated_at: Generated<Timestamp | null>;
 }
 
 export interface Group {
@@ -282,6 +296,7 @@ export interface Person {
   title: PersonTitle | null;
   type: Generated<PersonType>;
   updatedAt: Generated<Timestamp | null>;
+  viber_number: string | null;
   yearOfBirth: number | null;
   /**
    * Year when refuge was taken (for Sangha members)
@@ -349,12 +364,14 @@ export interface Registration {
   middle_name: string | null;
   phone: string | null;
   previously_attended_camp: boolean | null;
+  raw_data: Json | null;
   session_text: string | null;
   src_timestamp: Timestamp | null;
   status: Generated<RegistrationStatus>;
   status_updated_at: Timestamp | null;
   status_updated_by: string | null;
   updatedAt: Generated<Timestamp | null>;
+  viber_number: string | null;
 }
 
 export interface SchemaMigrations {
@@ -408,6 +425,7 @@ export interface DB {
   event_attendee: EventAttendee;
   event_category: EventCategory;
   event_day: EventDay;
+  event_group: EventGroup;
   group: Group;
   guru: Guru;
   mahakrama_history: MahakramaHistory;

@@ -403,7 +403,7 @@ export const registrationRoutes = app
               country: parsedCountry,
               emailId: r.email ?? null,
               primaryPhone: normalizedPhone,
-              viberNumber: normalizedViberNumber,
+              viber_number: normalizedViberNumber,
               gender: r.gender ?? null,
               personCode: personCode,
               krama_instructor_person_id: instructorId,
