@@ -33,6 +33,8 @@ interface Props {
   eventIds: string[]
 }
 
+const BADGES_PER_PAGE = 1
+
 export function EventBadgesPrintDialog({ open, onOpenChange, eventIds }: Props) {
   const printRef = useRef<HTMLDivElement>(null)
   const [loading, setLoading] = useState(false)
@@ -143,11 +145,11 @@ export function EventBadgesPrintDialog({ open, onOpenChange, eventIds }: Props) 
     }
   }, [people])
 
-  // Pages for printing - only include selected people
+  // Pages for printing - configurable badges per page
   const pages = useMemo(() => {
     const selectedPeople = people.filter(p => selectedPersonIds.has(p.personId))
     const out: Attendee[][] = []
-    for (let i = 0; i < selectedPeople.length; i += 4) out.push(selectedPeople.slice(i, i + 4))
+    for (let i = 0; i < selectedPeople.length; i += BADGES_PER_PAGE) out.push(selectedPeople.slice(i, i + BADGES_PER_PAGE))
     return out
   }, [people, selectedPersonIds])
 
@@ -237,7 +239,7 @@ export function EventBadgesPrintDialog({ open, onOpenChange, eventIds }: Props) 
               {pages.map((page, idx) => (
                 <div
                   key={idx}
-                  className={`grid grid-cols-1 print:grid-cols-2 gap-4 ${idx < pages.length - 1 ? 'print:break-after-page' : ''}`}
+                  className={`grid grid-cols-1 gap-4 ${idx < pages.length - 1 ? 'print:break-after-page' : ''}`}
                 >
                   {page.map((p) => {
                     const evs = attendeeEvents[p.personId]?.events ?? []
