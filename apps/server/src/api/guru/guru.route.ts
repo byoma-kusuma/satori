@@ -5,6 +5,8 @@ import { z } from 'zod'
 import { db } from '../../database'
 import { auth } from '../../lib/auth'
 import { authenticated } from '../../middlewares/session'
+import type { Updateable } from 'kysely'
+import type { Guru } from '../../types'
 
 const guruInputSchema = z.object({
   name: z.string().min(1, 'Name is required'),
@@ -73,7 +75,7 @@ export const gurusRoutes = app
     const data = c.req.valid('json')
     const user = requireUser(c.get('user'))
 
-    const updateData: any = {
+    const updateData: Updateable<Guru> = {
       lastUpdatedBy: user.id,
     }
 
@@ -108,9 +110,10 @@ export const gurusRoutes = app
       }
 
       return c.json({ message: 'Guru deleted successfully' })
-    } catch (error: any) {
+    } catch (error) {
       // Check if it's a foreign key constraint violation
-      if (error.code === '23503') {
+      const code = error instanceof Error && 'code' in error ? (error as Error & { code?: string }).code : undefined
+      if (code === '23503') {
         return c.json({
           error: 'Cannot delete guru because it is referenced in person empowerments. Please remove all related empowerments first.'
         }, 400)

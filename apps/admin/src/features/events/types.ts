@@ -1,3 +1,5 @@
+import type { JsonObject } from '@/types/json'
+
 export type EventRegistrationMode = 'PRE_REGISTRATION' | 'WALK_IN'
 export type EventStatus = 'DRAFT' | 'ACTIVE' | 'CLOSED'
 
@@ -8,7 +10,7 @@ export interface EventCategory {
   requiresFullAttendance: boolean
 }
 
-export type EventMetadata = Record<string, unknown>
+export type EventMetadata = JsonObject
 
 export interface EmpowermentEventMetadata extends EventMetadata {
   type: 'EMPOWERMENT'

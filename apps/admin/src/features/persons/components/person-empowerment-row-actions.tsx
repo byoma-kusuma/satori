@@ -15,11 +15,13 @@ import { ConfirmDialog } from '@/components/confirm-dialog'
 import { useDeletePersonEmpowerment } from '../../person-empowerments/data/api'
 import { toast } from '@/hooks/use-toast'
 import { PersonEmpowerment } from './person-empowerment-columns'
+import type { Empowerment } from '@/features/empowerments/data/schema'
+import type { Guru } from '@/features/gurus/data/schema'
 
 interface DataTableRowActionsProps {
   row: Row<PersonEmpowerment>
-  empowerments?: any[]
-  gurus?: any[]
+  empowerments?: Empowerment[]
+  gurus?: Guru[]
 }
 
 export function DataTableRowActions({ row, empowerments = [], gurus = [] }: DataTableRowActionsProps) {

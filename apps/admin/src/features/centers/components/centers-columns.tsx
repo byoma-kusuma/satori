@@ -1,14 +1,16 @@
 import { ColumnDef } from '@tanstack/react-table'
-import { Link } from '@tanstack/react-router'
 import { cn } from '@/lib/utils'
-import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { DataTableColumnHeader } from './data-table-column-header'
 import { DataTableRowActions } from './data-table-row-actions'
-import { Users, Pencil, Trash2 } from 'lucide-react'
 import { CenterDto } from '../data/schema'
 
-export const columns: ColumnDef<CenterDto>[] = [
+type CenterColumnsOptions = {
+  onEdit?: (center: CenterDto) => void
+  onDelete?: (center: CenterDto) => void
+}
+
+export const getCenterColumns = ({ onEdit, onDelete }: CenterColumnsOptions): ColumnDef<CenterDto>[] => [
   {
     id: 'select',
     header: ({ table }) => (
@@ -101,6 +103,8 @@ export const columns: ColumnDef<CenterDto>[] = [
   },
   {
     id: 'actions',
-    cell: DataTableRowActions,
+    cell: ({ row }) => (
+      <DataTableRowActions row={row} onEdit={onEdit} onDelete={onDelete} />
+    ),
   },
 ]

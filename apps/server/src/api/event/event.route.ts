@@ -5,6 +5,7 @@ import { zValidator } from '@hono/zod-validator'
 
 import { auth } from '../../lib/auth'
 import { authenticated } from '../../middlewares/session'
+import type { CreateEventInput, UpdateEventInput } from './event.types'
 import {
   addAttendee,
   closeEvent,
@@ -20,10 +21,15 @@ import {
   updateEventCategory,
   bulkAddAttendees,
 } from './event.service'
+import type { JsonValue } from '../../types'
 
 const registrationModeSchema = z.enum(['PRE_REGISTRATION', 'WALK_IN'])
 const statusSchema = z.enum(['DRAFT', 'ACTIVE', 'CLOSED'])
-const metadataSchema = z.record(z.unknown())
+
+const jsonValueSchema: z.ZodType<JsonValue> = z.lazy(() =>
+  z.union([z.string(), z.number(), z.boolean(), z.null(), z.array(jsonValueSchema), z.record(jsonValueSchema)]),
+)
+const metadataSchema = z.record(jsonValueSchema)
 
 const createEventSchema = z.object({
   name: z.string().min(1, 'Name is required'),
@@ -100,12 +106,16 @@ const requireUser = (user: typeof auth.$Infer.Session.user | null) => {
   return user
 }
 
-const handleServiceError = (error: unknown) => {
+const handleServiceError = (error: Error): never => {
   if (error instanceof HTTPException) {
     throw error
   }
-  if (error instanceof Error) {
-    throw new HTTPException(400, { message: error.message })
+  throw new HTTPException(400, { message: error.message })
+}
+
+const handleCaughtError = (error: Error | null): never => {
+  if (error) {
+    return handleServiceError(error)
   }
   throw new HTTPException(500, { message: 'An unexpected error occurred' })
 }
@@ -114,6 +124,56 @@ const updateCategorySchema = z.object({
   requiresFullAttendance: z.boolean(),
 })
 
+type CreateEventRequest = z.infer<typeof createEventSchema>
+const toCreateEventInput = (payload: CreateEventRequest): CreateEventInput => ({
+  name: payload.name,
+  description: payload.description ?? null,
+  startDate: payload.startDate,
+  endDate: payload.endDate,
+  registrationMode: payload.registrationMode,
+  categoryId: payload.categoryId,
+  empowermentId: payload.empowermentId ?? null,
+  guruId: payload.guruId ?? null,
+  eventGroupId: payload.eventGroupId ?? null,
+  newGroup: payload.NewGroup
+    ? {
+        groupName: String(payload.NewGroup.GroupName || '').trim(),
+        description: payload.NewGroup.Description ?? null,
+      }
+    : undefined,
+  metadata: payload.metadata ?? null,
+  requiresFullAttendance: payload.requiresFullAttendance ?? null,
+})
+
+type UpdateEventRequest = z.infer<typeof updateEventSchema>
+const toUpdateEventInput = (payload: UpdateEventRequest): UpdateEventInput => {
+  const input: UpdateEventInput = {}
+
+  if (payload.name !== undefined) input.name = payload.name
+  if (payload.description !== undefined) input.description = payload.description
+  if (payload.startDate !== undefined) input.startDate = payload.startDate
+  if (payload.endDate !== undefined) input.endDate = payload.endDate
+  if (payload.registrationMode !== undefined) input.registrationMode = payload.registrationMode
+  if (payload.categoryId !== undefined) input.categoryId = payload.categoryId
+  if (payload.empowermentId !== undefined) input.empowermentId = payload.empowermentId
+  if (payload.guruId !== undefined) input.guruId = payload.guruId
+  if (payload.eventGroupId !== undefined) input.eventGroupId = payload.eventGroupId
+  if (payload.NewGroup !== undefined) {
+    input.newGroup =
+      payload.NewGroup === null
+        ? null
+        : {
+            groupName: String(payload.NewGroup.GroupName || '').trim(),
+            description: payload.NewGroup.Description ?? null,
+          }
+  }
+  if (payload.metadata !== undefined) input.metadata = payload.metadata
+  if (payload.requiresFullAttendance !== undefined) input.requiresFullAttendance = payload.requiresFullAttendance
+  if (payload.status !== undefined) input.status = payload.status
+
+  return input
+}
+
 export const eventsRoutes = events
   .use(authenticated)
   .get('/types', async (c) => {
@@ -121,7 +181,7 @@ export const eventsRoutes = events
       const categories = await listEventCategories()
       return c.json(categories)
     } catch (error) {
-      handleServiceError(error)
+      handleCaughtError(error instanceof Error ? error : null)
     }
   })
   .put('/types/:id', zValidator('json', updateCategorySchema), async (c) => {
@@ -131,7 +191,7 @@ export const eventsRoutes = events
       const updated = await updateEventCategory(id, updates)
       return c.json(updated)
     } catch (error) {
-      handleServiceError(error)
+      handleCaughtError(error instanceof Error ? error : null)
     }
   })
   .get('/', async (c) => {
@@ -139,26 +199,17 @@ export const eventsRoutes = events
       const items = await listEvents()
       return c.json(items)
     } catch (error) {
-      handleServiceError(error)
+      handleCaughtError(error instanceof Error ? error : null)
     }
   })
   .post('/', zValidator('json', createEventSchema), async (c) => {
     try {
       const user = requireUser(c.get('user'))
       const payload = await c.req.valid('json')
-      const mapped = {
-        ...payload,
-        newGroup: payload?.NewGroup
-          ? {
-              groupName: String(payload.NewGroup.GroupName || '').trim(),
-              description: payload.NewGroup.Description ?? null,
-            }
-          : undefined,
-      }
-      const event = await createEvent(mapped as any, user.id)
+      const event = await createEvent(toCreateEventInput(payload), user.id)
       return c.json(event, 201)
     } catch (error) {
-      handleServiceError(error)
+      handleCaughtError(error instanceof Error ? error : null)
     }
   })
   .post('/bulk-attendees', zValidator('json', bulkAddAttendeesSchema), async (c) => {
@@ -168,7 +219,7 @@ export const eventsRoutes = events
       const result = await bulkAddAttendees(payload.eventIds, payload.personIds, user.id)
       return c.json(result)
     } catch (error) {
-      handleServiceError(error)
+      handleCaughtError(error instanceof Error ? error : null)
     }
   })
   .get('/:id', zValidator('param', paramsSchema), async (c) => {
@@ -177,7 +228,7 @@ export const eventsRoutes = events
       const event = await getEventDetail(id)
       return c.json(event)
     } catch (error) {
-      handleServiceError(error)
+      handleCaughtError(error instanceof Error ? error : null)
     }
   })
   .put('/:id', zValidator('param', paramsSchema), zValidator('json', updateEventSchema), async (c) => {
@@ -185,19 +236,10 @@ export const eventsRoutes = events
       const user = requireUser(c.get('user'))
       const { id } = c.req.valid('param')
       const payload = await c.req.valid('json')
-      const mapped = {
-        ...payload,
-        newGroup: payload?.NewGroup
-          ? {
-              groupName: String(payload.NewGroup.GroupName || '').trim(),
-              description: payload.NewGroup.Description ?? null,
-            }
-          : undefined,
-      }
-      const event = await updateEvent(id, mapped as any, user.id)
+      const event = await updateEvent(id, toUpdateEventInput(payload), user.id)
       return c.json(event)
     } catch (error) {
-      handleServiceError(error)
+      handleCaughtError(error instanceof Error ? error : null)
     }
   })
   .delete('/:id', zValidator('param', paramsSchema), async (c) => {
@@ -206,18 +248,18 @@ export const eventsRoutes = events
       await deleteEvent(id)
       return c.json({ success: true })
     } catch (error) {
-      handleServiceError(error)
+      handleCaughtError(error instanceof Error ? error : null)
     }
   })
   .post('/:id/attendees', zValidator('param', paramsSchema), zValidator('json', addAttendeeSchema), async (c) => {
     try {
       const user = requireUser(c.get('user'))
       const { id } = c.req.valid('param')
-      const payload = await c.req.valid('json')
+      const payload = addAttendeeSchema.parse(c.req.valid('json'))
       const attendee = await addAttendee(id, payload, user.id)
       return c.json(attendee, 201)
     } catch (error) {
-      handleServiceError(error)
+      handleCaughtError(error instanceof Error ? error : null)
     }
   })
   .delete('/:id/attendees/:attendeeId', zValidator('param', attendeeParamsSchema), async (c) => {
@@ -226,7 +268,7 @@ export const eventsRoutes = events
       await removeAttendee(id, attendeeId)
       return c.json({ success: true })
     } catch (error) {
-      handleServiceError(error)
+      handleCaughtError(error instanceof Error ? error : null)
     }
   })
   .patch(
@@ -240,7 +282,7 @@ export const eventsRoutes = events
         const attendee = await updateAttendee(id, attendeeId, payload)
         return c.json(attendee)
       } catch (error) {
-        handleServiceError(error)
+        handleCaughtError(error instanceof Error ? error : null)
       }
     },
   )
@@ -248,23 +290,23 @@ export const eventsRoutes = events
     try {
       const user = requireUser(c.get('user'))
       const { id } = c.req.valid('param')
-      const payload = await c.req.valid('json')
+      const payload = checkInSchema.parse(c.req.valid('json'))
       const result = await setAttendeeCheckIn(id, payload, user.id)
       return c.json(result)
     } catch (error) {
-      handleServiceError(error)
+      handleCaughtError(error instanceof Error ? error : null)
     }
   })
   .post('/:id/close', zValidator('param', paramsSchema), zValidator('json', closeEventSchema), async (c) => {
     try {
       const user = requireUser(c.get('user'))
       const { id } = c.req.valid('param')
-      const payload = await c.req.valid('json')
+      const payload = closeEventSchema.parse(c.req.valid('json'))
       await closeEvent(id, payload, user.id)
       const event = await getEventDetail(id)
       return c.json(event)
     } catch (error) {
-      handleServiceError(error)
+      handleCaughtError(error instanceof Error ? error : null)
     }
   })
 

@@ -17,6 +17,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { getEvent } from '@/api/events'
 import { getPerson } from '@/api/persons'
 import { ByomaKusumaIcon } from '@/components/byoma-kusuma-icon'
+import { personSchema } from '@/features/persons/data/schema'
 
 type Attendee = {
   personId: string
@@ -67,8 +68,8 @@ export function EventBadgesPrintDialog({ open, onOpenChange, eventIds }: Props) 
           }
         }
         if (!ignore) setAttendeeEvents(agg)
-      } catch (e: any) {
-        if (!ignore) setError(e?.message || 'Failed to load attendees')
+      } catch (error) {
+        if (!ignore) setError(error instanceof Error ? error.message : 'Failed to load attendees')
       } finally {
         if (!ignore) setLoading(false)
       }
@@ -90,7 +91,9 @@ export function EventBadgesPrintDialog({ open, onOpenChange, eventIds }: Props) 
         const results = await Promise.all(missing.map(async (id) => {
           try {
             const p = await getPerson(id)
-            return { id, address: p.address ?? null, personCode: (p as any).personCode ?? null, primaryPhone: (p as any).primaryPhone ?? null }
+            const person = personSchema.parse(p)
+            const address = person.address.trim().length > 0 ? person.address : null
+            return { id, address, personCode: person.personCode ?? null, primaryPhone: person.primaryPhone ?? null }
           } catch {
             return { id, address: null, personCode: null, primaryPhone: null }
           }
@@ -121,7 +124,7 @@ export function EventBadgesPrintDialog({ open, onOpenChange, eventIds }: Props) 
 
   const onPrintClick = () => {
     if (!printRef.current) {
-      console.warn('Print content is not ready yet')
+      setError('Print content is not ready yet.')
       return
     }
     handlePrint()

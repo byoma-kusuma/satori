@@ -1,31 +1,21 @@
 import { db } from '../../database'
 import { sql } from 'kysely'
+import type { Insertable, Selectable, Updateable } from 'kysely'
+import type { EventGroup } from '../../types'
 
-export interface EventGroupRecord {
-  id: string
-  name: string
-  description: string | null
-  created_at: Date | null
-  updated_at: Date | null
-  created_by: string | null
-}
+export type EventGroupRecord = Selectable<EventGroup>
 
 export type EventGroupInput = {
   name: string
   description?: string | null
 }
 
-// Note: This module uses the existing Kysely instance. Until codegen is run to
-// include the `event_group` table in DB types, we cast to any locally to avoid
-// leaking typing changes across the codebase.
-const dbAny = db as unknown as import('kysely').Kysely<any>
-
 export async function findAll(): Promise<EventGroupRecord[]> {
-  return dbAny.selectFrom('event_group').selectAll().orderBy('name').execute()
+  return db.selectFrom('event_group').selectAll().orderBy('name').execute()
 }
 
 export async function findById(id: string): Promise<EventGroupRecord> {
-  return dbAny
+  return db
     .selectFrom('event_group')
     .selectAll()
     .where('id', '=', id)
@@ -33,7 +23,7 @@ export async function findById(id: string): Promise<EventGroupRecord> {
 }
 
 export async function findByGroupName(groupName: string): Promise<EventGroupRecord | undefined> {
-  return dbAny
+  return db
     .selectFrom('event_group')
     .selectAll()
     .where('name', '=', groupName)
@@ -41,38 +31,42 @@ export async function findByGroupName(groupName: string): Promise<EventGroupReco
 }
 
 export async function create(input: EventGroupInput, createdBy?: string): Promise<EventGroupRecord> {
-  const inserted = await dbAny
+  const values: Insertable<EventGroup> = {
+    name: input.name,
+    description: input.description ?? null,
+    created_by: createdBy ?? null,
+  }
+
+  const inserted = await db
     .insertInto('event_group')
-    .values({
-      name: input.name,
-      description: input.description ?? null,
-      created_by: createdBy ?? null,
-    })
+    .values(values)
     .returningAll()
     .executeTakeFirstOrThrow()
 
-  return inserted as EventGroupRecord
+  return inserted
 }
 
 export async function update(
   id: string,
   input: Partial<EventGroupInput>,
 ): Promise<EventGroupRecord> {
-  const updated = await dbAny
+  const values: Updateable<EventGroup> = {
+    ...(input.name !== undefined ? { name: input.name } : {}),
+    ...(input.description !== undefined ? { description: input.description } : {}),
+  }
+
+  const updated = await db
     .updateTable('event_group')
-    .set({
-      ...(input.name !== undefined ? { name: input.name } : {}),
-      ...(input.description !== undefined ? { description: input.description } : {}),
-    })
+    .set(values)
     .where('id', '=', id)
     .returningAll()
     .executeTakeFirstOrThrow()
 
-  return updated as EventGroupRecord
+  return updated
 }
 
 export async function remove(id: string): Promise<void> {
-  await dbAny.deleteFrom('event_group').where('id', '=', id).executeTakeFirstOrThrow()
+  await db.deleteFrom('event_group').where('id', '=', id).executeTakeFirstOrThrow()
 }
 
 // ---------------------------
@@ -82,16 +76,16 @@ export async function remove(id: string): Promise<void> {
 const normalizeName = (s: string | undefined | null) => (s ?? '').trim()
 
 async function findByNameCaseInsensitive(name: string): Promise<EventGroupRecord | undefined> {
-  const row = await dbAny
+  const row = await db
     .selectFrom('event_group')
     .selectAll()
-    .where(sql`lower(name) = ${name.toLowerCase()}`)
+    .where(sql<boolean>`lower(name) = ${name.toLowerCase()}`)
     .executeTakeFirst()
-  return row as EventGroupRecord | undefined
+  return row
 }
 
 async function eventExistsForGroup(groupId: string): Promise<boolean> {
-  const row = await dbAny
+  const row = await db
     .selectFrom('event')
     .select(['id'])
     .where('event_group_id', '=', groupId)

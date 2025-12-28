@@ -436,19 +436,22 @@ const usePinInput = ({
 /* ========== Util Func ========== */
 
 const getValidChildren = (children: React.ReactNode) =>
-  React.Children.toArray(children).filter((child) => {
-    if (React.isValidElement(child)) {
-      return React.isValidElement(child)
-    }
-    throw new Error(`${PinInput.displayName} contains invalid children.`)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  }) as React.ReactElement<any>[]
+  React.Children.toArray(children).reduce<React.ReactElement[]>(
+    (elements, child) => {
+      if (React.isValidElement(child)) {
+        elements.push(child)
+        return elements
+      }
+
+      throw new Error(`${PinInput.displayName} contains invalid children.`)
+    },
+    []
+  )
 
 const getInputFieldCount = (children: React.ReactNode) =>
-  React.Children.toArray(children).filter((child) => {
-    if (React.isValidElement(child) && child.type === PinInputField) {
-      return React.isValidElement(child)
-    }
-  }).length
+  React.Children.toArray(children).filter(
+    (child): child is React.ReactElement =>
+      React.isValidElement(child) && child.type === PinInputField
+  ).length
 
 export { PinInput, PinInputField }

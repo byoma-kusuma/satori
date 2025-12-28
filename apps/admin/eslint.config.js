@@ -24,6 +24,18 @@ export default tseslint.config(
     },
     rules: {
       ...reactHooks.configs.recommended.rules,
+      '@typescript-eslint/no-explicit-any': 'error',
+      '@typescript-eslint/no-restricted-types': [
+        'error',
+        {
+          types: {
+            unknown: {
+              message:
+                'Avoid `unknown` in application code. Prefer precise types, narrowing helpers, or schema validation at trust boundaries.',
+            },
+          },
+        },
+      ],
       'react-refresh/only-export-components': [
         'warn',
         { allowConstantExport: true },

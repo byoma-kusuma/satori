@@ -31,7 +31,7 @@ declare module '@tanstack/react-table' {
   }
 }
 
-interface DataTableProps<TData = unknown> {
+interface DataTableProps<TData> {
   columns: ColumnDef<TData>[]
   data: TData[]
 }
