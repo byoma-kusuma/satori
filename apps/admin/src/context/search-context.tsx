@@ -1,9 +1,11 @@
 import React from 'react'
+import { useAtom } from 'jotai'
 import { CommandMenu } from '@/components/command-menu'
+import { searchOpenAtom } from '@/stores/searchAtom'
 
 interface SearchContextType {
   open: boolean
-  setOpen: React.Dispatch<React.SetStateAction<boolean>>
+  setOpen: (next: boolean | ((previous: boolean) => boolean)) => void
 }
 
 const SearchContext = React.createContext<SearchContextType | null>(null)
@@ -13,7 +15,7 @@ interface Props {
 }
 
 export function SearchProvider({ children }: Props) {
-  const [open, setOpen] = React.useState(false)
+  const [open, setOpen] = useAtom(searchOpenAtom)
 
   React.useEffect(() => {
     const down = (e: KeyboardEvent) => {

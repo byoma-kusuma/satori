@@ -11,18 +11,18 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Guru } from '../data/schema'
 
-interface DataTableRowActionsProps<TData> {
-  row: Row<TData>
+interface DataTableRowActionsProps {
+  row: Row<Guru>
   onEdit?: (guru: Guru) => void
   onDelete?: (guru: Guru) => void
 }
 
-export function DataTableRowActions<TData>({
+export function DataTableRowActions({
   row,
   onEdit,
   onDelete,
-}: DataTableRowActionsProps<TData>) {
-  const guru = row.original as Guru
+}: DataTableRowActionsProps) {
+  const guru = row.original
 
   return (
     <DropdownMenu>

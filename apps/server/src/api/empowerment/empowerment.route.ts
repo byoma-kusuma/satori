@@ -5,6 +5,8 @@ import { z } from 'zod'
 import { db } from '../../database'
 import { auth } from '../../lib/auth'
 import { authenticated } from '../../middlewares/session'
+import type { Updateable } from 'kysely'
+import type { Empowerment } from '../../types'
 
 const empowermentInputSchema = z.object({
   name: z.string().min(1, 'Name is required'),
@@ -83,7 +85,7 @@ export const empowermentRoute = app
 
     const { class: classValue, major_empowerment, ...rest } = data
 
-    const updatePayload: Record<string, unknown> = {
+    const updatePayload: Updateable<Empowerment> = {
       ...rest,
       last_updated_by: user.id,
       updated_at: new Date(),
@@ -145,9 +147,12 @@ export const empowermentRoute = app
         .executeTakeFirst()
 
       return c.json({ message: 'Empowerment deleted successfully' })
-    } catch (error: any) {
+    } catch (error) {
       // Handle foreign key constraint violations
-      if (error.code === '23503' || error.message?.includes('foreign key constraint')) {
+      const message = error instanceof Error ? error.message : ''
+      const code = error instanceof Error && 'code' in error ? (error as Error & { code?: string }).code : undefined
+
+      if (code === '23503' || message.includes('foreign key constraint')) {
         // Double-check the reference count for a more accurate message
         const personEmpowermentCount = await db
           .selectFrom('person_empowerment')

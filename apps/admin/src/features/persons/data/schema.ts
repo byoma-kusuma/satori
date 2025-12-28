@@ -90,6 +90,14 @@ export const personInputSchema = z.object({
 
 export type PersonInput = z.infer<typeof personInputSchema>
 
+export type PersonUpsertPayload = {
+  [K in keyof PersonInput]: undefined extends PersonInput[K]
+    ? PersonInput[K] | null
+    : PersonInput[K]
+}
+
+export type PersonUpdatePayload = Partial<PersonUpsertPayload>
+
 // Krama Instructor specific types
 export const kramaInstructorSchema = z.object({
   id: z.string(),

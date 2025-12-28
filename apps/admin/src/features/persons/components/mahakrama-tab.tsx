@@ -19,8 +19,8 @@ import {
   mahakramaHistorySchema,
   mahakramaStepSchema,
   type MahakramaHistory,
-  type MahakramaStep,
 } from '@/features/mahakrama/data/schema'
+import { kramaInstructorSchema } from '@/features/persons/data/schema'
 import { MahakramaAddDialog } from './person-mahakrama-add-dialog'
 import { MahakramaCompleteDialog } from './person-mahakrama-complete-dialog'
 
@@ -74,7 +74,7 @@ export function MahakramaTab({ personId }: MahakramaTabProps) {
       queryClient.invalidateQueries({ queryKey: ['mahakrama-history', personId] })
       setAddDialogOpen(false)
     },
-    onError: (error: unknown) => {
+    onError: (error) => {
       toast({
         title: 'Unable to start Mahakrama progression',
         description: error instanceof Error ? error.message : String(error),
@@ -95,7 +95,7 @@ export function MahakramaTab({ personId }: MahakramaTabProps) {
       queryClient.invalidateQueries({ queryKey: ['mahakrama-history', personId] })
       setCompleteDialogOpen(false)
     },
-    onError: (error: unknown) => {
+    onError: (error) => {
       toast({
         title: 'Unable to complete Mahakrama step',
         description: error instanceof Error ? error.message : String(error),
@@ -106,7 +106,7 @@ export function MahakramaTab({ personId }: MahakramaTabProps) {
 
   const mahakramaSteps = useMemo(() => {
     if (!Array.isArray(steps)) return []
-    return (steps as MahakramaStep[])
+    return steps
       .map((step) => mahakramaStepSchema.parse(step))
       .sort((a, b) => a.sequenceNumber - b.sequenceNumber)
   }, [steps])
@@ -114,11 +114,14 @@ export function MahakramaTab({ personId }: MahakramaTabProps) {
   const instructorOptions = useMemo(
     () =>
       Array.isArray(instructors)
-        ? instructors.map((instructor: any) => ({
-            id: instructor.id,
-            firstName: instructor.firstName,
-            lastName: instructor.lastName,
-          }))
+        ? instructors.map((instructor) => {
+            const parsed = kramaInstructorSchema.parse(instructor)
+            return {
+              id: parsed.id,
+              firstName: parsed.firstName,
+              lastName: parsed.lastName,
+            }
+          })
         : [],
     [instructors],
   )

@@ -1,6 +1,5 @@
 import { useState, useMemo } from 'react'
 import {
-  ColumnDef,
   ColumnFiltersState,
   SortingState,
   VisibilityState,
@@ -22,6 +21,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { useQuery } from '@tanstack/react-query'
+import { z } from 'zod'
 import { getPersonEmpowermentsQueryOptions } from '../../person-empowerments/data/api'
 import { getEmpowermentsQueryOptions } from '../../empowerments/data/api'
 import { getGurusQueryOptions } from '../../gurus/data/api'
@@ -29,10 +29,12 @@ import { createPersonEmpowermentColumns, PersonEmpowerment } from './person-empo
 import { DataTablePagination } from './data-table-pagination'
 import { PersonEmpowermentToolbar } from './person-empowerment-toolbar'
 import { PersonEmpowermentDialog } from './person-empowerment-dialog'
+import { empowermentSchema, type Empowerment } from '@/features/empowerments/data/schema'
+import type { Guru } from '@/features/gurus/data/schema'
 
 declare module '@tanstack/react-table' {
   interface ColumnMeta {
-    className: string
+    className?: string
   }
 }
 
@@ -49,21 +51,42 @@ export function PersonEmpowermentTable({ personId }: PersonEmpowermentTableProps
   const [sorting, setSorting] = useState<SortingState>([])
 
   // Fetch person empowerments
-  const { data: personEmpowerments = [], isLoading } = useQuery(getPersonEmpowermentsQueryOptions())
+  const { data: personEmpowermentsRaw = [], isLoading } = useQuery(getPersonEmpowermentsQueryOptions())
   
   // Fetch empowerments and gurus for dropdowns
-  const { data: empowerments = [] } = useQuery(getEmpowermentsQueryOptions())
-  const { data: gurus = [], isLoading: gurusLoading, error: gurusError } = useQuery(getGurusQueryOptions())
+  const { data: empowermentsRaw = [] } = useQuery(getEmpowermentsQueryOptions())
+  const { data: gurus = [] } = useQuery(getGurusQueryOptions())
+
+  const personEmpowermentRowSchema = z.object({
+    id: z.string(),
+    empowerment_id: z.string(),
+    person_id: z.string(),
+    guru_id: z.string().nullable().optional(),
+    start_date: z.string().nullable().optional(),
+    end_date: z.string().nullable().optional(),
+  })
+
+  type PersonEmpowermentRow = z.infer<typeof personEmpowermentRowSchema>
+
+  const personEmpowerments: PersonEmpowermentRow[] = useMemo(() => {
+    if (!Array.isArray(personEmpowermentsRaw)) return []
+    return personEmpowermentsRaw.map((row) => personEmpowermentRowSchema.parse(row))
+  }, [personEmpowermentsRaw])
+
+  const empowerments: Empowerment[] = useMemo(() => {
+    if (!Array.isArray(empowermentsRaw)) return []
+    return empowermentsRaw.map((empowerment) => empowermentSchema.parse(empowerment))
+  }, [empowermentsRaw])
+
+  const safeGurus: Guru[] = useMemo(() => (Array.isArray(gurus) ? gurus : []), [gurus])
 
   // Filter and enrich empowerments for this person - memoized to prevent infinite re-renders
   const enrichedEmpowerments: PersonEmpowerment[] = useMemo(() => {
-    const filteredEmpowerments = personEmpowerments.filter(
-      (pe: any) => pe.person_id === personId
-    )
+    const filteredEmpowerments = personEmpowerments.filter((pe) => pe.person_id === personId)
 
-    return filteredEmpowerments.map((pe: any) => {
-      const empowerment = empowerments.find((e: any) => e.id === pe.empowerment_id)
-      const guru = pe.guru_id ? gurus.find((g: any) => g.id === pe.guru_id) : null
+    return filteredEmpowerments.map((pe) => {
+      const empowerment = empowerments.find((e) => e.id === pe.empowerment_id)
+      const guru = pe.guru_id ? safeGurus.find((g) => g.id === pe.guru_id) : null
 
       return {
         ...pe,
@@ -71,14 +94,17 @@ export function PersonEmpowermentTable({ personId }: PersonEmpowermentTableProps
         empowerment_type: empowerment?.type ?? null,
         empowerment_form: empowerment?.form ?? null,
         empowerment_major: empowerment?.major_empowerment ?? false,
-        guru_name: guru?.name || null
+        guru_name: guru?.name || null,
+        guru_id: pe.guru_id ?? null,
+        start_date: pe.start_date ?? null,
+        end_date: pe.end_date ?? null,
       }
     })
-  }, [personEmpowerments, personId, empowerments, gurus])
+  }, [personEmpowerments, personId, empowerments, safeGurus])
 
   const columns = useMemo(() =>
-    createPersonEmpowermentColumns(empowerments, gurus),
-    [empowerments, gurus]
+    createPersonEmpowermentColumns(empowerments, safeGurus),
+    [empowerments, safeGurus]
   )
 
   const table = useReactTable({
@@ -200,7 +226,7 @@ export function PersonEmpowermentTable({ personId }: PersonEmpowermentTableProps
         personId={personId}
         empowerment={editingEmpowerment}
         empowerments={empowerments}
-        gurus={gurus}
+        gurus={safeGurus}
       />
     </>
   )

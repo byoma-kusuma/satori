@@ -396,7 +396,6 @@ export interface User {
   emailVerified: boolean;
   id: string;
   image: string | null;
-  must_change_password: Generated<boolean>;
   name: string;
   person_id: string | null;
   /**

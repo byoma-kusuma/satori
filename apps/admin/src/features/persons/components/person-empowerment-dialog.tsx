@@ -29,14 +29,17 @@ import {
 import { personEmpowermentInputSchema, PersonEmpowermentInput } from '../../person-empowerments/data/schema'
 import { useCreatePersonEmpowerment, useUpdatePersonEmpowerment } from '../../person-empowerments/data/api'
 import { useEffect } from 'react'
+import type { PersonEmpowerment } from './person-empowerment-columns'
+import type { Empowerment } from '@/features/empowerments/data/schema'
+import type { Guru } from '@/features/gurus/data/schema'
 
 interface PersonEmpowermentDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   personId: string
-  empowerment?: any
-  empowerments: any[]
-  gurus: any[]
+  empowerment?: PersonEmpowerment
+  empowerments: Empowerment[]
+  gurus: Guru[]
 }
 
 export function PersonEmpowermentDialog({
@@ -87,9 +90,7 @@ export function PersonEmpowermentDialog({
   }, [open, isEditing, empowerment, personId])
 
   const onSubmit = (data: PersonEmpowermentInput) => {
-    const processedData: any = {
-      ...data,
-    }
+    const processedData: PersonEmpowermentInput = { ...data }
 
     // Only include start_date if it has a valid value
     if (data.start_date && data.start_date.trim() !== '') {
@@ -169,7 +170,7 @@ export function PersonEmpowermentDialog({
                     </FormControl>
                     <SelectContent>
                       {empowerments.length > 0 ? (
-                        empowerments.map((emp: any) => (
+                        empowerments.map((emp) => (
                           <SelectItem key={emp.id} value={emp.id}>
                             {emp.name}
                           </SelectItem>
@@ -199,7 +200,7 @@ export function PersonEmpowermentDialog({
                     </FormControl>
                     <SelectContent>
                       {gurus.length > 0 ? (
-                        gurus.map((guru: any) => (
+                        gurus.map((guru) => (
                           <SelectItem key={guru.id} value={guru.id}>
                             {guru.name}
                           </SelectItem>

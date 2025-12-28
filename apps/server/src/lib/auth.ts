@@ -1,9 +1,10 @@
 import { betterAuth } from "better-auth";
+import type { BetterAuthOptions } from "better-auth";
 import { Pool } from "pg";
 import { sendEmail } from "./email";
 import { validateEmailForSignup } from "./email-validation";
 
-export const auth = betterAuth({
+const authOptions: BetterAuthOptions = {
   logger: {
     level: "debug",
   },
@@ -16,10 +17,6 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
     requireEmailVerification: true,
-    signUpRateLimit: {
-      attempts: 3,
-      window: 60,
-    },
     sendResetPassword: async ({ user, url, token }, request) => {
       await sendEmail({
         to: user.email,
@@ -42,14 +39,6 @@ export const auth = betterAuth({
     },
     autoSignInAfterVerification: true,
   },
-  hooks: {
-    user: {
-      create: {
-        before: async (user: any) => {
-          validateEmailForSignup(user.email);
-          return user;
-        },
-      },
-    },
-  }
-});
+};
+
+export const auth = betterAuth(authOptions);

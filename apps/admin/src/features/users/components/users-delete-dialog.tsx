@@ -32,13 +32,13 @@ export function UsersDeleteDialog({ open, onOpenChange, currentRow }: Props) {
         setValue('')
         onOpenChange(false)
       },
-      onError: (error: any) => {
+      onError: (error) => {
         toast({
           title: 'Failed to delete user',
-          description: error?.message || 'An error occurred',
+          description: error instanceof Error ? error.message : 'An error occurred',
           variant: 'destructive',
         })
-      }
+      },
     })
   }
 

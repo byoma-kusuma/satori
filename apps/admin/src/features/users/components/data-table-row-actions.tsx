@@ -34,13 +34,13 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
           description: `Verification email has been sent to ${row.original.email}`,
         })
       },
-      onError: (error: any) => {
+      onError: (error) => {
         toast({
           title: 'Failed to send verification email',
-          description: error?.message || 'An error occurred',
+          description: error instanceof Error ? error.message : 'An error occurred',
           variant: 'destructive',
         })
-      }
+      },
     })
   }
 
@@ -54,13 +54,13 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
           description: `${row.original.name} has been restored successfully`,
         })
       },
-      onError: (error: any) => {
+      onError: (error) => {
         toast({
           title: 'Failed to restore user',
-          description: error?.message || 'An error occurred',
+          description: error instanceof Error ? error.message : 'An error occurred',
           variant: 'destructive',
         })
-      }
+      },
     })
   }
 

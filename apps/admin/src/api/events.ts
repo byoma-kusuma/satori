@@ -62,14 +62,14 @@ const fetchWithCredentials = async <T>(url: string, options?: RequestInit): Prom
       // Ignore text parsing errors and fall back to status text
     }
 
-    if (bodyText && bodyText.trim().length > 0) {
+      if (bodyText && bodyText.trim().length > 0) {
       try {
         const parsed = JSON.parse(bodyText)
         if (parsed && typeof parsed === 'object') {
-          const candidate = (parsed as Record<string, unknown>).message ?? (parsed as Record<string, unknown>).error
-          if (typeof candidate === 'string' && candidate.trim().length > 0) {
-            errorMessage = candidate
-          }
+          const message = typeof parsed.message === 'string' ? parsed.message : undefined
+          const error = typeof parsed.error === 'string' ? parsed.error : undefined
+          const candidate = message ?? error
+          if (candidate && candidate.trim().length > 0) errorMessage = candidate
         }
       } catch {
         // Ignore JSON parsing errors and fall back to raw text

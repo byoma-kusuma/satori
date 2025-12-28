@@ -93,7 +93,12 @@ export function DataTableToolbar({
       toast({ title: 'Import complete', description: `Imported ${res.imported} new records. ${res.skipped} duplicates skipped.` })
       qc.invalidateQueries({ queryKey: ['registrations'] })
     },
-    onError: (e: any) => toast({ title: 'Import failed', description: e?.message || 'Unable to import', variant: 'destructive' }),
+    onError: (error) =>
+      toast({
+        title: 'Import failed',
+        description: error instanceof Error ? error.message : 'Unable to import',
+        variant: 'destructive',
+      }),
   })
 
   const clearAllMutation = useMutation({
@@ -103,7 +108,12 @@ export function DataTableToolbar({
       qc.invalidateQueries({ queryKey: ['registrations'] })
       table.resetRowSelection()
     },
-    onError: (e: any) => toast({ title: 'Failed to clear', description: e?.message || 'Unable to clear registrations', variant: 'destructive' }),
+    onError: (error) =>
+      toast({
+        title: 'Failed to clear',
+        description: error instanceof Error ? error.message : 'Unable to clear registrations',
+        variant: 'destructive',
+      }),
   })
 
   const onImportClick = () => {
@@ -162,7 +172,7 @@ export function DataTableToolbar({
 
         setConvertedOk(okTotal)
         setConvertedFail(failTotal)
-      } catch (e: any) {
+      } catch (error) {
         failTotal += slice.length
         setConvertedFail(failTotal)
 
@@ -173,11 +183,15 @@ export function DataTableToolbar({
           errors.push({
             id,
             name,
-            error: e?.message || 'Batch conversion failed'
+            error: error instanceof Error ? error.message : 'Batch conversion failed'
           })
         })
 
-        toast({ title: 'Conversion error', description: e?.message || 'Batch failed', variant: 'destructive' })
+        toast({
+          title: 'Conversion error',
+          description: error instanceof Error ? error.message : 'Batch failed',
+          variant: 'destructive',
+        })
       }
       setProgress(Math.min(1, (i + slice.length) / allIds.length))
     }
@@ -329,7 +343,6 @@ export function DataTableToolbar({
     </>
   )
 }
-
 
 
 

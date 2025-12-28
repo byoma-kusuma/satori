@@ -5,6 +5,8 @@ import { z } from 'zod'
 import { db } from '../../database'
 import { auth } from '../../lib/auth'
 import { authenticated } from '../../middlewares/session'
+import type { Insertable, Updateable } from 'kysely'
+import type { PersonEmpowerment } from '../../types'
 
 const personEmpowermentInputSchema = z.object({
   empowerment_id: z.string().uuid('Invalid empowerment ID'),
@@ -62,11 +64,11 @@ export const personEmpowermentRoute = app
       const data = personEmpowermentInputSchema.parse(rawData)
       const user = requireUser(c.get('user'))
 
-      const insertData: any = {
+      const insertData: Insertable<PersonEmpowerment> = {
         empowerment_id: data.empowerment_id,
         person_id: data.person_id,
-        created_by: (user as any).id,
-        last_updated_by: (user as any).id,
+        created_by: user.id,
+        last_updated_by: user.id,
       }
 
       // Only include guru_id if it's not empty
@@ -104,7 +106,7 @@ export const personEmpowermentRoute = app
     const data = c.req.valid('json')
     const user = requireUser(c.get('user'))
 
-    const updateData: any = {
+    const updateData: Updateable<PersonEmpowerment> = {
       last_updated_by: user.id,
       updated_at: new Date(),
     }

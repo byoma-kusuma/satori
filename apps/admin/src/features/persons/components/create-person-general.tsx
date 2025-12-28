@@ -62,37 +62,12 @@ export function CreatePersonPage() {
   })
 
   const onSubmit = (vals: PersonForm) => {
-    const processedVals: any = {
-      firstName: vals.firstName,
-      middleName: vals.middleName || null,
-      lastName: vals.lastName,
-      address: vals.address,
-      centerId: vals.centerId === undefined || vals.centerId === '' ? null : vals.centerId,
-      type: vals.type,
-      emailId: vals.emailId || null,
-      primaryPhone: vals.primaryPhone || null,
-      secondaryPhone: vals.secondaryPhone || null,
-      viberNumber: vals.viberNumber || null,
-      yearOfBirth: vals.yearOfBirth || null,
-      gender: vals.gender || null,
-      country: vals.country || null,
-      nationality: vals.nationality || null,
-      languagePreference: vals.languagePreference || null,
-      occupation: vals.occupation || null,
-      notes: vals.notes || null,
-      refugeName: vals.refugeName || null,
-      yearOfRefuge: vals.yearOfRefuge || null,
-      title: vals.title || null,
-      membershipType: vals.membershipType || null,
-      hasMembershipCard: vals.hasMembershipCard || null,
-      membershipCardNumber: vals.membershipCardNumber || null,
-      emergencyContactName: vals.emergencyContactName || null,
-      emergencyContactRelationship: vals.emergencyContactRelationship || null,
-      emergencyContactPhone: vals.emergencyContactPhone || null,
-      yearOfRefugeCalendarType: vals.yearOfRefugeCalendarType || null,
-      is_krama_instructor: vals.is_krama_instructor || false,
-      krama_instructor_person_id: vals.krama_instructor_person_id === 'none' ? null : vals.krama_instructor_person_id || null,
-      referredBy: vals.referredBy || null,
+    const processedVals: PersonForm = {
+      ...vals,
+      krama_instructor_person_id:
+        vals.krama_instructor_person_id === 'none'
+          ? undefined
+          : vals.krama_instructor_person_id,
     }
 
     createPersonMutation.mutate(processedVals, {
@@ -101,8 +76,8 @@ export function CreatePersonPage() {
         form.reset()
         navigate({ to: '/persons' })
       },
-      onError: (err: unknown) => {
-        toast({ title: 'Creation failed', description: String(err), variant: 'destructive' })
+      onError: (error) => {
+        toast({ title: 'Creation failed', description: error instanceof Error ? error.message : String(error), variant: 'destructive' })
       },
     })
   }
@@ -129,7 +104,7 @@ export function CreatePersonPage() {
           <CardContent>
             <GeneralInfoTab
               form={form}
-              person={{ hasMajorEmpowerment: false, membershipCardNumber: null, country: undefined }}
+              person={null}
               formRef={formRef}
               onSubmit={onSubmit}
             />
@@ -145,4 +120,3 @@ export function CreatePersonPage() {
     </>
   )
 }
-

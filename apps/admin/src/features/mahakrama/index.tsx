@@ -40,7 +40,7 @@ export function MahakramaPage() {
       queryClient.invalidateQueries({ queryKey: ['mahakrama-steps'] })
       setDialogOpen(false)
     },
-    onError: (error: unknown) => {
+    onError: (error) => {
       toast({
         title: 'Unable to create Mahakrama step',
         description: error instanceof Error ? error.message : String(error),
@@ -57,7 +57,7 @@ export function MahakramaPage() {
       setDialogOpen(false)
       setEditingStep(null)
     },
-    onError: (error: unknown) => {
+    onError: (error) => {
       toast({
         title: 'Unable to update Mahakrama step',
         description: error instanceof Error ? error.message : String(error),
@@ -73,7 +73,7 @@ export function MahakramaPage() {
       queryClient.invalidateQueries({ queryKey: ['mahakrama-steps'] })
       setDeleteTarget(null)
     },
-    onError: (error: unknown) => {
+    onError: (error) => {
       toast({
         title: 'Unable to delete Mahakrama step',
         description: error instanceof Error ? error.message : String(error),
@@ -91,7 +91,7 @@ export function MahakramaPage() {
       queryClient.invalidateQueries({ queryKey: ['mahakrama-steps'] })
       setImportOpen(false)
     },
-    onError: (error: unknown) => {
+    onError: (error) => {
       toast({
         title: 'Import failed',
         description: error instanceof Error ? error.message : String(error),

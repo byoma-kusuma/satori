@@ -57,14 +57,14 @@ centers.get('/:id', async (c) => {
 })
 
 centers.post('/', zValidator('json', centerInputSchema), async (c) => {
-  const input = c.req.valid('json')
+  const input = centerInputSchema.parse(c.req.valid('json'))
   const center = await createCenter(input)
   return c.json(center, 201)
 })
 
 centers.put('/:id', zValidator('json', centerInputSchema), async (c) => {
   const id = c.req.param('id')
-  const input = c.req.valid('json')
+  const input = centerInputSchema.parse(c.req.valid('json'))
   const center = await updateCenter(id, input)
   if (!center) {
     return c.json({ error: 'Center not found' }, 404)
@@ -97,7 +97,7 @@ centers.post('/:id/persons', zValidator('json', assignPersonSchema), async (c) =
   if (!exists) {
     return c.json({ error: 'Center not found' }, 404)
   }
-  const input = c.req.valid('json')
+  const input = assignPersonSchema.parse(c.req.valid('json'))
   const user = c.get('user')
 
   if (!user) {

@@ -6,7 +6,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useToast } from '@/hooks/use-toast'
 import { getGroupsQueryOptions, useBulkAddPersonsToGroups } from '@/api/groups'
-import type { Group } from '@/features/groups/data/schema'
+import { groupSchema, type Group } from '@/features/groups/data/schema'
 
 interface PersonsAddToGroupsDialogProps {
   open: boolean
@@ -58,10 +58,11 @@ export function PersonsAddToGroupsDialog({ open, onOpenChange, personIds }: Pers
 
   const disabled = selectedGroupIds.length === 0 || personIds.length === 0
 
-  const groupsByName = useMemo(() =>
-    [...(groups as Group[])].sort((a, b) => a.name.localeCompare(b.name)),
-    [groups],
-  )
+  const groupsByName: Group[] = useMemo(() => {
+    if (!Array.isArray(groups)) return []
+    const parsed = groups.map((group) => groupSchema.parse(group))
+    return [...parsed].sort((a, b) => a.name.localeCompare(b.name))
+  }, [groups])
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -81,7 +82,7 @@ export function PersonsAddToGroupsDialog({ open, onOpenChange, personIds }: Pers
           ) : (
             <ScrollArea className='h-64 rounded-md border p-3'>
               <div className='space-y-3'>
-                {groupsByName.map((group: any) => (
+                {groupsByName.map((group) => (
                   <label key={group.id} className='flex items-center gap-3 text-sm'>
                     <Checkbox
                       checked={selectedGroupIds.includes(group.id)}

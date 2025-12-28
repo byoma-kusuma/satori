@@ -1,6 +1,7 @@
 import { queryOptions } from '@tanstack/react-query'
 import { authClient } from '@/auth-client'
 import { API_BASE_URL } from './base-url'
+import type { CenterDetailDto, CenterDto, CenterFormValues, CenterPersonDto } from '@/features/centers/data/schema'
 
 const CENTER_API_URL = `${API_BASE_URL}/api/center`
 
@@ -37,16 +38,16 @@ const fetchWithCredentials = async (url: string, options?: RequestInit) => {
   return response.json()
 }
 
-export const getCenters = () => fetchWithCredentials(CENTER_API_URL)
-export const getCenter = (id: string) => fetchWithCredentials(`${CENTER_API_URL}/${id}`)
+export const getCenters = (): Promise<CenterDto[]> => fetchWithCredentials(CENTER_API_URL)
+export const getCenter = (id: string): Promise<CenterDetailDto> => fetchWithCredentials(`${CENTER_API_URL}/${id}`)
 
-export const createCenter = (payload: any) =>
+export const createCenter = (payload: CenterFormValues): Promise<CenterDto> =>
   fetchWithCredentials(CENTER_API_URL, {
     method: 'POST',
     body: JSON.stringify(payload),
   })
 
-export const updateCenter = (id: string, payload: any) =>
+export const updateCenter = (id: string, payload: CenterFormValues): Promise<CenterDto> =>
   fetchWithCredentials(`${CENTER_API_URL}/${id}`, {
     method: 'PUT',
     body: JSON.stringify(payload),
@@ -57,7 +58,7 @@ export const deleteCenter = (id: string) =>
     method: 'DELETE',
   })
 
-export const getCenterPersons = (id: string) =>
+export const getCenterPersons = (id: string): Promise<CenterPersonDto[]> =>
   fetchWithCredentials(`${CENTER_API_URL}/${id}/persons`)
 
 export const addPersonToCenter = (centerId: string, payload: { personId: string; position?: string | null }) =>

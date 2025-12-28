@@ -23,10 +23,8 @@ const fetchWithCredentials = async <T>(url: string, options?: RequestInit): Prom
   const response = await fetch(url, { ...options, credentials: 'include', headers })
   if (!response.ok) {
     let message = response.statusText || `API error: ${response.status}`
-    try {
-      const body = await response.json()
-      if (body && typeof body.message === 'string') message = body.message
-    } catch {}
+    const body = await response.json().catch(() => null)
+    if (body && typeof body.message === 'string') message = body.message
     throw new Error(message)
   }
   return response.json()

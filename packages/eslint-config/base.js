@@ -14,6 +14,23 @@ export const config = [
   eslintConfigPrettier,
   ...tseslint.configs.recommended,
   {
+    files: ["**/*.{ts,tsx,cts,mts}"],
+    rules: {
+      "@typescript-eslint/no-explicit-any": "error",
+      "@typescript-eslint/no-restricted-types": [
+        "error",
+        {
+          types: {
+            unknown: {
+              message:
+                "Avoid `unknown` in application code. Prefer precise types, narrowing helpers, or schema validation at trust boundaries.",
+            },
+          },
+        },
+      ],
+    },
+  },
+  {
     plugins: {
       turbo: turboPlugin,
     },
