@@ -26,8 +26,8 @@ export function PersonsDeleteDialog({ open, onOpenChange, currentRow }: Props) {
         toast({ title: 'Person deleted successfully' })
         onOpenChange(false)
       },
-      onError: (err: unknown) => {
-        toast({ title: 'Error deleting person', description: String(err) })
+      onError: (error) => {
+        toast({ title: 'Error deleting person', description: error instanceof Error ? error.message : String(error) })
       }
     })
   }

@@ -103,7 +103,7 @@ export function EditEventDialog({ eventId, open, onOpenChange }: Props) {
       endDate: '',
       empowermentId: null,
       guruId: null,
-      eventGroupId: null as any,
+      eventGroupId: null,
       requiresFullAttendance: null,
     },
   })
@@ -120,7 +120,7 @@ export function EditEventDialog({ eventId, open, onOpenChange }: Props) {
       endDate: eventDetail.endDate?.slice(0, 10) ?? '',
       empowermentId: eventDetail.empowermentId,
       guruId: eventDetail.guruId,
-      eventGroupId: (eventDetail as any).eventGroupId ?? null,
+      eventGroupId: eventDetail.eventGroupId ?? null,
       requiresFullAttendance: eventDetail.requiresFullAttendance,
     })
   }, [eventDetail, form])
@@ -178,8 +178,8 @@ export function EditEventDialog({ eventId, open, onOpenChange }: Props) {
       : startDateIso
 
     const payload: CreateEventPayload = {
-      eventGroupId: (values as any).eventGroupId ?? null,
       ...values,
+      eventGroupId: values.eventGroupId ?? null,
       description: values.description ?? null,
       startDate: startDateIso,
       endDate: endDateIso,
@@ -254,10 +254,14 @@ export function EditEventDialog({ eventId, open, onOpenChange }: Props) {
                     setShowNewGroup(false)
                     setNewGroupName('')
                     setNewGroupDesc('')
-                    form.setValue('eventGroupId', (created as any).id)
-                    toast({ title: 'Group created', description: `Selected ${ (created as any).name }` })
-                  } catch (e: any) {
-                    toast({ title: 'Unable to create group', description: e?.message || 'Please try again.', variant: 'destructive' })
+                    form.setValue('eventGroupId', created.id)
+                    toast({ title: 'Group created', description: `Selected “${created.name}”.` })
+                  } catch (error) {
+                    toast({
+                      title: 'Unable to create group',
+                      description: error instanceof Error ? error.message : 'Please try again.',
+                      variant: 'destructive',
+                    })
                   }
                 }}
               >
@@ -531,5 +535,4 @@ export function EditEventDialog({ eventId, open, onOpenChange }: Props) {
     </Dialog>
   )
 }
-
 

@@ -2,6 +2,7 @@ import { Hono } from 'hono'
 import { z } from 'zod'
 import { zValidator } from '@hono/zod-validator'
 import { HTTPException } from 'hono/http-exception'
+import { NoResultError } from 'kysely'
 
 import { authenticated } from '../../middlewares/session'
 import { adminOnly } from '../../middlewares/authorization'
@@ -61,8 +62,11 @@ export const eventGroupRoutes = app
       const { id } = c.req.valid('param')
       const row = await EventGroupService.getEventGroupById(id)
       return c.json(row)
-    } catch (e: any) {
-      throw new HTTPException(404, { message: 'Not Found' })
+    } catch (error) {
+      if (error instanceof NoResultError) {
+        throw new HTTPException(404, { message: 'Not Found' })
+      }
+      throw error
     }
   })
   // Update
@@ -81,13 +85,13 @@ export const eventGroupRoutes = app
     try {
       await EventGroupService.deleteEventGroup(id)
       return c.json({ success: true })
-    } catch (e: any) {
-      if (typeof e?.message === 'string' && e.message.includes('Cannot delete: this group has events assigned.')) {
+    } catch (error) {
+      const message = error instanceof Error ? error.message : ''
+      if (message.includes('Cannot delete: this group has events assigned.')) {
         return c.json({ success: false, message: 'Cannot delete: this group has events assigned.' }, 400)
       }
-      throw e
+      throw error
     }
   })
 
 export type EventGroupRoutes = typeof eventGroupRoutes
-

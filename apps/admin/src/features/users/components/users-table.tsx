@@ -74,7 +74,6 @@ export function UsersTable({ columns, data }: DataTableProps) {
     if (target.closest('button, a, [role="button"], input, select, textarea, .checkbox')) {
       return
     }
-    console.log('Navigating to:', `/users/${userId}/edit`)
     navigate({ to: '/users/$userId/edit', params: { userId } })
   }
 

@@ -40,10 +40,8 @@ const fetchWithCredentials = async <T>(url: string, options?: RequestInit): Prom
   return response.json()
 }
 
-const parseRelationship = (data: unknown): PersonRelationship => {
-  const parsed = personRelationshipSchema.parse(data)
-  return parsed
-}
+const parseRelationship = (data: PersonRelationship): PersonRelationship =>
+  personRelationshipSchema.parse(data)
 
 export const getPersonRelationships = async (personId: string) => {
   const data = await fetchWithCredentials<PersonRelationship[]>(`${PERSON_RELATIONSHIP_API_URL}?personId=${personId}`)

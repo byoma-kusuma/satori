@@ -34,5 +34,4 @@ export interface ImportSummary {
   skipped: number
 }
 
-export type RegistrationCsvRow = Record<string, string>
-
+export type RegistrationCsvRow = Record<string, string | undefined>

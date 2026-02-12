@@ -81,7 +81,7 @@ export function CreateEventDialog({ open, onOpenChange }: Props) {
       endDate: '',
       empowermentId: null,
       guruId: null,
-      eventGroupId: null as any,
+      eventGroupId: null,
       requiresFullAttendance: null,
     },
   })
@@ -150,8 +150,7 @@ export function CreateEventDialog({ open, onOpenChange }: Props) {
       endDate: endDateIso,
       empowermentId: isEmpowermentEvent ? values.empowermentId! : null,
       guruId: isEmpowermentEvent ? values.guruId! : null,
-      eventGroupId: (values as any).eventGroupId ?? null,
-      eventGroupId: (values as any).eventGroupId ?? null,
+      eventGroupId: values.eventGroupId ?? null,
       metadata,
     }
 
@@ -181,7 +180,7 @@ export function CreateEventDialog({ open, onOpenChange }: Props) {
     }}>
       <DialogContent className='sm:max-w-lg'>
         <DialogHeader>
-          
+          <DialogTitle>Create Event</DialogTitle>
         </DialogHeader>
         
         {showNewGroup && (
@@ -223,10 +222,14 @@ export function CreateEventDialog({ open, onOpenChange }: Props) {
                     setShowNewGroup(false)
                     setNewGroupName('')
                     setNewGroupDesc('')
-                    form.setValue('eventGroupId', (created as any).id)
-                    toast({ title: 'Group created', description: Selected  })
-                  } catch (e: any) {
-                    toast({ title: 'Unable to create group', description: e?.message || 'Please try again.', variant: 'destructive' })
+                    form.setValue('eventGroupId', created.id)
+                    toast({ title: 'Group created', description: `Selected “${created.name}”.` })
+                  } catch (error) {
+                    toast({
+                      title: 'Unable to create group',
+                      description: error instanceof Error ? error.message : 'Please try again.',
+                      variant: 'destructive',
+                    })
                   }
                 }}
               >
@@ -494,6 +497,5 @@ export function CreateEventDialog({ open, onOpenChange }: Props) {
     </Dialog>
   )
 }
-
 
 

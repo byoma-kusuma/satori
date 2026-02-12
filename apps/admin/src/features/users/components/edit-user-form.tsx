@@ -122,8 +122,8 @@ function EditUserForm({ userId }: { userId: string }) {
         toast({ title: 'User updated successfully' })
         navigate({ to: '/users' })
       },
-      onError: (err: unknown) => {
-        toast({ title: 'Update failed', description: String(err), variant: 'destructive' })
+      onError: (error) => {
+        toast({ title: 'Update failed', description: error instanceof Error ? error.message : String(error), variant: 'destructive' })
       }
     })
   }

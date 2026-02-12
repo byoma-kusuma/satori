@@ -166,7 +166,7 @@ export const personsRoutes = persons
     return c.json(personWithKrama);
   })
   .post("/", zValidator("json", personInputSchema), requirePermission("canCreatePersons"), async (c) => {
-    const personData = await c.req.valid("json");
+    const personData = personInputSchema.parse(c.req.valid("json"));
     const user = c.get("user");
     if (!user) throw new Error("User not found");
     const newPerson = await createPerson(personData, user.id);

@@ -1,6 +1,8 @@
 import { db } from '../../database';
 import { PersonInput, PersonType } from './person.types';
 import { UserRole } from '../../types/user-roles';
+import type { Updateable } from 'kysely';
+import type { Person as PersonTable } from '../../types';
 
 // Generate person code from first and last name initials + 4 digit number
 export const generatePersonCode = async (firstName: string, lastName: string): Promise<string> => {
@@ -142,7 +144,7 @@ export async function updatePerson(id: string, updateData: Partial<PersonInput>,
       .where('id', '=', id)
       .executeTakeFirst()
 
-    const dataToUpdate: Record<string, unknown> = {
+    const dataToUpdate: Updateable<PersonTable> = {
       ...rest,
       lastUpdatedBy,
     }

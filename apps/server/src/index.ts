@@ -20,6 +20,11 @@ import { eventGroupRoutes } from "./api/event-group/event-group.route";
 
 const app = new Hono();
 
+const port = (() => {
+  const parsed = process.env.PORT ? Number(process.env.PORT) : 3000;
+  return Number.isFinite(parsed) ? parsed : 3000;
+})();
+
 // check if origin is set in environment variables if not default to localhost for development
 if (!process.env.ORIGIN) {
   console.log("No ORIGIN set in environment variables, defaulting to http://localhost:3000");
@@ -30,7 +35,7 @@ if (!process.env.ORIGIN) {
 app.use(
   '*',
   cors({
-     origin: (origin:any) => {
+     origin: (origin: string) => {
       const allowed = process.env.ORIGIN?.split(',').map(o => o.trim()) || []
       // only return the origin if it's explicitly allowed
       if (origin && allowed.includes(origin)) {
@@ -68,7 +73,7 @@ app.route("/api/registration", registrationRoutes);
 app.route("/api/event-groups", eventGroupRoutes);
 
 export default {
-  port: process.env.PORT || 3000,
+  port,
   hostname: "0.0.0.0",
   fetch: app.fetch,
 };

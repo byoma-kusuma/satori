@@ -1,7 +1,8 @@
 import { sql } from 'kysely'
+import type { Updateable } from 'kysely'
 
 import { db } from '../../database'
-import type { EventRegistrationMode, EventStatus } from '../../types'
+import type { Event, EventAttendee, EventRegistrationMode, EventStatus, JsonObject, JsonValue, Person } from '../../types'
 import {
   AddAttendeeInput,
   CheckInInput,
@@ -57,11 +58,14 @@ const buildEventDays = (start: Date, end: Date) => {
   return days
 }
 
-const isPlainObject = (value: unknown): value is Record<string, unknown> =>
+const isJsonObject = (value: JsonValue): value is JsonObject =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
 
-const normalizeMetadata = (value: unknown): EventMetadata => {
-  if (!isPlainObject(value)) {
+const normalizeMetadata = (value: JsonValue | null | undefined): EventMetadata => {
+  if (!value) {
+    return {}
+  }
+  if (!isJsonObject(value)) {
     return {}
   }
   return { ...value }
@@ -75,7 +79,7 @@ const sanitizeNonEmpowermentMetadata = (metadata: EventMetadata): EventMetadata 
   return next
 }
 
-const asValidId = (value: unknown): string | null =>
+const asValidId = (value: JsonValue | null | undefined): string | null =>
   typeof value === 'string' && value.trim().length > 0 ? value : null
 
 const ensureEmpowermentMetadata = (
@@ -173,7 +177,7 @@ export async function listEvents(): Promise<EventSummaryDto[]> {
     status: row.status as EventStatus,
     startDate: toIsoString(row.start_date)!,
     endDate: toIsoString(row.end_date)!,
-    eventGroupId: (row as any).event_group_id ?? null,
+    eventGroupId: row.event_group_id ?? null,
     categoryCode: row.category_code,
     categoryName: row.category_name,
     totalAttendees: Number(row.total_attendees ?? 0),
@@ -341,9 +345,9 @@ export async function getEventDetail(eventId: string): Promise<EventDetailDto> {
 
   // Event-level requiresFullAttendance overrides category default
   const requiresFullAttendance =
-    (event as any).event_requires_full_attendance !== null
-      ? Boolean((event as any).event_requires_full_attendance)
-      : Boolean((event as any).category_requires_full_attendance)
+    event.event_requires_full_attendance !== null
+      ? Boolean(event.event_requires_full_attendance)
+      : Boolean(event.category_requires_full_attendance)
 
   return {
     id: event.id,
@@ -355,8 +359,8 @@ export async function getEventDetail(eventId: string): Promise<EventDetailDto> {
     status: event.status as EventStatus,
     empowermentId: event.empowerment_id ?? null,
     guruId: event.guru_id ?? null,
-    eventGroupId: (event as any).event_group_id ?? null,
-    eventGroupName: (event as any).event_group_name ?? null,
+    eventGroupId: event.event_group_id ?? null,
+    eventGroupName: event.event_group_name ?? null,
     closedAt: toIsoString(event.closed_at),
     closedBy: event.closed_by ?? null,
     requiresFullAttendance,
@@ -364,7 +368,7 @@ export async function getEventDetail(eventId: string): Promise<EventDetailDto> {
       id: event.category_id,
       code: event.category_code,
       name: event.category_name,
-      requiresFullAttendance: Boolean((event as any).category_requires_full_attendance),
+      requiresFullAttendance: Boolean(event.category_requires_full_attendance),
     },
     days: dayDtos,
     attendees: attendeeDtos,
@@ -449,7 +453,7 @@ export async function createEvent(input: CreateEventInput, userId: string): Prom
         empowerment_id: empowermentId,
         guru_id: guruId,
         event_group_id: eventGroupId,
-        metadata: metadataToStore as any,
+        metadata: metadataToStore,
         requires_full_attendance: input.requiresFullAttendance ?? null,
       })
       .returning(['id'])
@@ -490,10 +494,8 @@ export async function updateEvent(eventId: string, input: UpdateEventInput, user
       throw new Error('Closed events cannot be modified')
     }
 
-    const updatedStart = input.startDate ? ensureValidDate(input.startDate, 'start date') : new Date(current.start_date as Date)
-    const updatedEnd = input.endDate
-      ? ensureValidDate(input.endDate, 'end date')
-      : new Date(current.end_date as Date)
+    const updatedStart = input.startDate ? ensureValidDate(input.startDate, 'start date') : current.start_date
+    const updatedEnd = input.endDate ? ensureValidDate(input.endDate, 'end date') : current.end_date
 
     const categoryId = input.categoryId ?? current.category_id
     const category = await trx
@@ -530,8 +532,7 @@ export async function updateEvent(eventId: string, input: UpdateEventInput, user
     }
 
     const datesChanged =
-      updatedStart.getTime() !== new Date(current.start_date as Date).getTime() ||
-      updatedEnd.getTime() !== new Date(current.end_date as Date).getTime()
+      updatedStart.getTime() !== current.start_date.getTime() || updatedEnd.getTime() !== current.end_date.getTime()
 
     if (datesChanged) {
       const attendanceCount = await trx
@@ -562,7 +563,7 @@ export async function updateEvent(eventId: string, input: UpdateEventInput, user
       }
     }
 
-    const updatePayload: Record<string, unknown> = {
+    const updatePayload: Updateable<Event> = {
       name: input.name ?? current.name,
       description: input.description ?? current.description,
       start_date: updatedStart,
@@ -700,28 +701,31 @@ export async function addAttendee(eventId: string, input: AddAttendeeInput, user
       .orderBy('day_number')
       .execute()
 
-    const attendee = await trx
-      .insertInto('event_attendee')
-      .values({
-        event_id: eventId,
-        person_id: input.personId,
-        registration_mode: event.registration_mode,
-        registered_by: userId,
-        notes: input.notes ?? null,
-        metadata: metadata as any,
-      })
-      .returningAll()
-      .executeTakeFirstOrThrow()
+	    const attendee = await trx
+	      .insertInto('event_attendee')
+	      .values({
+	        event_id: eventId,
+	        person_id: input.personId,
+	        registration_mode: event.registration_mode,
+	        registered_by: userId,
+	        notes: input.notes ?? null,
+	        metadata,
+	      })
+	      .returningAll()
+	      .executeTakeFirstOrThrow()
 
     let attendance: EventAttendeeDto['attendance'] = []
     let attendedAllDays = false
 
-    if (event.registration_mode === 'WALK_IN' && days.length === 1) {
-      const day = days[0]
-      const attendanceRecord = await trx
-        .insertInto('event_attendance')
-        .values({
-          event_attendee_id: attendee.id,
+	    if (event.registration_mode === 'WALK_IN' && days.length === 1) {
+	      const day = days[0]
+	      if (!day) {
+	        throw new Error('Event day not found')
+	      }
+	      const attendanceRecord = await trx
+	        .insertInto('event_attendance')
+	        .values({
+	          event_attendee_id: attendee.id,
           event_day_id: day.id,
           checked_in_by: userId,
         })
@@ -815,7 +819,7 @@ export async function updateAttendee(
       throw new Error('Attendee not found')
     }
 
-    const updatePayload: Record<string, unknown> = {}
+    const updatePayload: Updateable<EventAttendee> = {}
 
     if (input.notes !== undefined) {
       updatePayload.notes = input.notes ?? null
@@ -1057,11 +1061,11 @@ export async function closeEvent(eventId: string, input: CloseEventInput, userId
       throw new Error('Event is already closed')
     }
 
-    // Event-level requiresFullAttendance overrides category default
-    const requiresFullAttendance =
-      (event as any).event_requires_full_attendance !== null
-        ? Boolean((event as any).event_requires_full_attendance)
-        : Boolean((event as any).category_requires_full_attendance)
+	    // Event-level requiresFullAttendance overrides category default
+	    const requiresFullAttendance =
+	      event.event_requires_full_attendance !== null
+	        ? Boolean(event.event_requires_full_attendance)
+	        : Boolean(event.category_requires_full_attendance)
 
     const dayRows = await trx
       .selectFrom('event_day')
@@ -1123,13 +1127,13 @@ export async function closeEvent(eventId: string, input: CloseEventInput, userId
         let recordId = attendee.empowerment_record_id ?? null
 
         if (!recordId) {
-          const existingRecord = await trx
-            .selectFrom('person_empowerment')
-            .select(['id'])
-            .where('person_id', '=', attendee.person_id)
-            .where('empowerment_id', '=', event.empowerment_id!)
-            .where('start_date', '=', event.start_date as Date)
-            .executeTakeFirst()
+	          const existingRecord = await trx
+	            .selectFrom('person_empowerment')
+	            .select(['id'])
+	            .where('person_id', '=', attendee.person_id)
+	            .where('empowerment_id', '=', event.empowerment_id!)
+	            .where('start_date', '=', event.start_date)
+	            .executeTakeFirst()
 
           if (existingRecord) {
             recordId = existingRecord.id
@@ -1208,7 +1212,7 @@ export async function closeEvent(eventId: string, input: CloseEventInput, userId
         const refugeNameRaw = metadata.refugeName
         const refugeName = typeof refugeNameRaw === 'string' ? refugeNameRaw.trim() : ''
 
-        const updatePayload: Record<string, unknown> = {}
+	        const updatePayload: Updateable<Person> = {}
 
         if (person.type !== 'sangha_member') {
           updatePayload.type = 'sangha_member'

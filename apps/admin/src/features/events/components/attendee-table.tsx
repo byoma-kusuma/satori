@@ -108,8 +108,9 @@ export function AttendeeTable({
     const attendee = event.attendees.find((item) => item.attendeeId === attendeeId)
     if (!attendee) return null
 
-    const record = attendee.metadata as Record<string, unknown>
-    const currentValue = typeof record?.[metadataField] === 'string' ? (record[metadataField] as string) : ''
+    const record = attendee.metadata
+    const candidate = record?.[metadataField]
+    const currentValue = typeof candidate === 'string' ? candidate : ''
     const isUpdating = updatingAttendeeId === attendeeId
 
     return (
@@ -125,8 +126,9 @@ export function AttendeeTable({
 
   const renderMetadataInfo = (metadata: Attendee['metadata']) => {
     if (metadataField) return null
-    const record = metadata as Record<string, unknown>
-    const value = typeof record?.['referredBy'] === 'string' ? (record['referredBy'] as string) : undefined
+    const record = metadata
+    const candidate = record?.['referredBy']
+    const value = typeof candidate === 'string' ? candidate : undefined
     return value ? <div className='text-xs text-muted-foreground'>Referred by: {value}</div> : null
   }
 

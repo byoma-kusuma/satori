@@ -42,18 +42,10 @@ interface MahakramaImportDialogProps {
 }
 
 const REQUIRED_HEADERS = ['groupId', 'groupName', 'stepId', 'stepName'] as const
-const OPTIONAL_HEADERS = ['description'] as const
-const NORMALIZED_HEADERS = {
-  groupid: 'groupId',
-  groupname: 'groupName',
-  stepid: 'stepId',
-  stepname: 'stepName',
-  description: 'description',
-} satisfies Record<string, keyof MahakramaStepInput | 'description'>
 
 const normalizeHeader = (value: string) => value.replace(/[^a-z0-9]/gi, '').toLowerCase()
 
-type CsvRow = Record<(typeof REQUIRED_HEADERS)[number] | (typeof OPTIONAL_HEADERS)[number], string>
+type CsvRow = Record<(typeof REQUIRED_HEADERS)[number] | 'description', string>
 
 export function MahakramaImportDialog({ open, onOpenChange, onImport, isImporting, startingSequence }: MahakramaImportDialogProps) {
   const { toast } = useToast()
@@ -111,7 +103,7 @@ export function MahakramaImportDialog({ open, onOpenChange, onImport, isImportin
         groupName: get('groupName'),
         stepId: get('stepId'),
         stepName: get('stepName'),
-        description: get('description') || null,
+        description: get('description'),
       }
     })
 

@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import type { JsonValue } from '@/types/json'
 
 // Type enum - must match backend exactly
 export const eventTypeEnum = ['REFUGE', 'BODHIPUSPANJALI'] as const
@@ -25,19 +26,27 @@ export interface BodhipushpanjaliPersonData {
 // Participant metadata structure - must match what the backend expects
 export type EventMetadata = RefugePersonData[] | BodhipushpanjaliPersonData[]
 
+const jsonPrimitiveSchema = z.union([z.string(), z.number(), z.boolean(), z.null()])
+const jsonValueSchema: z.ZodType<JsonValue> = z.lazy(() =>
+  z.union([jsonPrimitiveSchema, z.array(jsonValueSchema), z.record(jsonValueSchema)]),
+)
+
 // Type guards for checking metadata types
-export function isRefugeData(data: unknown[]): data is RefugePersonData[] {
-  return data.length === 0 || 
-    (data.length > 0 && 
-     'refugeName' in data[0] || 
-     'completed' in data[0]);
+const isPlainObject = (value: JsonValue): value is Record<string, JsonValue> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value)
+
+export function isRefugeData(data: JsonValue[]): data is RefugePersonData[] {
+  const first = data[0]
+  if (first === undefined) return true
+  if (!isPlainObject(first)) return false
+  return 'refugeName' in first || 'completed' in first
 }
 
-export function isBodhipushpanjaliData(data: unknown[]): data is BodhipushpanjaliPersonData[] {
-  return data.length === 0 || 
-    (data.length > 0 && 
-     'hasTakenRefuge' in data[0] || 
-     'referralMedium' in data[0]);
+export function isBodhipushpanjaliData(data: JsonValue[]): data is BodhipushpanjaliPersonData[] {
+  const first = data[0]
+  if (first === undefined) return true
+  if (!isPlainObject(first)) return false
+  return 'hasTakenRefuge' in first || 'referralMedium' in first
 }
 
 // Event schema
@@ -48,7 +57,7 @@ export const eventSchema = z.object({
   startDate: z.string().or(z.date()),
   endDate: z.string().or(z.date()),
   type: z.enum(eventTypeEnum),
-  metadata: z.array(z.unknown()).optional(),
+  metadata: z.array(jsonValueSchema).optional(),
   createdAt: z.string().or(z.date()).optional(),
   updatedAt: z.string().or(z.date()).optional(),
   createdBy: z.string(),
@@ -107,7 +116,7 @@ export const bodhipushpanjaliParticipantSchema = z.object({
 // Participant input schema
 export const participantInputSchema = z.object({
   personId: z.string().uuid(),
-  additionalData: z.record(z.unknown()).optional(),
+  additionalData: z.record(jsonValueSchema).optional(),
 })
 
 export type ParticipantInput = z.infer<typeof participantInputSchema>

@@ -69,7 +69,7 @@ export const queryClient = new QueryClient({
     },
     mutations: {
       onError: (error) => {
-        handleServerError(error);
+        handleServerError(error instanceof Error ? error : new Error(String(error)));
         if (error instanceof AxiosError) {
           if (error.response?.status === 304) {
             toast({

@@ -1,6 +1,8 @@
 import { HTTPException } from 'hono/http-exception'
 import { db } from '../../database'
 import type { MahakramaStepInput, MahakramaStepUpdateInput, PersonMahakramaCompleteInput, PersonMahakramaStartInput } from './mahakrama.types'
+import type { Selectable, Updateable } from 'kysely'
+import type { MahakramaStep } from '../../types'
 
 export interface MahakramaStepRecord {
   id: string
@@ -36,7 +38,9 @@ export interface MahakramaHistoryRecord {
   instructorName: string | null
 }
 
-const mapStepRow = (row: any): MahakramaStepRecord => ({
+type MahakramaStepRow = Selectable<MahakramaStep>
+
+const mapStepRow = (row: MahakramaStepRow): MahakramaStepRecord => ({
   id: row.id,
   sequenceNumber: row.sequence_number,
   groupId: row.group_id,
@@ -174,7 +178,7 @@ export const updateMahakramaStep = async (id: string, input: MahakramaStepUpdate
     }
   }
 
-  const updatePayload: Record<string, unknown> = {
+  const updatePayload: Updateable<MahakramaStep> = {
     last_updated_by: userId,
     updated_at: new Date(),
   }
@@ -224,7 +228,33 @@ export const deleteMahakramaStep = async (id: string): Promise<void> => {
 }
 
 export const getMahakramaHistoryForPerson = async (personId: string): Promise<MahakramaHistoryRecord[]> => {
-  const rows = await db
+  type MahakramaHistoryRow = {
+    id: string
+    personId: string
+    mahakramaStepId: string
+    status: string
+    startDate: Date
+    endDate: Date | null
+    mahakramaInstructorId: string | null
+	    completionNotes: string | null
+	    updatedAt: Date | null
+	    updatedBy: string | null
+	    sequenceNumber: number
+	    groupId: string
+	    groupName: string
+    stepId: string
+    stepName: string
+    description: string | null
+    instructorFirstName: string | null
+    instructorLastName: string | null
+  }
+
+  const toHistoryStatus = (value: string): 'current' | 'completed' => {
+    if (value === 'current' || value === 'completed') return value
+    throw new HTTPException(500, { message: `Unexpected Mahakrama status: ${value}` })
+  }
+
+  const rows: MahakramaHistoryRow[] = await db
     .selectFrom('mahakrama_history as mh')
     .innerJoin('mahakrama_step as ms', 'ms.id', 'mh.mahakrama_step_id')
     .leftJoin('person as instructor', 'instructor.id', 'mh.mahakrama_instructor_id')
@@ -253,20 +283,20 @@ export const getMahakramaHistoryForPerson = async (personId: string): Promise<Ma
     .orderBy('ms.sequence_number')
     .execute()
 
-  return rows.map((row: any) => ({
-    id: row.id,
-    personId: row.personId,
-    mahakramaStepId: row.mahakramaStepId,
-    status: row.status as 'current' | 'completed',
-    startDate: row.startDate,
-    endDate: row.endDate ?? null,
-    mahakramaInstructorId: row.mahakramaInstructorId ?? null,
-    completionNotes: row.completionNotes ?? null,
-    updatedAt: row.updatedAt ?? null,
-    updatedBy: row.updatedBy,
-    stepSequenceNumber: row.sequenceNumber,
-    groupId: row.groupId,
-    groupName: row.groupName,
+	  return rows.map((row) => ({
+	    id: row.id,
+	    personId: row.personId,
+	    mahakramaStepId: row.mahakramaStepId,
+	    status: toHistoryStatus(row.status),
+	    startDate: row.startDate,
+	    endDate: row.endDate ?? null,
+	    mahakramaInstructorId: row.mahakramaInstructorId ?? null,
+	    completionNotes: row.completionNotes ?? null,
+	    updatedAt: row.updatedAt ?? null,
+	    updatedBy: row.updatedBy ?? 'System',
+	    stepSequenceNumber: row.sequenceNumber,
+	    groupId: row.groupId,
+	    groupName: row.groupName,
     stepId: row.stepId,
     stepName: row.stepName,
     description: row.description ?? null,

@@ -2,7 +2,11 @@ import { db } from '../../database';
 import { UserRole } from '../../types/user-roles';
 import { auth } from '../../lib/auth';
 import { sendEmail } from '../../lib/email';
+import { validateEmailForSignup } from '../../lib/email-validation';
 import { HTTPException } from 'hono/http-exception';
+import type { Updateable } from 'kysely';
+import type { User as UserTable } from '../../types';
+import { z } from 'zod';
 
 // User response type
 export interface UserResponse {
@@ -44,7 +48,22 @@ export interface UpdateUserInput {
   role?: UserRole;
 }
 
-const mapUserRow = (row: any): UserResponse => ({
+type UserRow = {
+  id: string
+  name: string
+  email: string
+  emailVerified: boolean
+  image: string | null
+  role: UserRole
+  createdAt: Date
+  updatedAt: Date
+  personId: string | null
+  personFirstName: string | null
+  personLastName: string | null
+  personEmail: string | null
+}
+
+const mapUserRow = (row: UserRow): UserResponse => ({
   id: row.id,
   name: row.name,
   email: row.email,
@@ -197,23 +216,34 @@ export async function createUser(input: CreateUserInput): Promise<UserResponse> 
   const email = input.email.trim().toLowerCase()
   const password = input.password
 
+  validateEmailForSignup(email)
+
   if (!password || password.length < 8) {
     throw new HTTPException(400, { message: 'Password must be at least 8 characters.' })
   }
 
   return db.transaction().execute(async (trx) => {
-    const result = await auth.api.signUpEmail({
-      body: {
-        name,
-        email,
-        password,
-      }
-    });
+    const signUpUrl = new URL('/api/auth/sign-up/email', process.env.BETTER_AUTH_URL ?? 'http://localhost')
+    const origin = process.env.ORIGIN?.split(',')[0]?.trim()
 
-    if (!result || !result.user) {
-      throw new HTTPException(500, { message: 'Failed to create user' })
+    const headers = new Headers({ 'content-type': 'application/json' })
+    if (origin) headers.set('origin', origin)
+
+    const response = await auth.handler(
+      new Request(signUpUrl, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ name, email, password }),
+      }),
+    )
+
+    if (!response.ok) {
+      const message = await response.text()
+      throw new HTTPException(400, { message: message || 'Failed to create user' })
     }
 
+    const signUpResponseSchema = z.object({ user: z.object({ id: z.string().min(1) }) })
+    const result = signUpResponseSchema.parse(await response.json())
     const userId = result.user.id
 
     if (input.role && input.role !== 'viewer') {
@@ -358,7 +388,7 @@ export async function getAvailablePersons(): Promise<AvailablePerson[]> {
 
 export async function updateUser(id: string, input: UpdateUserInput): Promise<UserResponse> {
   return db.transaction().execute(async (trx) => {
-    const updates: Record<string, unknown> = {
+    const updates: Updateable<UserTable> = {
       updatedAt: new Date(),
     }
 

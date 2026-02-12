@@ -27,7 +27,7 @@ export function CommandMenu() {
   const [open, setOpen] = useAtom(searchOpenAtom);
 
   const runCommand = React.useCallback(
-    (command: () => unknown) => {
+    (command: () => void) => {
       setOpen(false);
       command();
     },

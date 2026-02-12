@@ -1,5 +1,4 @@
 import { ColumnDef } from '@tanstack/react-table'
-import { cn } from '@/lib/utils'
 import { Registration } from '@/api/registrations'
 
 function StatusBadge({ status }: { status: Registration['status'] }) {
@@ -55,23 +54,16 @@ export function generateColumns(registrations: Registration[]): ColumnDef<Regist
   // Get all unique keys from raw_data
   const rawDataKeys = getAllRawDataKeys(registrations)
 
-  // Define priority columns that should appear first
-  const priorityKeys = [
-    'First Name and Middle Name',
-    'Last Name / Surname',
-    'Last Name / Surname ',
-  ]
-
   // Separate priority columns from the rest
   const priorityColumns: string[] = []
   const otherColumns: string[] = []
 
   rawDataKeys.forEach((key) => {
-    if (priorityKeys.some((pk) => key.includes('First Name') || key.includes('Middle Name'))) {
+    if (key.includes('First Name') || key.includes('Middle Name')) {
       if (!priorityColumns.includes(key)) {
         priorityColumns.unshift(key) // Add first/middle name at the beginning
       }
-    } else if (priorityKeys.some((pk) => key.includes('Last Name') || key.includes('Surname'))) {
+    } else if (key.includes('Last Name') || key.includes('Surname')) {
       priorityColumns.push(key) // Add last name after first name
     } else {
       otherColumns.push(key)

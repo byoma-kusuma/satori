@@ -1,6 +1,7 @@
 import { EventRegistrationMode, EventStatus } from '../../types'
+import type { JsonObject } from '../../types'
 
-export type EventMetadata = Record<string, unknown>
+export type EventMetadata = JsonObject
 
 export interface EmpowermentEventMetadata extends EventMetadata {
   type?: 'EMPOWERMENT'
@@ -106,6 +107,7 @@ export interface EventDetailDto {
   empowermentId: string | null
   guruId: string | null
   eventGroupId: string | null
+  eventGroupName: string | null
   closedAt: string | null
   closedBy: string | null
   requiresFullAttendance: boolean

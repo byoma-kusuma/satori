@@ -8,16 +8,16 @@ import { useNavigate, useParams } from '@tanstack/react-router'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { toast } from '@/hooks/use-toast'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { personInputSchema } from '../data/schema'
+import { type PersonUpdatePayload, personInputSchema } from '../data/schema'
 import { useUpdatePerson, getPersonQueryOptions } from '../data/api'
 import { Header } from '@/components/layout/header'
 import { Main } from '@/components/layout/main'
 import { ProfileDropdown } from '@/components/profile-dropdown'
 import { Search } from '@/components/search'
 import { ThemeSwitch } from '@/components/theme-switch'
-import { IconChevronLeft, IconUserCircle, IconUsers, IconSparkles, IconCalendarPlus, IconUsersGroup, IconCalendar } from '@tabler/icons-react'
+import { IconUserCircle, IconUsers, IconSparkles, IconCalendarPlus, IconUsersGroup, IconCalendar } from '@tabler/icons-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Suspense } from 'react'
 import { GeneralInfoTab } from './general-info-tab'
@@ -38,9 +38,6 @@ function EditPersonForm({ personId }: { personId: string }) {
   const [addToEventsOpen, setAddToEventsOpen] = useState(false)
   const [addToGroupsOpen, setAddToGroupsOpen] = useState(false)
   const { userRole } = usePermissions()
-
-  // Debug: Log the user role
-  console.log('User Role:', userRole)
 
   // Fetch the person data
   const { data: person } = useSuspenseQuery(getPersonQueryOptions(personId))
@@ -85,7 +82,7 @@ function EditPersonForm({ personId }: { personId: string }) {
   const personType = form.watch('type')
 
   const onSubmit = (vals: PersonForm) => {
-    const processedVals: any = {
+    const processedVals: PersonUpdatePayload = {
       firstName: vals.firstName,
       middleName: vals.middleName || null,
       lastName: vals.lastName,
@@ -129,14 +126,12 @@ function EditPersonForm({ personId }: { personId: string }) {
       id: personId,
       updateData: processedVals
     }, {
-      onSuccess: (data) => {
-        console.log('Update success:', data)
+      onSuccess: () => {
         toast({ title: 'Person updated successfully' })
         navigate({ to: '/persons' })
       },
-      onError: (err: unknown) => {
-        console.error('Update error:', err)
-        toast({ title: 'Update failed', description: String(err), variant: 'destructive' })
+      onError: (error) => {
+        toast({ title: 'Update failed', description: error instanceof Error ? error.message : String(error), variant: 'destructive' })
       }
     })
   }
@@ -286,7 +281,6 @@ function EditPersonSkeleton() {
 
 function EditPersonHeader({ personId }: { personId: string }) {
   const { data: person } = useSuspenseQuery(getPersonQueryOptions(personId))
-  const navigate = useNavigate()
 
   return (
     <div className='mb-6'>

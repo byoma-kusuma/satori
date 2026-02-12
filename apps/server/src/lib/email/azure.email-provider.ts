@@ -1,7 +1,7 @@
 import { EmailClient } from "@azure/communication-email";
 import { EmailOptions } from "./email-interface";
 
-export async function sendEmailAzure(options: EmailOptions): Promise<any> {
+export async function sendEmailAzure(options: EmailOptions): Promise<void> {
   const connectionString = process.env.AZURE_COMMUNICATION_CONNECTION_STRING;
   const fromEmail = process.env.AZURE_COMMUNICATION_FROM_EMAIL;
 
@@ -32,7 +32,5 @@ export async function sendEmailAzure(options: EmailOptions): Promise<any> {
   };
 
   const poller = await client.beginSend(message);
-  const result = await poller.pollUntilDone();
-  
-  return result;
-}
+  await poller.pollUntilDone();
+} 
