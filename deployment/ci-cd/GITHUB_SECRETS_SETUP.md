@@ -41,19 +41,81 @@ Creating environments allows for better organization and approval workflows.
 ### Get Cloudflare API Token
 
 1. Log in to [Cloudflare Dashboard](https://dash.cloudflare.com/)
-2. Go to **My Profile** → **API Tokens**
+2. Go to **My Profile** (top right) → **API Tokens**
 3. Click **Create Token**
-4. Use template: **Edit Cloudflare Workers**
-5. Permissions needed:
+4. Click **Use template** next to **Edit Cloudflare Workers** OR create custom token
+
+#### Option A: Use Template (Recommended)
+1. Select **Edit Cloudflare Workers** template
+2. This automatically includes:
    - Account → Cloudflare Pages → Edit
-6. Copy the token (you'll only see it once!)
+   - Account → Account Settings → Read
+3. Under **Account Resources**, select your account
+4. Under **Zone Resources**, select "All zones" or specific zones
+5. Set TTL (optional): Leave blank for no expiration or set expiration date
+6. Click **Continue to summary**
+7. Click **Create Token**
+8. **Copy the token immediately** (you'll only see it once!)
+
+#### Option B: Create Custom Token
+1. Click **Create Custom Token**
+2. Token name: `GitHub Actions - Cloudflare Pages`
+3. Add these permissions:
+
+   **Account Permissions:**
+   - Cloudflare Pages → **Edit**
+   - Account Settings → **Read** (optional but recommended)
+
+   **Zone Permissions:** (if you need DNS management)
+   - Zone → **Read**
+   - DNS → **Edit**
+
+4. **Account Resources:**
+   - Include → Select your account
+
+5. **Zone Resources:**
+   - Include → All zones (or select specific zones)
+
+6. **Client IP Address Filtering:** (optional)
+   - Leave blank to allow from any IP
+   - Or add GitHub Actions IP ranges for extra security
+
+7. **TTL:** (optional)
+   - Leave blank for no expiration
+   - Or set expiration date (e.g., 1 year)
+
+8. Click **Continue to summary**
+9. Review permissions
+10. Click **Create Token**
+11. **Copy the token immediately** (you'll only see it once!)
+
+#### Minimum Required Permissions Summary
+```
+Account Permissions:
+  ✅ Cloudflare Pages: Edit
+
+Optional but Recommended:
+  ✅ Account Settings: Read
+```
+
+#### Save Your Token Securely
+⚠️ **Important:** You can only see the token once! Save it immediately:
+- Copy to password manager
+- Or add directly to GitHub Secrets
+- Do NOT commit to code or share publicly
 
 ### Get Cloudflare Account ID
 
-1. In Cloudflare Dashboard, go to **Workers & Pages**
-2. Click on any project
-3. On the right side, you'll see **Account ID**
-4. Copy the Account ID
+1. In Cloudflare Dashboard, go to **Workers & Pages** (left sidebar)
+2. Click on any existing project (or create a test one)
+3. On the right side panel, you'll see **Account ID**
+4. Click the copy icon next to the Account ID
+5. Save it for the next step
+
+**Alternative method:**
+1. Go to any domain in your Cloudflare account
+2. Scroll down on the Overview page
+3. On the right side, under **API**, you'll see **Account ID**
 
 ### Add to GitHub
 
@@ -64,10 +126,52 @@ Click **New repository secret** for each:
 ```
 Name: CLOUDFLARE_API_TOKEN
 Value: <paste your Cloudflare API token>
+Description: API token for deploying to Cloudflare Pages
 
 Name: CLOUDFLARE_ACCOUNT_ID
 Value: <paste your Cloudflare account ID>
+Description: Cloudflare account ID for Pages deployment
 ```
+
+## Visual Guide: Creating Cloudflare API Token
+
+```
+Cloudflare Dashboard
+├── Click Profile Icon (top right)
+├── Select "My Profile"
+├── Click "API Tokens" (left sidebar)
+├── Click "Create Token"
+│
+├── Option 1: Use Template
+│   ├── Find "Edit Cloudflare Workers"
+│   ├── Click "Use template"
+│   ├── Verify permissions:
+│   │   └── Account → Cloudflare Pages → Edit ✅
+│   ├── Select Account Resources
+│   ├── Click "Continue to summary"
+│   └── Click "Create Token"
+│
+└── Option 2: Custom Token
+    ├── Click "Create Custom Token"
+    ├── Name: "GitHub Actions - Cloudflare Pages"
+    ├── Permissions:
+    │   ├── Account → Cloudflare Pages → Edit ✅
+    │   └── Account → Account Settings → Read ✅
+    ├── Account Resources: Include → Your Account
+    ├── Click "Continue to summary"
+    └── Click "Create Token"
+
+⚠️  COPY TOKEN IMMEDIATELY - You won't see it again!
+```
+
+## Token Permissions Explained
+
+| Permission | Resource | Access | Required | Purpose |
+|------------|----------|--------|----------|---------|
+| Cloudflare Pages | Account | Edit | ✅ Yes | Deploy to Pages projects |
+| Account Settings | Account | Read | ⚠️ Recommended | Read account info |
+| Zone | Zone | Read | ❌ No | Only if managing DNS |
+| DNS | Zone | Edit | ❌ No | Only if updating DNS records |
 
 ## Step 4: Verify Cloudflare Pages Projects
 
