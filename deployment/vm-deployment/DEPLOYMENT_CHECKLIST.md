@@ -433,5 +433,5 @@ docker compose exec -T db psql -U postgres satori < backup.sql
 ### Emergency Contacts
 
 - **DevOps Lead**: _________________
-- **Backend Lead**: _________________
+- **Backend Lead**: __________________
 - **On-Call Engineer**: _________________
