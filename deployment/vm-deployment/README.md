@@ -10,27 +10,29 @@ The deployment process configures VMs with the Satori application using Docker c
 
 ## Architecture
 
+### QA Environment
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                         CLOUDFLARE DNS                          │
 │  • api.qa.portal.byomakusuma.com → QA VM IP                     │
-│  • api.prod.portal.byomakusuma.com → Prod VM IP                 │
+│  • traefik.qa.byomakusuma.com → QA VM IP                        │
+│  • portainer.qa.byomakusuma.com → QA VM IP                      │
 └─────────────────────────────────────────────────────────────────┘
                               ↓
 ┌─────────────────────────────────────────────────────────────────┐
-│                         AZURE VM (Ubuntu)                       │
+│                    AZURE VM - QA (Ubuntu)                       │
 │  ┌───────────────────────────────────────────────────────────┐  │
 │  │                    Traefik (Port 80/443)                  │  │
 │  │  • TLS termination (Let's Encrypt via Cloudflare DNS-01) │  │
 │  │  • Reverse proxy                                          │  │
-│  │  • Dashboard: https://traefik.byomakusuma.com             │  │
+│  │  • Dashboard: https://traefik.qa.byomakusuma.com          │  │
 │  └───────────────────────────────────────────────────────────┘  │
 │                              ↓                                  │
 │  ┌───────────────────────────────────────────────────────────┐  │
 │  │              Satori App Container (Port 3000)             │  │
+│  │  • API: https://api.qa.portal.byomakusuma.com             │  │
 │  │  • Hono API server                                        │  │
 │  │  • Better Auth authentication                             │  │
-│  │  • Connects to PostgreSQL                                 │  │
 │  └───────────────────────────────────────────────────────────┘  │
 │                              ↓                                  │
 │  ┌───────────────────────────────────────────────────────────┐  │
@@ -40,11 +42,63 @@ The deployment process configures VMs with the Satori application using Docker c
 │  └───────────────────────────────────────────────────────────┘  │
 │                                                                 │
 │  ┌───────────────────────────────────────────────────────────┐  │
-│  │         Portainer (https://portainer.byomakusuma.com)     │  │
+│  │  Portainer: https://portainer.qa.byomakusuma.com          │  │
 │  │  • Container management UI                                │  │
 │  └───────────────────────────────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────────────┘
 ```
+
+### Production Environment
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                         CLOUDFLARE DNS                          │
+│  • api.portal.byomakusuma.com → Prod VM IP                      │
+│  • traefik.portal.byomakusuma.com → Prod VM IP                  │
+│  • portainer.portal.byomakusuma.com → Prod VM IP                │
+└─────────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────────┐
+│                 AZURE VM - Production (Ubuntu)                  │
+│  ┌───────────────────────────────────────────────────────────┐  │
+│  │                    Traefik (Port 80/443)                  │  │
+│  │  • TLS termination (Let's Encrypt via Cloudflare DNS-01) │  │
+│  │  • Reverse proxy                                          │  │
+│  │  • Dashboard: https://traefik.portal.byomakusuma.com      │  │
+│  └───────────────────────────────────────────────────────────┘  │
+│                              ↓                                  │
+│  ┌───────────────────────────────────────────────────────────┐  │
+│  │              Satori App Container (Port 3000)             │  │
+│  │  • API: https://api.portal.byomakusuma.com                │  │
+│  │  • Hono API server                                        │  │
+│  │  • Better Auth authentication                             │  │
+│  └───────────────────────────────────────────────────────────┘  │
+│                              ↓                                  │
+│  ┌───────────────────────────────────────────────────────────┐  │
+│  │           PostgreSQL Container (Port 5432)                │  │
+│  │  • Private network only                                   │  │
+│  │  • Persistent volume                                      │  │
+│  └───────────────────────────────────────────────────────────┘  │
+│                                                                 │
+│  ┌───────────────────────────────────────────────────────────┐  │
+│  │  Portainer: https://portainer.portal.byomakusuma.com      │  │
+│  │  • Container management UI                                │  │
+│  └───────────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+## Environment URLs
+
+### QA Environment
+- **Frontend**: https://qa.portal.byomakusuma.com
+- **API**: https://api.qa.portal.byomakusuma.com
+- **Traefik Dashboard**: https://traefik.qa.byomakusuma.com
+- **Portainer**: https://portainer.qa.byomakusuma.com
+
+### Production Environment
+- **Frontend**: https://portal.byomakusuma.com
+- **API**: https://api.portal.byomakusuma.com
+- **Traefik Dashboard**: https://traefik.portal.byomakusuma.com
+- **Portainer**: https://portainer.portal.byomakusuma.com
 
 ## Prerequisites
 
@@ -61,23 +115,42 @@ Before starting deployment:
 
 ```
 vm-deployment/
-├── README.md                    # This file
-├── DEPLOYMENT_CHECKLIST.md      # Step-by-step deployment checklist
+├── README.md                    # This file - Overview and quick start
+├── .env.template                # Deployment configuration template
+├── docs/                        # Documentation
+│   ├── QUICK_START.md           # 30-minute setup guide
+│   ├── DEPLOYMENT_CHECKLIST.md  # Pre-deployment checklist
+│   ├── SETUP_INSTRUCTIONS.md    # Detailed configuration guide
+│   ├── BACKUP_GUIDE.md          # Database backup procedures
+│   ├── EMAIL_SETUP_GUIDE.md     # Azure email configuration
+│   └── UPDATE_TRAEFIK_DOMAINS.md # Update management domains
 ├── scripts/
 │   ├── setup-vm.sh              # Main VM setup script
 │   ├── setup-traefik.sh         # Traefik configuration
 │   ├── setup-app.sh             # Application deployment
 │   ├── deploy-qa.sh             # QA environment deployment
 │   ├── deploy-prod.sh           # Production environment deployment
-│   └── rollback.sh              # Rollback to previous version
-├── config/
-│   ├── traefik.env.template     # Traefik environment template
-│   ├── app.env.qa.template      # QA app environment template
-│   └── app.env.prod.template    # Prod app environment template
-└── docker/
-    ├── Dockerfile               # Application Dockerfile (symlink)
-    └── docker-compose.traefik.yml  # Docker Compose config (symlink)
+│   ├── deploy-from-git.sh       # Git-based deployment
+│   ├── rollback.sh              # Rollback to previous version
+│   ├── load-env.sh              # Environment variable loader
+│   └── manual/                  # Manual deployment scripts
+│       ├── deploy-qa-local.sh   # Upload local repo to QA
+│       ├── deploy-prod-local.sh # Upload local repo to Prod
+│       └── restore-db.sh        # Database restoration
+└── config/
+    ├── traefik.env.template     # Traefik environment template
+    ├── app.env.qa.template      # QA app environment template
+    └── app.env.prod.template    # Prod app environment template
 ```
+
+## Documentation
+
+- **[Quick Start Guide](docs/QUICK_START.md)** - Get up and running in 30 minutes
+- **[Deployment Checklist](docs/DEPLOYMENT_CHECKLIST.md)** - Pre-deployment verification
+- **[Setup Instructions](docs/SETUP_INSTRUCTIONS.md)** - Detailed configuration guide
+- **[Backup Guide](docs/BACKUP_GUIDE.md)** - Database backup and restore procedures
+- **[Email Setup](docs/EMAIL_SETUP_GUIDE.md)** - Azure Communication Services configuration
+- **[Update Traefik Domains](docs/UPDATE_TRAEFIK_DOMAINS.md)** - Environment-specific management URLs
 
 ## Deployment Order
 

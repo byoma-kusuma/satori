@@ -64,7 +64,11 @@ Creating environments allows for better organization and approval workflows.
 
    **Account Permissions:**
    - Cloudflare Pages → **Edit**
-   - Account Settings → **Read** (optional but recommended)
+   - Account Settings → **Read**
+
+   **User Permissions:**
+   - User Details → **Read** (required for wrangler CLI)
+   - Memberships → **Read** (required for wrangler CLI)
 
    **Zone Permissions:** (if you need DNS management)
    - Zone → **Read**
@@ -93,6 +97,10 @@ Creating environments allows for better organization and approval workflows.
 ```
 Account Permissions:
   ✅ Cloudflare Pages: Edit
+
+User Permissions (Required for Wrangler CLI):
+  ✅ User Details: Read
+  ✅ Memberships: Read
 
 Optional but Recommended:
   ✅ Account Settings: Read
@@ -169,9 +177,26 @@ Cloudflare Dashboard
 | Permission | Resource | Access | Required | Purpose |
 |------------|----------|--------|----------|---------|
 | Cloudflare Pages | Account | Edit | ✅ Yes | Deploy to Pages projects |
+| User Details | User | Read | ✅ Yes | Wrangler CLI authentication |
+| Memberships | User | Read | ✅ Yes | Wrangler CLI account access |
 | Account Settings | Account | Read | ⚠️ Recommended | Read account info |
 | Zone | Zone | Read | ❌ No | Only if managing DNS |
 | DNS | Zone | Edit | ❌ No | Only if updating DNS records |
+
+## Quick Fix: Update Existing Token
+
+If you already created a token without the User permissions:
+
+1. Go to [Cloudflare API Tokens](https://dash.cloudflare.com/profile/api-tokens)
+2. Find your token (e.g., "GitHub Actions - Cloudflare Pages")
+3. Click **Edit**
+4. Scroll to **User Permissions** section
+5. Add:
+   - User Details → **Read**
+   - Memberships → **Read**
+6. Click **Continue to summary**
+7. Click **Save**
+8. The token remains the same (no need to update GitHub Secret)
 
 ## Step 4: Verify Cloudflare Pages Projects
 
@@ -220,6 +245,20 @@ npx wrangler pages project create portal
 8. Verify at https://portal.byomakusuma.com
 
 ## Troubleshooting
+
+### Error: "Authentication error [code: 10000]"
+**Full error:** `A request to the Cloudflare API (/memberships) failed`
+
+**Cause:** API token is missing User permissions
+
+**Solution:**
+1. Go to [Cloudflare API Tokens](https://dash.cloudflare.com/profile/api-tokens)
+2. Edit your token
+3. Add User Permissions:
+   - User Details → Read
+   - Memberships → Read
+4. Save the token
+5. Re-run the GitHub Action (no need to update the secret)
 
 ### Error: "Cloudflare API token is invalid"
 - Verify the token has correct permissions

@@ -53,7 +53,7 @@ services:
     labels:
       # Dashboard routing
       - "traefik.enable=true"
-      - "traefik.http.routers.dashboard.rule=Host(`traefik.byomakusuma.com`)"
+      - "traefik.http.routers.dashboard.rule=Host(`${TRAEFIK_DOMAIN}`)"
       - "traefik.http.routers.dashboard.entrypoints=websecure"
       - "traefik.http.routers.dashboard.tls.certresolver=cf"
       - "traefik.http.routers.dashboard.service=api@internal"
@@ -81,7 +81,7 @@ services:
     labels:
       # Portainer routing
       - "traefik.enable=true"
-      - "traefik.http.routers.portainer.rule=Host(`portainer.byomakusuma.com`)"
+      - "traefik.http.routers.portainer.rule=Host(`${PORTAINER_DOMAIN}`)"
       - "traefik.http.routers.portainer.entrypoints=websecure"
       - "traefik.http.routers.portainer.tls.certresolver=cf"
       - "traefik.http.services.portainer.loadbalancer.server.port=9000"
