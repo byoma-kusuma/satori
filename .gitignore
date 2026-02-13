@@ -36,3 +36,7 @@ yarn-error.log*
 # Misc
 .DS_Store
 *.pem
+
+# Compiled/transpiled files (TypeScript/Bun output)
+apps/server/src/**/*.js
+apps/server/src/**/*.js.map

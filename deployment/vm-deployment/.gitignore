@@ -1,0 +1,14 @@
+# Sensitive configuration files (use .template files as reference)
+config/*.env.qa
+config/*.env.prod
+config/app.env.qa
+config/app.env.prod
+config/traefik.env.qa
+config/traefik.env.prod
+
+# Deployment environment configuration
+.env
+
+# Keep templates
+!config/*.template
+!.env.template

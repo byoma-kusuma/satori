@@ -329,6 +329,9 @@ importers:
         specifier: ^3.23.8
         version: 3.24.2
     devDependencies:
+      '@repo/typescript-config':
+        specifier: workspace:*
+        version: link:../../packages/typescript-config
       '@types/bun':
         specifier: latest
         version: 1.2.8
