@@ -9,6 +9,7 @@ import {
   CloseEventInput,
   CreateEventInput,
   EventAttendeeDto,
+  EventAudienceType,
   EventCategoryDto,
   EventDayDto,
   EventDetailDto,
@@ -159,6 +160,7 @@ export async function listEvents(): Promise<EventSummaryDto[]> {
       'e.registration_mode as registration_mode',
       'e.status as status',
       'e.event_group_id as event_group_id',
+      'e.audience_type as audience_type',
       'c.code as category_code',
       'c.name as category_name',
       sql<number>`COUNT(DISTINCT ${eb.ref('ea.id')})`.as('total_attendees'),
@@ -169,6 +171,28 @@ export async function listEvents(): Promise<EventSummaryDto[]> {
     .groupBy('c.id')
     .orderBy('e.start_date', 'desc')
     .execute()
+
+  // Fetch audience targets for all events in bulk
+  const eventIds = rows.map((r) => r.id)
+  const [groupTargets, centerTargets] = eventIds.length > 0
+    ? await Promise.all([
+        db.selectFrom('event_target_group').select(['event_id', 'group_id']).where('event_id', 'in', eventIds).execute(),
+        db.selectFrom('event_target_center').select(['event_id', 'center_id']).where('event_id', 'in', eventIds).execute(),
+      ])
+    : [[], []]
+
+  const groupMap = new Map<string, string[]>()
+  for (const g of groupTargets) {
+    const arr = groupMap.get(g.event_id) ?? []
+    arr.push(g.group_id)
+    groupMap.set(g.event_id, arr)
+  }
+  const centerMap = new Map<string, string[]>()
+  for (const ctr of centerTargets) {
+    const arr = centerMap.get(ctr.event_id) ?? []
+    arr.push(ctr.center_id)
+    centerMap.set(ctr.event_id, arr)
+  }
 
   return rows.map((row) => ({
     id: row.id,
@@ -183,6 +207,9 @@ export async function listEvents(): Promise<EventSummaryDto[]> {
     totalAttendees: Number(row.total_attendees ?? 0),
     checkedInAttendees: Number(row.checked_in_attendees ?? 0),
     daysCount: Number(row.days_count ?? 0),
+    audienceType: (row.audience_type ?? 'all') as EventAudienceType,
+    targetGroupIds: groupMap.get(row.id) ?? [],
+    targetCenterIds: centerMap.get(row.id) ?? [],
   }))
 }
 
@@ -206,6 +233,7 @@ export async function getEventDetail(eventId: string): Promise<EventDetailDto> {
       'e.closed_at as closed_at',
       'e.closed_by as closed_by',
       'e.metadata as metadata',
+      'e.audience_type as audience_type',
       'e.requires_full_attendance as event_requires_full_attendance',
       'c.id as category_id',
       'c.code as category_code',
@@ -219,12 +247,11 @@ export async function getEventDetail(eventId: string): Promise<EventDetailDto> {
     throw new Error('Event not found')
   }
 
-  const days = await db
-    .selectFrom('event_day')
-    .select(['id', 'day_number', 'event_date'])
-    .where('event_id', '=', eventId)
-    .orderBy('day_number')
-    .execute()
+  const [days, groupTargets, centerTargets] = await Promise.all([
+    db.selectFrom('event_day').select(['id', 'day_number', 'event_date']).where('event_id', '=', eventId).orderBy('day_number').execute(),
+    db.selectFrom('event_target_group').select('group_id').where('event_id', '=', eventId).execute(),
+    db.selectFrom('event_target_center').select('center_id').where('event_id', '=', eventId).execute(),
+  ])
 
   const attendees = await db
     .selectFrom('event_attendee as ea')
@@ -373,6 +400,9 @@ export async function getEventDetail(eventId: string): Promise<EventDetailDto> {
     days: dayDtos,
     attendees: attendeeDtos,
     metadata: normalizeMetadata(event.metadata),
+    audienceType: (event.audience_type ?? 'all') as EventAudienceType,
+    targetGroupIds: groupTargets.map((g) => g.group_id),
+    targetCenterIds: centerTargets.map((c) => c.center_id),
   }
 }
 
@@ -437,6 +467,10 @@ export async function createEvent(input: CreateEventInput, userId: string): Prom
     }
   }
 
+  const audienceType = input.audienceType ?? 'all'
+  const targetGroupIds = audienceType === 'groups' ? (input.targetGroupIds ?? []) : []
+  const targetCenterIds = audienceType === 'centers' ? (input.targetCenterIds ?? []) : []
+
   const result = await db.transaction().execute(async (trx) => {
     const eventRow = await trx
       .insertInto('event')
@@ -455,6 +489,7 @@ export async function createEvent(input: CreateEventInput, userId: string): Prom
         event_group_id: eventGroupId,
         metadata: metadataToStore,
         requires_full_attendance: input.requiresFullAttendance ?? null,
+        audience_type: audienceType,
       })
       .returning(['id'])
       .executeTakeFirstOrThrow()
@@ -469,6 +504,20 @@ export async function createEvent(input: CreateEventInput, userId: string): Prom
             event_date: day.dateString,
           })),
         )
+        .execute()
+    }
+
+    if (targetGroupIds.length > 0) {
+      await trx
+        .insertInto('event_target_group')
+        .values(targetGroupIds.map((gid) => ({ event_id: eventRow.id, group_id: gid })))
+        .execute()
+    }
+
+    if (targetCenterIds.length > 0) {
+      await trx
+        .insertInto('event_target_center')
+        .values(targetCenterIds.map((cid) => ({ event_id: eventRow.id, center_id: cid })))
         .execute()
     }
 
@@ -625,7 +674,30 @@ export async function updateEvent(eventId: string, input: UpdateEventInput, user
       updatePayload.status = input.status
     }
 
+    // Handle audience type update
+    if (input.audienceType !== undefined) {
+      updatePayload.audience_type = input.audienceType
+    }
+
     await trx.updateTable('event').set(updatePayload).where('id', '=', eventId).execute()
+
+    // Replace audience targets if audienceType is being updated
+    if (input.audienceType !== undefined) {
+      await trx.deleteFrom('event_target_group').where('event_id', '=', eventId).execute()
+      await trx.deleteFrom('event_target_center').where('event_id', '=', eventId).execute()
+
+      if (input.audienceType === 'groups' && input.targetGroupIds && input.targetGroupIds.length > 0) {
+        await trx
+          .insertInto('event_target_group')
+          .values(input.targetGroupIds.map((gid) => ({ event_id: eventId, group_id: gid })))
+          .execute()
+      } else if (input.audienceType === 'centers' && input.targetCenterIds && input.targetCenterIds.length > 0) {
+        await trx
+          .insertInto('event_target_center')
+          .values(input.targetCenterIds.map((cid) => ({ event_id: eventId, center_id: cid })))
+          .execute()
+      }
+    }
 
     if (input.registrationMode && input.registrationMode !== current.registration_mode) {
       await trx
@@ -647,7 +719,7 @@ export async function addAttendee(eventId: string, input: AddAttendeeInput, user
   return db.transaction().execute(async (trx) => {
     const event = await trx
       .selectFrom('event')
-      .select(['id', 'status', 'registration_mode'])
+      .select(['id', 'status', 'registration_mode', 'audience_type'])
       .where('id', '=', eventId)
       .executeTakeFirst()
 
@@ -657,6 +729,58 @@ export async function addAttendee(eventId: string, input: AddAttendeeInput, user
 
     if (event.status === 'CLOSED') {
       throw new Error('Cannot add attendees to a closed event')
+    }
+
+    // Viewers cannot self-register for walk-in events
+    if (event.registration_mode === 'WALK_IN') {
+      const registrant = await trx
+        .selectFrom('user')
+        .select('role')
+        .where('id', '=', userId)
+        .executeTakeFirst()
+      if (registrant?.role === 'viewer') {
+        throw new Error('Viewers cannot register for walk-in events.')
+      }
+    }
+
+    // Audience restrictions only apply to pre-registration events
+    const audienceType = (event.audience_type ?? 'all') as EventAudienceType
+    if (event.registration_mode === 'PRE_REGISTRATION' && audienceType === 'groups') {
+      const targetGroups = await trx
+        .selectFrom('event_target_group')
+        .select('group_id')
+        .where('event_id', '=', eventId)
+        .execute()
+      const groupIds = targetGroups.map((g) => g.group_id)
+      if (groupIds.length > 0) {
+        const membership = await trx
+          .selectFrom('person_group')
+          .select('personId')
+          .where('personId', '=', input.personId)
+          .where('groupId', 'in', groupIds)
+          .executeTakeFirst()
+        if (!membership) {
+          throw new Error('This event is restricted to members of specific groups. You are not eligible to register.')
+        }
+      }
+    } else if (event.registration_mode === 'PRE_REGISTRATION' && audienceType === 'centers') {
+      const targetCenters = await trx
+        .selectFrom('event_target_center')
+        .select('center_id')
+        .where('event_id', '=', eventId)
+        .execute()
+      const centerIds = targetCenters.map((c) => c.center_id)
+      if (centerIds.length > 0) {
+        const membership = await trx
+          .selectFrom('center_person')
+          .select('person_id')
+          .where('person_id', '=', input.personId)
+          .where('center_id', 'in', centerIds)
+          .executeTakeFirst()
+        if (!membership) {
+          throw new Error('This event is restricted to members of specific centers. You are not eligible to register.')
+        }
+      }
     }
 
     const person = await trx
@@ -827,6 +951,10 @@ export async function updateAttendee(
 
     if (input.metadata !== undefined) {
       updatePayload.metadata = normalizeMetadata(input.metadata)
+    }
+
+    if (input.isCancelled !== undefined) {
+      updatePayload.is_cancelled = input.isCancelled
     }
 
     if (Object.keys(updatePayload).length > 0) {

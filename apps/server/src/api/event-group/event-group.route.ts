@@ -40,23 +40,12 @@ app.onError((err, c) => {
 
 export const eventGroupRoutes = app
   .use(authenticated)
-  .use(adminOnly)
-  // List all groups
+  // List all groups (accessible to all authenticated users)
   .get('/', async (c) => {
     const rows = await EventGroupService.getAllEventGroups()
     return c.json(rows)
   })
-  // Create group
-  .post('/', zValidator('json', createSchema), async (c) => {
-    const user = c.get('user')
-    const payload = await c.req.valid('json')
-    const created = await EventGroupService.createEventGroup(
-      { name: payload.GroupName.trim(), description: payload.Description ?? null },
-      user?.id,
-    )
-    return c.json(created, 201)
-  })
-  // Get by id
+  // Get by id (accessible to all authenticated users)
   .get('/:id', zValidator('param', paramsSchema), async (c) => {
     try {
       const { id } = c.req.valid('param')
@@ -68,6 +57,18 @@ export const eventGroupRoutes = app
       }
       throw error
     }
+  })
+  // Write operations require admin
+  .use(adminOnly)
+  // Create group
+  .post('/', zValidator('json', createSchema), async (c) => {
+    const user = c.get('user')
+    const payload = await c.req.valid('json')
+    const created = await EventGroupService.createEventGroup(
+      { name: payload.GroupName.trim(), description: payload.Description ?? null },
+      user?.id,
+    )
+    return c.json(created, 201)
   })
   // Update
   .put('/:id', zValidator('param', paramsSchema), zValidator('json', updateSchema), async (c) => {

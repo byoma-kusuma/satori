@@ -2,9 +2,9 @@
 
 import { z } from 'zod'
 import { useForm } from 'react-hook-form'
-import { useRef, useState } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useNavigate, useParams } from '@tanstack/react-router'
+import { useNavigate, useParams, useSearch } from '@tanstack/react-router'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { toast } from '@/hooks/use-toast'
 import { Button } from '@/components/ui/button'
@@ -28,16 +28,19 @@ import { EventsTab } from './events-tab'
 import { PersonsAddToEventsDialog } from './persons-add-to-events-dialog'
 import { PersonsAddToGroupsDialog } from './persons-add-to-groups-dialog'
 import { usePermissions } from '@/contexts/permission-context'
+import { getCurrentUserQueryOptions } from '@/api/users'
 
 type PersonForm = z.infer<typeof personInputSchema>
 
 function EditPersonForm({ personId }: { personId: string }) {
   const navigate = useNavigate()
+  const { tab: initialTab } = useSearch({ from: '/_authenticated/persons/$personId/edit' })
   const formRef = useRef<HTMLFormElement>(null)
   const updatePersonMutation = useUpdatePerson()
   const [addToEventsOpen, setAddToEventsOpen] = useState(false)
   const [addToGroupsOpen, setAddToGroupsOpen] = useState(false)
   const { userRole } = usePermissions()
+  const isViewer = userRole === 'viewer'
 
   // Fetch the person data
   const { data: person } = useSuspenseQuery(getPersonQueryOptions(personId))
@@ -139,26 +142,28 @@ function EditPersonForm({ personId }: { personId: string }) {
   return (
     <Card className="w-full">
       <CardContent>
-        <div className="mb-4 flex flex-wrap items-center justify-end gap-2">
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => setAddToGroupsOpen(true)}
-            className="space-x-1"
-          >
-            <IconUsersGroup className="h-4 w-4" />
-            <span>Add to Group</span>
-          </Button>
-          <Button
-            size="sm"
-            onClick={() => setAddToEventsOpen(true)}
-            className="space-x-1"
-          >
-            <IconCalendarPlus className="h-4 w-4" />
-            <span>Add to Event</span>
-          </Button>
-        </div>
-        <Tabs defaultValue="general" className="w-full">
+        {!isViewer && (
+          <div className="mb-4 flex flex-wrap items-center justify-end gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setAddToGroupsOpen(true)}
+              className="space-x-1"
+            >
+              <IconUsersGroup className="h-4 w-4" />
+              <span>Add to Group</span>
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => setAddToEventsOpen(true)}
+              className="space-x-1"
+            >
+              <IconCalendarPlus className="h-4 w-4" />
+              <span>Add to Event</span>
+            </Button>
+          </div>
+        )}
+        <Tabs defaultValue={initialTab ?? 'general'} className="w-full">
           <TabsList className="mb-3 flex w-full items-center justify-start gap-1 sm:gap-2 rounded-2xl bg-muted/60 h-9 sm:h-11 p-0 shadow-sm overflow-x-auto overflow-y-hidden whitespace-nowrap no-scrollbar">
             <TabsTrigger
               value="general"
@@ -167,7 +172,7 @@ function EditPersonForm({ personId }: { personId: string }) {
               <IconUserCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0 text-muted-foreground transition-colors group-data-[state=active]:text-primary" />
               <span className="truncate"><span className="sm:hidden">General</span><span className="hidden sm:inline">General Info</span></span>
             </TabsTrigger>
-            {userRole !== 'admin' && (
+            {userRole !== 'admin' && userRole !== 'krama_instructor' && (
               <TabsTrigger
                 value="mahakrama"
                 className="group inline-flex h-8 sm:h-10 items-center gap-1.5 sm:gap-2 rounded-xl bg-transparent px-2 sm:px-3 py-0 text-[11px] font-semibold text-muted-foreground transition-all hover:bg-muted/40 hover:text-foreground sm:text-sm data-[state=active]:bg-background data-[state=active]:text-primary"
@@ -183,14 +188,16 @@ function EditPersonForm({ personId }: { personId: string }) {
               <IconUsers className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0 text-muted-foreground transition-colors group-data-[state=active]:text-primary" />
               <span className="truncate"><span className="sm:hidden">Relations</span><span className="hidden sm:inline">Family / Relationships</span></span>
             </TabsTrigger>
-            <TabsTrigger
-              value="empowerments"
-              disabled={personType !== 'sangha_member'}
-              className="group inline-flex h-8 sm:h-10 items-center gap-1.5 sm:gap-2 rounded-xl bg-transparent px-2 sm:px-3 py-0 text-[11px] font-semibold text-muted-foreground transition-all hover:bg-muted/40 hover:text-foreground disabled:opacity-60 sm:text-sm data-[state=active]:bg-background data-[state=active]:text-primary"
-            >
-              <IconSparkles className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0 text-muted-foreground transition-colors group-data-[state=active]:text-primary" />
-              <span className="truncate"><span className="sm:hidden">Empower</span><span className="hidden sm:inline">Empowerments</span></span>
-            </TabsTrigger>
+            {userRole !== 'krama_instructor' && (
+              <TabsTrigger
+                value="empowerments"
+                disabled={personType !== 'sangha_member'}
+                className="group inline-flex h-8 sm:h-10 items-center gap-1.5 sm:gap-2 rounded-xl bg-transparent px-2 sm:px-3 py-0 text-[11px] font-semibold text-muted-foreground transition-all hover:bg-muted/40 hover:text-foreground disabled:opacity-60 sm:text-sm data-[state=active]:bg-background data-[state=active]:text-primary"
+              >
+                <IconSparkles className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0 text-muted-foreground transition-colors group-data-[state=active]:text-primary" />
+                <span className="truncate"><span className="sm:hidden">Empower</span><span className="hidden sm:inline">Empowerments</span></span>
+              </TabsTrigger>
+            )}
             <TabsTrigger
               value="events"
               className="group inline-flex h-8 sm:h-10 items-center gap-1.5 sm:gap-2 rounded-xl bg-transparent px-2 sm:px-3 py-0 text-[11px] font-semibold text-muted-foreground transition-all hover:bg-muted/40 hover:text-foreground sm:text-sm data-[state=active]:bg-background data-[state=active]:text-primary"
@@ -205,52 +212,61 @@ function EditPersonForm({ personId }: { personId: string }) {
               person={person} 
               formRef={formRef}
               onSubmit={onSubmit}
+              readOnly={isViewer}
             />
-            <div className="flex justify-end gap-2 mt-6 pt-6 border-t">
-              <Button 
-                variant="outline" 
-                onClick={() => navigate({ to: '/persons' })}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                form="person-form"
-                disabled={updatePersonMutation.isPending}
-              >
-                Update Person
-              </Button>
-            </div>
+            {!isViewer && (
+              <div className="flex justify-end gap-2 mt-6 pt-6 border-t">
+                <Button
+                  variant="outline"
+                  onClick={() => navigate({ to: '/persons' })}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  form="person-form"
+                  disabled={updatePersonMutation.isPending}
+                >
+                  Update Person
+                </Button>
+              </div>
+            )}
           </TabsContent>
 
-          {userRole !== 'admin' && (
+          {userRole !== 'admin' && userRole !== 'krama_instructor' && (
             <TabsContent value="mahakrama" className="mt-6">
-              <MahakramaTab personId={personId} />
+              <MahakramaTab personId={personId} readOnly={false} isViewer={isViewer} studentEmail={person.emailId} />
             </TabsContent>
           )}
 
           <TabsContent value="relationships" className="mt-6">
-            <FamilyRelationshipsTab personId={personId} />
+            <FamilyRelationshipsTab personId={personId} readOnly={isViewer} />
           </TabsContent>
 
-          <TabsContent value="empowerments" className="mt-6">
-            <EmpowermentsTab personId={personId} />
-          </TabsContent>
+          {userRole !== 'krama_instructor' && (
+            <TabsContent value="empowerments" className="mt-6">
+              <EmpowermentsTab personId={personId} readOnly={isViewer} />
+            </TabsContent>
+          )}
 
           <TabsContent value="events" className="mt-6">
-            <EventsTab personId={personId} />
+            <EventsTab personId={personId} readOnly={isViewer} />
           </TabsContent>
         </Tabs>
-        <PersonsAddToEventsDialog
-          open={addToEventsOpen}
-          onOpenChange={setAddToEventsOpen}
-          personIds={[personId]}
-        />
-        <PersonsAddToGroupsDialog
-          open={addToGroupsOpen}
-          onOpenChange={setAddToGroupsOpen}
-          personIds={[personId]}
-        />
+        {!isViewer && (
+          <>
+            <PersonsAddToEventsDialog
+              open={addToEventsOpen}
+              onOpenChange={setAddToEventsOpen}
+              personIds={[personId]}
+            />
+            <PersonsAddToGroupsDialog
+              open={addToGroupsOpen}
+              onOpenChange={setAddToGroupsOpen}
+              personIds={[personId]}
+            />
+          </>
+        )}
       </CardContent>
     </Card>
   )
@@ -281,30 +297,43 @@ function EditPersonSkeleton() {
 
 function EditPersonHeader({ personId }: { personId: string }) {
   const { data: person } = useSuspenseQuery(getPersonQueryOptions(personId))
+  const { userRole } = usePermissions()
+  const isViewer = userRole === 'viewer'
 
   return (
     <div className='mb-6'>
       <div className='flex items-center gap-2'>
          <h3 className='text-2xl font-bold tracking-tight'>
-          Edit Person -
+          {isViewer ? 'Profile -' : 'Edit Person -'}
         </h3>
         <span className='text-lg font-medium text-muted-foreground'>{person.firstName} {person.lastName} -</span>
-       
+
         {person.personCode && (
           <span className='text-sm font-mono text-muted-foreground bg-muted px-2 py-1 rounded'>
             {person.personCode}
           </span>
         )}
       </div>
-      <p className='text-muted-foreground'>
-        Update the person's information.
-      </p>
+      {!isViewer && (
+        <p className='text-muted-foreground'>
+          Update the person's information.
+        </p>
+      )}
     </div>
   )
 }
 
 export function EditPersonPage() {
   const { personId } = useParams({ from: '/_authenticated/persons/$personId/edit' })
+  const { userRole } = usePermissions()
+  const navigate = useNavigate()
+  const { data: currentUser } = useSuspenseQuery(getCurrentUserQueryOptions())
+
+  useEffect(() => {
+    if (userRole === 'viewer' && currentUser?.personId && currentUser.personId !== personId) {
+      navigate({ to: '/persons/$personId/edit', params: { personId: currentUser.personId } })
+    }
+  }, [userRole, currentUser?.personId, personId, navigate])
 
   return (
     <>

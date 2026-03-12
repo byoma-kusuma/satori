@@ -12,7 +12,19 @@ export const mahakramaStepSchema = z.object({
   updatedAt: z.string().nullable().optional(),
   createdBy: z.string().optional(),
   lastUpdatedBy: z.string().optional(),
+  documentCount: z.coerce.number().optional().default(0),
 })
+
+export const mahakramaStepDocumentSchema = z.object({
+  id: z.string(),
+  mahakramaStepId: z.string(),
+  language: z.string(),
+  documentFilename: z.string(),
+  createdAt: z.string().nullable().optional(),
+  createdBy: z.string().optional(),
+})
+
+export type MahakramaStepDocument = z.infer<typeof mahakramaStepDocumentSchema>
 
 export const mahakramaStepInputSchema = z.object({
   sequenceNumber: z.number({ required_error: 'Sequence number is required' }).min(0.01),
@@ -30,11 +42,12 @@ export const mahakramaHistorySchema = z.object({
   id: z.string(),
   personId: z.string(),
   mahakramaStepId: z.string(),
-  status: z.enum(['current', 'completed']),
+  status: z.enum(['current', 'completed', 'requested_completion']),
   startDate: z.coerce.date(),
   endDate: z.coerce.date().nullable(),
   mahakramaInstructorId: z.string().nullable(),
   completionNotes: z.string().nullable(),
+  studentNotes: z.string().nullable(),
   updatedAt: z.coerce.date().nullable(),
   updatedBy: z.string(),
   stepSequenceNumber: z.coerce.number(),
@@ -58,5 +71,10 @@ export interface MahakramaStartPayload {
 export interface MahakramaCompletePayload {
   completedDate: string
   instructorId: string
+  completionNotes?: string | null
+  sendDocumentIds?: string[]
+}
+
+export interface MahakramaRequestCompletionPayload {
   completionNotes?: string | null
 }

@@ -27,7 +27,12 @@ export interface CreateEventInput {
   newGroup?: NewGroupInput | null
   metadata?: EventMetadata | null
   requiresFullAttendance?: boolean | null
+  audienceType?: EventAudienceType
+  targetGroupIds?: string[]
+  targetCenterIds?: string[]
 }
+
+export type EventAudienceType = 'all' | 'groups' | 'centers'
 
 export type UpdateEventInput = Partial<Omit<CreateEventInput, 'categoryId'>> & {
   categoryId?: string
@@ -54,6 +59,9 @@ export interface EventSummaryDto {
   totalAttendees: number
   checkedInAttendees: number
   daysCount: number
+  audienceType: EventAudienceType
+  targetGroupIds: string[]
+  targetCenterIds: string[]
 }
 
 export interface EventDayDto {
@@ -114,6 +122,9 @@ export interface EventDetailDto {
   days: EventDayDto[]
   attendees: EventAttendeeDto[]
   metadata: EventMetadata
+  audienceType: EventAudienceType
+  targetGroupIds: string[]
+  targetCenterIds: string[]
 }
 
 export interface AddAttendeeInput {
@@ -125,6 +136,7 @@ export interface AddAttendeeInput {
 export interface UpdateAttendeeInput {
   notes?: string | null
   metadata?: EventMetadata | null
+  isCancelled?: boolean
 }
 
 export interface CheckInInput {

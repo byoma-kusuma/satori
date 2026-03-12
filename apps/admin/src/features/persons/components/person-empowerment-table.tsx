@@ -40,9 +40,10 @@ declare module '@tanstack/react-table' {
 
 interface PersonEmpowermentTableProps {
   personId: string
+  readOnly?: boolean
 }
 
-export function PersonEmpowermentTable({ personId }: PersonEmpowermentTableProps) {
+export function PersonEmpowermentTable({ personId, readOnly = false }: PersonEmpowermentTableProps) {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingEmpowerment, setEditingEmpowerment] = useState<PersonEmpowerment | null>(null)
   const [rowSelection, setRowSelection] = useState({})
@@ -130,11 +131,13 @@ export function PersonEmpowermentTable({ personId }: PersonEmpowermentTableProps
   })
 
   const handleEdit = (empowerment: PersonEmpowerment) => {
+    if (readOnly) return
     setEditingEmpowerment(empowerment)
     setDialogOpen(true)
   }
 
   const handleAdd = () => {
+    if (readOnly) return
     setEditingEmpowerment(null)
     setDialogOpen(true)
   }
@@ -152,7 +155,7 @@ export function PersonEmpowermentTable({ personId }: PersonEmpowermentTableProps
   return (
     <>
       <div className='space-y-4'>
-        <PersonEmpowermentToolbar table={table} onAdd={handleAdd} />
+        <PersonEmpowermentToolbar table={table} onAdd={handleAdd} readOnly={readOnly} />
         <div className='rounded-md border'>
           <Table>
             <TableHeader>
@@ -181,8 +184,9 @@ export function PersonEmpowermentTable({ personId }: PersonEmpowermentTableProps
                   <TableRow
                     key={row.id}
                     data-state={row.getIsSelected() && 'selected'}
-                    className='group/row cursor-pointer hover:bg-muted/50'
+                    className='group/row hover:bg-muted/50'
                     onClick={(e) => {
+                      if (readOnly) return
                       const target = e.target as HTMLElement
                       const isInteractive = target.closest('button, input[type="checkbox"], [role="button"], [role="menuitem"]')
                       
@@ -220,14 +224,16 @@ export function PersonEmpowermentTable({ personId }: PersonEmpowermentTableProps
         <DataTablePagination table={table} />
       </div>
 
-      <PersonEmpowermentDialog
-        open={dialogOpen}
-        onOpenChange={handleDialogClose}
-        personId={personId}
-        empowerment={editingEmpowerment}
-        empowerments={empowerments}
-        gurus={safeGurus}
-      />
+      {!readOnly && (
+        <PersonEmpowermentDialog
+          open={dialogOpen}
+          onOpenChange={handleDialogClose}
+          personId={personId}
+          empowerment={editingEmpowerment}
+          empowerments={empowerments}
+          gurus={safeGurus}
+        />
+      )}
     </>
   )
 }

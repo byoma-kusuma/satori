@@ -31,6 +31,7 @@ import { PersonRelationshipDialog } from './person-relationship-dialog'
 
 interface FamilyRelationshipsTabProps {
   personId: string
+  readOnly?: boolean
 }
 
 const formatDisplayName = (relationship: PersonRelationship) => {
@@ -39,7 +40,7 @@ const formatDisplayName = (relationship: PersonRelationship) => {
   return personCode ? `${baseName} (${personCode})` : baseName
 }
 
-export function FamilyRelationshipsTab({ personId }: FamilyRelationshipsTabProps) {
+export function FamilyRelationshipsTab({ personId, readOnly = false }: FamilyRelationshipsTabProps) {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [selectedRelationship, setSelectedRelationship] = useState<PersonRelationship | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<PersonRelationship | null>(null)
@@ -116,7 +117,7 @@ export function FamilyRelationshipsTab({ personId }: FamilyRelationshipsTabProps
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold">Family / Relationships</h3>
-        <Button onClick={openCreateDialog} size="sm">
+        <Button onClick={openCreateDialog} size="sm" disabled={readOnly}>
           <IconPlus className="mr-2 h-4 w-4" />
           Add Family Member
         </Button>
@@ -181,6 +182,7 @@ export function FamilyRelationshipsTab({ personId }: FamilyRelationshipsTabProps
                         variant="ghost"
                         size="icon"
                         onClick={() => openEditDialog(relationship)}
+                        disabled={readOnly}
                         aria-label="Edit relationship"
                       >
                         <IconEdit className="h-4 w-4" />
@@ -189,6 +191,7 @@ export function FamilyRelationshipsTab({ personId }: FamilyRelationshipsTabProps
                         variant="ghost"
                         size="icon"
                         onClick={() => setDeleteTarget(relationship)}
+                        disabled={readOnly}
                         aria-label="Delete relationship"
                       >
                         <IconTrash className="h-4 w-4 text-destructive" />
@@ -202,31 +205,35 @@ export function FamilyRelationshipsTab({ personId }: FamilyRelationshipsTabProps
         </div>
       )}
 
-      <PersonRelationshipDialog
-        open={dialogOpen}
-        onOpenChange={(open) => {
-          setDialogOpen(open)
-          if (!open) {
-            setSelectedRelationship(null)
-          }
-        }}
-        personId={personId}
-        persons={personOptions}
-        relationship={selectedRelationship}
-        excludeIds={excludeIds}
-      />
+      {!readOnly && (
+        <PersonRelationshipDialog
+          open={dialogOpen}
+          onOpenChange={(open) => {
+            setDialogOpen(open)
+            if (!open) {
+              setSelectedRelationship(null)
+            }
+          }}
+          personId={personId}
+          persons={personOptions}
+          relationship={selectedRelationship}
+          excludeIds={excludeIds}
+        />
+      )}
 
-      <ConfirmDialog
-        open={Boolean(deleteTarget)}
-        onOpenChange={(open) => {
-          if (!open) setDeleteTarget(null)
-        }}
-        title="Remove Family Relationship"
-        desc="Are you sure you want to remove this family relationship? This action cannot be undone."
-        destructive
-        handleConfirm={confirmDelete}
-        isLoading={deleteMutation.isPending}
-      />
+      {!readOnly && (
+        <ConfirmDialog
+          open={Boolean(deleteTarget)}
+          onOpenChange={(open) => {
+            if (!open) setDeleteTarget(null)
+          }}
+          title="Remove Family Relationship"
+          desc="Are you sure you want to remove this family relationship? This action cannot be undone."
+          destructive
+          handleConfirm={confirmDelete}
+          isLoading={deleteMutation.isPending}
+        />
+      )}
     </div>
   )
 }

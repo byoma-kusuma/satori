@@ -8,6 +8,7 @@ export const groupSchema = z.object({
   updatedAt: z.coerce.date().nullable(),
   createdBy: z.string(),
   lastUpdatedBy: z.string(),
+  createdByName: z.string().nullable().optional(),
 })
 
 export type Group = z.infer<typeof groupSchema>

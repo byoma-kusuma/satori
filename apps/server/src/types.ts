@@ -33,6 +33,8 @@ export type PersonTitle = "dharma_dhar" | "dharmacharya" | "khenpo" | "sahayak_d
 
 export type PersonType = "attended_orientation" | "contact" | "interested" | "sangha_member";
 
+export type NotificationTargetType = "all" | "centers" | "groups";
+
 export type RegistrationStatus = "complete" | "invalid" | "new";
 
 export type Timestamp = ColumnType<Date, Date | string, Date | string>;
@@ -90,6 +92,7 @@ export interface Empowerment {
 }
 
 export interface Event {
+  audience_type: Generated<string>;
   category_id: string;
   closed_at: Timestamp | null;
   closed_by: string | null;
@@ -112,6 +115,16 @@ export interface Event {
   start_date: Timestamp;
   status: Generated<EventStatus>;
   updated_at: Generated<Timestamp | null>;
+}
+
+export interface EventTargetGroup {
+  event_id: string;
+  group_id: string;
+}
+
+export interface EventTargetCenter {
+  event_id: string;
+  center_id: string;
 }
 
 export interface EventAttendance {
@@ -183,6 +196,7 @@ export interface Guru {
 
 export interface MahakramaHistory {
   completion_notes: string | null;
+  student_notes: string | null;
   created_at: Generated<Timestamp | null>;
   created_by: string;
   end_date: Timestamp | null;
@@ -208,6 +222,16 @@ export interface MahakramaStep {
   step_id: string;
   step_name: string;
   updated_at: Generated<Timestamp | null>;
+}
+
+export interface MahakramaStepDocument {
+  id: Generated<string>;
+  mahakrama_step_id: string;
+  language: string;
+  document_data: Buffer;
+  document_filename: string;
+  created_at: Generated<Timestamp | null>;
+  created_by: string;
 }
 
 export interface Person {
@@ -374,6 +398,48 @@ export interface Registration {
   viber_number: string | null;
 }
 
+export interface Notification {
+  id: Generated<string>;
+  title: string;
+  message: string;
+  target_type: Generated<NotificationTargetType>;
+  is_active: Generated<boolean>;
+  expires_at: Timestamp | null;
+  created_by: string;
+  created_at: Generated<Timestamp | null>;
+  updated_at: Generated<Timestamp | null>;
+}
+
+export interface NotificationTargetGroup {
+  notification_id: string;
+  group_id: string;
+}
+
+export interface NotificationTargetCenter {
+  notification_id: string;
+  center_id: string;
+}
+
+export interface NotificationTargetUser {
+  notification_id: string;
+  user_id: string;
+}
+
+export interface NotificationAttachment {
+  id: Generated<string>;
+  notification_id: string;
+  filename: string;
+  mime_type: string;
+  file_data: Buffer;
+  created_at: Generated<Timestamp | null>;
+}
+
+export interface NotificationAcknowledgement {
+  notification_id: string;
+  user_id: string;
+  acknowledged_at: Generated<Timestamp | null>;
+}
+
 export interface SchemaMigrations {
   version: string;
 }
@@ -425,10 +491,19 @@ export interface DB {
   event_category: EventCategory;
   event_day: EventDay;
   event_group: EventGroup;
+  event_target_center: EventTargetCenter;
+  event_target_group: EventTargetGroup;
   group: Group;
   guru: Guru;
   mahakrama_history: MahakramaHistory;
   mahakrama_step: MahakramaStep;
+  mahakrama_step_document: MahakramaStepDocument;
+  notification: Notification;
+  notification_acknowledgement: NotificationAcknowledgement;
+  notification_attachment: NotificationAttachment;
+  notification_target_center: NotificationTargetCenter;
+  notification_target_group: NotificationTargetGroup;
+  notification_target_user: NotificationTargetUser;
   person: Person;
   person_empowerment: PersonEmpowerment;
   person_group: PersonGroup;

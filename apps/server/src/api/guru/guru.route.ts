@@ -5,6 +5,7 @@ import { z } from 'zod'
 import { db } from '../../database'
 import { auth } from '../../lib/auth'
 import { authenticated } from '../../middlewares/session'
+import { requirePermission } from '../../middlewares/authorization'
 import type { Updateable } from 'kysely'
 import type { Guru } from '../../types'
 
@@ -54,7 +55,7 @@ export const gurusRoutes = app
     
     return c.json(guru)
   })
-  .post('/', zValidator('json', guruInputSchema), async (c) => {
+  .post('/', requirePermission('canManageSettings'), zValidator('json', guruInputSchema), async (c) => {
     const data = c.req.valid('json')
     const user = requireUser(c.get('user'))
 
@@ -70,7 +71,7 @@ export const gurusRoutes = app
 
     return c.json(guru, 201)
   })
-  .put('/:id', zValidator('json', guruUpdateSchema), async (c) => {
+  .put('/:id', requirePermission('canManageSettings'), zValidator('json', guruUpdateSchema), async (c) => {
     const id = c.req.param('id')
     const data = c.req.valid('json')
     const user = requireUser(c.get('user'))
@@ -96,7 +97,7 @@ export const gurusRoutes = app
 
     return c.json(guru)
   })
-  .delete('/:id', async (c) => {
+  .delete('/:id', requirePermission('canManageSettings'), async (c) => {
     const id = c.req.param('id')
 
     try {

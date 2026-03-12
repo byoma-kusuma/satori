@@ -2,6 +2,7 @@ import {
   IconBuilding,
   IconCalendar,
   IconHelp,
+  IconLayoutDashboard,
   IconPalette,
   IconSettings,
   IconUsers,
@@ -10,6 +11,7 @@ import {
   IconUser,
   IconTimeline,
   IconClipboardList,
+  IconBell,
 } from '@tabler/icons-react'
 import { AudioWaveform, GalleryVerticalEnd } from 'lucide-react'
 import { type SidebarData } from '../types'
@@ -44,6 +46,11 @@ const baseSidebarData = {
     {
       title: 'General',
       items: [
+        {
+          title: 'Dashboard',
+          url: '/',
+          icon: IconLayoutDashboard,
+        },
         {
           title: 'Persons',
           url: '/persons',
@@ -89,6 +96,11 @@ const baseSidebarData = {
           url: '/registrations',
           icon: IconClipboardList,
         },
+        {
+          title: 'Notifications',
+          url: '/notifications',
+          icon: IconBell,
+        },
       ],
     },
     {
@@ -115,27 +127,85 @@ const baseSidebarData = {
   ],
 }
 
-export const getSidebarData = (user: User | null, userRole: UserRole | null): SidebarData => {
-  // Filter nav items based on user role
-  const filteredNavGroups = baseSidebarData.navGroups.map(group => ({
+export const getSidebarData = (
+  user: User | null,
+  userRole: UserRole | null,
+  viewerProfileUrl?: string
+): SidebarData => {
+  // For viewers, only show Dashboard, Profile, and Events
+  if (userRole === 'viewer') {
+    const viewerNav: SidebarData = {
+      ...baseSidebarData,
+      navGroups: [
+        {
+          title: 'General',
+          items: [
+            {
+              title: 'Dashboard',
+              url: '/',
+              icon: IconLayoutDashboard,
+            },
+            {
+              title: 'Profile',
+              url: viewerProfileUrl ?? '/persons',
+              icon: IconUser,
+            },
+            {
+              title: 'Events',
+              url: '/events',
+              icon: IconCalendar,
+            },
+            {
+              title: 'Notifications',
+              url: '/notifications',
+              icon: IconBell,
+            },
+          ],
+        },
+      ],
+      user: user
+        ? {
+            name: user.name,
+            email: user.email,
+            avatar: baseSidebarData.user.avatar,
+          }
+        : baseSidebarData.user,
+    } as SidebarData
+
+    return viewerNav
+  }
+
+  // Filter nav items based on user role for non-viewers
+  const filteredNavGroups = baseSidebarData.navGroups.map((group) => ({
     ...group,
-    items: group.items.filter(item => {
-      // Hide Users menu item for non-sysadmin users
-      if (item.title === 'Users' && userRole !== 'sysadmin') {
-        return false
+    items: group.items.filter((item) => {
+      // sysadmin sees everything
+      if (userRole === 'sysadmin') return true
+
+      // admin: hide Mahakrama and Import
+      if (userRole === 'admin') {
+        if (item.title === 'Mahakrama' || item.title === 'Import') return false
       }
+
+      // krama_instructor (teachers): hide Mahakrama, Import, Users, Gurus, Empowerments, Notifications
+      if (userRole === 'krama_instructor') {
+        if (['Mahakrama', 'Import', 'Users', 'Gurus', 'Empowerments', 'Notifications'].includes(item.title)) return false
+      }
+
       return true
-    })
+    }),
   }))
 
   return {
     ...baseSidebarData,
     navGroups: filteredNavGroups,
-    user: user ? {
-      name: user.name,
-      email: user.email,
-      avatar: baseSidebarData.user.avatar
-    } : baseSidebarData.user
+    user: user
+      ? {
+          name: user.name,
+          email: user.email,
+          avatar: baseSidebarData.user.avatar,
+        }
+      : baseSidebarData.user,
   } as SidebarData
 }
 

@@ -17,6 +17,8 @@ import { mahakramaRoutes } from "./api/mahakrama/mahakrama.route";
 import { personRelationshipRoutes } from "./api/person-relationship/person-relationship.route";
 import { registrationRoutes } from "./api/registration/registration.route";
 import { eventGroupRoutes } from "./api/event-group/event-group.route";
+import { notificationRoutes } from "./api/notification/notification.route";
+import { dashboardRoutes } from "./api/dashboard/dashboard.route";
 
 const app = new Hono();
 
@@ -71,6 +73,8 @@ app.route("/api/mahakrama", mahakramaRoutes);
 app.route("/api/person-relationship", personRelationshipRoutes);
 app.route("/api/registration", registrationRoutes);
 app.route("/api/event-groups", eventGroupRoutes);
+app.route("/api/notification", notificationRoutes);
+app.route("/api/dashboard", dashboardRoutes);
 
 export default {
   port,

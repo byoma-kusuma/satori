@@ -104,9 +104,23 @@ export const getUser = async (id: string): Promise<User> => {
   return await response.json();
 };
 
+export const getCurrentUser = async (): Promise<User> => {
+  const response = await fetchWithCredentials(`${USER_API_URL}/me`)
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}))
+    throw new Error((error as { message?: string })?.message || 'Failed to load current user')
+  }
+  return await response.json()
+}
+
 export const getUserQueryOptions = (id: string) => queryOptions({
   queryKey: ['user', id],
   queryFn: () => getUser(id),
+});
+
+export const getCurrentUserQueryOptions = () => queryOptions({
+  queryKey: ['current-user'],
+  queryFn: getCurrentUser,
 });
 
 export const getUserRole = async (id: string): Promise<{ role: UserRole }> => {
