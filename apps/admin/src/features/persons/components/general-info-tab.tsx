@@ -39,6 +39,7 @@ interface GeneralInfoTabProps {
   person: Person | null
   formRef: React.RefObject<HTMLFormElement>
   onSubmit: (data: PersonInput) => void
+  readOnly?: boolean
 }
 
 const isPhoneCountry = (value: string): value is Country => /^[A-Z]{2}$/.test(value)
@@ -108,7 +109,7 @@ const validateImageFile = (file: File): { isValid: boolean; error?: string } => 
   return { isValid: true }
 }
 
-export function GeneralInfoTab({ form, person, formRef, onSubmit }: GeneralInfoTabProps) {
+export function GeneralInfoTab({ form, person, formRef, onSubmit, readOnly = false }: GeneralInfoTabProps) {
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false)
   const [showPhotoIdDialog, setShowPhotoIdDialog] = useState(false)
   const [primaryPhoneCountry, setPrimaryPhoneCountry] = useState<Country>('NP')
@@ -166,6 +167,7 @@ export function GeneralInfoTab({ form, person, formRef, onSubmit }: GeneralInfoT
         onSubmit={form.handleSubmit(onSubmit)}
         className="space-y-5"
       >
+        <fieldset disabled={readOnly}>
         {person?.hasMajorEmpowerment && (
           <div className='flex items-center gap-2 rounded-md border border-dashed border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-700'>
             <Badge className='bg-amber-500 text-amber-950 uppercase tracking-wide hover:bg-amber-500/90'>Major Empowerment</Badge>
@@ -866,6 +868,7 @@ export function GeneralInfoTab({ form, person, formRef, onSubmit }: GeneralInfoT
             />
           </div>
         )}
+        </fieldset>
       </form>
       
       {person ? (

@@ -9,10 +9,10 @@ export const empowermentSchema = z.object({
   type: z.enum(['Sutra', 'Tantra']).nullable(),
   form: z.enum(['Wang - empowerment', 'Lung - reading transmission', 'Tri - oral instructions']).nullable(),
   major_empowerment: z.boolean(),
-  createdAt: z.coerce.date(),
-  updatedAt: z.coerce.date(),
-  createdBy: z.string(),
-  lastUpdatedBy: z.string(),
+  created_at: z.coerce.date(),
+  updated_at: z.coerce.date(),
+  created_by: z.string(),
+  last_updated_by: z.string(),
 })
 
 export type Empowerment = z.infer<typeof empowermentSchema>

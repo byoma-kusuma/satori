@@ -1,8 +1,7 @@
 import React, { createContext, useContext, ReactNode } from 'react';
 import { UserRole, hasPermission, Permission, getRolePermissions } from '@/types/user-roles';
 import { useQuery } from '@tanstack/react-query';
-import { authClient } from '@/auth-client';
-import { getUserRole } from '@/api/users';
+import { getCurrentUser } from '@/api/users';
 
 interface PermissionContextType {
   userRole: UserRole | null;
@@ -27,24 +26,14 @@ interface PermissionProviderProps {
 }
 
 export const PermissionProvider: React.FC<PermissionProviderProps> = ({ children }) => {
-  // Get current user session
-  const { data: session } = useQuery({
-    queryKey: ['auth-session'],
-    queryFn: () => authClient.getSession(),
+  // Get current user (uses /me endpoint accessible by all authenticated users)
+  const { data: currentUser, isLoading, error } = useQuery({
+    queryKey: ['current-user'],
+    queryFn: getCurrentUser,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
-  const userId = session?.data?.user?.id;
-
-  // Get user role
-  const { data: roleData, isLoading, error } = useQuery({
-    queryKey: ['user-role', userId],
-    queryFn: () => getUserRole(userId || ''),
-    enabled: !!userId,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-  });
-
-  const userRole = roleData?.role || null;
+  const userRole = currentUser?.role || null;
   const permissions = userRole ? getRolePermissions(userRole) : null;
 
   const checkPermission = (permission: keyof Permission): boolean => {

@@ -1,8 +1,9 @@
 import { HTTPException } from 'hono/http-exception'
 import { db } from '../../database'
-import type { MahakramaStepInput, MahakramaStepUpdateInput, PersonMahakramaCompleteInput, PersonMahakramaStartInput } from './mahakrama.types'
+import type { MahakramaStepInput, MahakramaStepUpdateInput, PersonMahakramaCompleteInput, PersonMahakramaRequestCompletionInput, PersonMahakramaStartInput } from './mahakrama.types'
 import type { Selectable, Updateable } from 'kysely'
 import type { MahakramaStep } from '../../types'
+import { sendEmail } from '../../lib/email'
 
 export interface MahakramaStepRecord {
   id: string
@@ -16,17 +17,28 @@ export interface MahakramaStepRecord {
   updatedAt: Date | null
   createdBy: string
   lastUpdatedBy: string
+  documentCount: number
+}
+
+export interface MahakramaStepDocumentRecord {
+  id: string
+  mahakramaStepId: string
+  language: string
+  documentFilename: string
+  createdAt: Date | null
+  createdBy: string
 }
 
 export interface MahakramaHistoryRecord {
   id: string
   personId: string
   mahakramaStepId: string
-  status: 'current' | 'completed'
+  status: 'current' | 'completed' | 'requested_completion'
   startDate: Date
   endDate: Date | null
   mahakramaInstructorId: string | null
   completionNotes: string | null
+  studentNotes: string | null
   updatedAt: Date | null
   updatedBy: string
   stepSequenceNumber: number
@@ -40,7 +52,7 @@ export interface MahakramaHistoryRecord {
 
 type MahakramaStepRow = Selectable<MahakramaStep>
 
-const mapStepRow = (row: MahakramaStepRow): MahakramaStepRecord => ({
+const mapStepRow = (row: MahakramaStepRow, documentCount = 0): MahakramaStepRecord => ({
   id: row.id,
   sequenceNumber: row.sequence_number,
   groupId: row.group_id,
@@ -52,16 +64,21 @@ const mapStepRow = (row: MahakramaStepRow): MahakramaStepRecord => ({
   updatedAt: row.updated_at ?? null,
   createdBy: row.created_by,
   lastUpdatedBy: row.last_updated_by,
+  documentCount,
 })
 
 export const listMahakramaSteps = async (): Promise<MahakramaStepRecord[]> => {
-  const rows = await db
-    .selectFrom('mahakrama_step')
-    .selectAll()
-    .orderBy('sequence_number')
-    .execute()
+  const [rows, counts] = await Promise.all([
+    db.selectFrom('mahakrama_step').selectAll().orderBy('sequence_number').execute(),
+    db
+      .selectFrom('mahakrama_step_document')
+      .select(['mahakrama_step_id', db.fn.count<string>('id').as('count')])
+      .groupBy('mahakrama_step_id')
+      .execute(),
+  ])
 
-  return rows.map(mapStepRow)
+  const countMap = new Map(counts.map((r) => [r.mahakrama_step_id, Number(r.count)]))
+  return rows.map((row) => mapStepRow(row, countMap.get(row.id) ?? 0))
 }
 
 export const getMahakramaStepById = async (id: string): Promise<MahakramaStepRecord> => {
@@ -236,12 +253,13 @@ export const getMahakramaHistoryForPerson = async (personId: string): Promise<Ma
     startDate: Date
     endDate: Date | null
     mahakramaInstructorId: string | null
-	    completionNotes: string | null
-	    updatedAt: Date | null
-	    updatedBy: string | null
-	    sequenceNumber: number
-	    groupId: string
-	    groupName: string
+    completionNotes: string | null
+    studentNotes: string | null
+    updatedAt: Date | null
+    updatedBy: string | null
+    sequenceNumber: number
+    groupId: string
+    groupName: string
     stepId: string
     stepName: string
     description: string | null
@@ -249,8 +267,8 @@ export const getMahakramaHistoryForPerson = async (personId: string): Promise<Ma
     instructorLastName: string | null
   }
 
-  const toHistoryStatus = (value: string): 'current' | 'completed' => {
-    if (value === 'current' || value === 'completed') return value
+  const toHistoryStatus = (value: string): 'current' | 'completed' | 'requested_completion' => {
+    if (value === 'current' || value === 'completed' || value === 'requested_completion') return value
     throw new HTTPException(500, { message: `Unexpected Mahakrama status: ${value}` })
   }
 
@@ -268,6 +286,7 @@ export const getMahakramaHistoryForPerson = async (personId: string): Promise<Ma
       'mh.end_date as endDate',
       'mh.mahakrama_instructor_id as mahakramaInstructorId',
       'mh.completion_notes as completionNotes',
+      'mh.student_notes as studentNotes',
       'mh.updated_at as updatedAt',
       'updater.name as updatedBy',
       'ms.sequence_number as sequenceNumber',
@@ -292,6 +311,7 @@ export const getMahakramaHistoryForPerson = async (personId: string): Promise<Ma
 	    endDate: row.endDate ?? null,
 	    mahakramaInstructorId: row.mahakramaInstructorId ?? null,
 	    completionNotes: row.completionNotes ?? null,
+	    studentNotes: row.studentNotes ?? null,
 	    updatedAt: row.updatedAt ?? null,
 	    updatedBy: row.updatedBy ?? 'System',
 	    stepSequenceNumber: row.sequenceNumber,
@@ -356,8 +376,8 @@ export const completeMahakramaStep = async (
   historyId: string,
   payload: PersonMahakramaCompleteInput,
   userId: string,
-) => {
-  return db.transaction().execute(async (trx) => {
+): Promise<{ emailSent: boolean }> => {
+  const { personId, completedStepName, nextStepName } = await db.transaction().execute(async (trx) => {
     const history = await trx
       .selectFrom('mahakrama_history as mh')
       .innerJoin('mahakrama_step as ms', 'ms.id', 'mh.mahakrama_step_id')
@@ -368,6 +388,7 @@ export const completeMahakramaStep = async (
         'mh.start_date as startDate',
         'mh.mahakrama_step_id as stepId',
         'ms.sequence_number as sequenceNumber',
+        'ms.step_name as stepName',
       ])
       .where('mh.id', '=', historyId)
       .executeTakeFirst()
@@ -376,7 +397,7 @@ export const completeMahakramaStep = async (
       throw new HTTPException(404, { message: 'Mahakrama history record not found' })
     }
 
-    if (history.status !== 'current') {
+    if (history.status !== 'current' && history.status !== 'requested_completion') {
       throw new HTTPException(400, { message: 'Only the current Mahakrama step can be completed.' })
     }
 
@@ -424,6 +445,276 @@ export const completeMahakramaStep = async (
         })
         .executeTakeFirstOrThrow()
     }
+
+    return { personId: history.personId, completedStepName: history.stepName, nextStepName: nextStep?.step_name ?? null }
+  })
+
+  // Always notify the student that their step was marked complete
+  try {
+    const student = await db
+      .selectFrom('person')
+      .select(['emailId', 'firstName', 'lastName'])
+      .where('id', '=', personId)
+      .executeTakeFirst()
+
+    if (student?.emailId) {
+      const studentName = `${student.firstName} ${student.lastName}`.trim()
+      await sendEmail({
+        to: student.emailId,
+        subject: `Mahakrama Step Completed — ${completedStepName}`,
+        text: `Dear ${studentName},\n\nYour Mahakrama step "${completedStepName}" has been marked as complete by your instructor.${nextStepName ? `\n\nYour next step is: ${nextStepName}.` : '\n\nCongratulations — you have completed all Mahakrama steps!'}\n\nWith warm regards,\nByoma Kusuma`,
+        html: `<p>Dear ${studentName},</p><p>Your Mahakrama step <strong>${completedStepName}</strong> has been marked as complete by your instructor.</p>${nextStepName ? `<p>Your next step is: <strong>${nextStepName}</strong>.</p>` : '<p>Congratulations — you have completed all Mahakrama steps!</p>'}<p>With warm regards,<br/>Byoma Kusuma</p>`,
+      })
+    }
+  } catch (err) {
+    console.error('Failed to send Mahakrama completion notification:', err)
+  }
+
+  // Create in-app notification targeted at the student's user account
+  try {
+    const userRecord = await db
+      .selectFrom('user')
+      .select('id')
+      .where('person_id', '=', personId)
+      .executeTakeFirst()
+
+    if (userRecord) {
+      const notificationMessage = nextStepName
+        ? `Your Mahakrama step <strong>${completedStepName}</strong> has been marked complete by your instructor. Your next step is <strong>${nextStepName}</strong>.`
+        : `Your Mahakrama step <strong>${completedStepName}</strong> has been marked complete. Congratulations on finishing all Mahakrama steps!`
+
+      const notification = await db
+        .insertInto('notification')
+        .values({
+          title: `Mahakrama Step Completed — ${completedStepName}`,
+          message: notificationMessage,
+          target_type: 'users',
+          is_active: true,
+          expires_at: null,
+          created_by: userId,
+        })
+        .returning('id')
+        .executeTakeFirstOrThrow()
+
+      await db
+        .insertInto('notification_target_user')
+        .values({ notification_id: notification.id, user_id: userRecord.id })
+        .execute()
+    }
+  } catch (err) {
+    console.error('Failed to create Mahakrama in-app notification:', err)
+  }
+
+  if (!payload.sendDocumentIds || payload.sendDocumentIds.length === 0) {
+    return { emailSent: false }
+  }
+
+  try {
+    const [person, instructor, documents] = await Promise.all([
+      db
+        .selectFrom('person')
+        .select(['emailId', 'firstName', 'lastName'])
+        .where('id', '=', personId)
+        .executeTakeFirst(),
+      payload.instructorId
+        ? db
+            .selectFrom('person')
+            .select(['emailId', 'firstName', 'lastName'])
+            .where('id', '=', payload.instructorId)
+            .executeTakeFirst()
+        : Promise.resolve(undefined),
+      db
+        .selectFrom('mahakrama_step_document')
+        .select(['document_data', 'document_filename', 'language'])
+        .where('id', 'in', payload.sendDocumentIds)
+        .execute(),
+    ])
+
+    if (!person?.emailId) {
+      console.warn(`Mahakrama email skipped: person ${personId} has no email address`)
+      return { emailSent: false }
+    }
+
+    const personName = `${person.firstName} ${person.lastName}`.trim()
+    const stepLabel = nextStepName ?? 'the next Mahakrama step'
+    const attachments = documents.map((doc) => ({
+      filename: doc.document_filename,
+      content: doc.document_data as Buffer,
+      contentType: 'application/pdf',
+    }))
+
+    const emailsToSend = [
+      sendEmail({
+        to: person.emailId,
+        subject: `Mahakrama Instructions — ${stepLabel}`,
+        text: `Dear ${personName},\n\nPlease find attached the instruction document(s) for your next Mahakrama step: ${stepLabel}.\n\nWith warm regards,\nByoma Kusuma`,
+        html: `<p>Dear ${personName},</p><p>Please find attached the instruction document(s) for your next Mahakrama step: <strong>${stepLabel}</strong>.</p><p>With warm regards,<br/>Byoma Kusuma</p>`,
+        attachments,
+      }),
+    ]
+
+    if (instructor?.emailId) {
+      const instructorName = `${instructor.firstName} ${instructor.lastName}`.trim()
+      emailsToSend.push(
+        sendEmail({
+          to: instructor.emailId,
+          subject: `[Copy] Mahakrama Instructions sent to ${personName} — ${stepLabel}`,
+          text: `Dear ${instructorName},\n\nThis is a copy of the Mahakrama instruction document(s) sent to your student ${personName} for the next step: ${stepLabel}.\n\nWith warm regards,\nByoma Kusuma`,
+          html: `<p>Dear ${instructorName},</p><p>This is a copy of the Mahakrama instruction document(s) sent to your student <strong>${personName}</strong> for the next step: <strong>${stepLabel}</strong>.</p><p>With warm regards,<br/>Byoma Kusuma</p>`,
+          attachments,
+        })
+      )
+    }
+
+    await Promise.all(emailsToSend)
+
+    return { emailSent: true }
+  } catch (err) {
+    console.error('Failed to send Mahakrama document email:', err)
+    return { emailSent: false }
+  }
+}
+
+export const listStepDocuments = async (stepId: string): Promise<MahakramaStepDocumentRecord[]> => {
+  const rows = await db
+    .selectFrom('mahakrama_step_document')
+    .select(['id', 'mahakrama_step_id', 'language', 'document_filename', 'created_at', 'created_by'])
+    .where('mahakrama_step_id', '=', stepId)
+    .orderBy('language')
+    .execute()
+
+  return rows.map((row) => ({
+    id: row.id,
+    mahakramaStepId: row.mahakrama_step_id,
+    language: row.language,
+    documentFilename: row.document_filename,
+    createdAt: row.created_at ?? null,
+    createdBy: row.created_by,
+  }))
+}
+
+export const uploadStepDocument = async (
+  stepId: string,
+  language: string,
+  data: Buffer,
+  filename: string,
+  userId: string,
+): Promise<MahakramaStepDocumentRecord> => {
+  const existing = await db
+    .selectFrom('mahakrama_step_document')
+    .select('id')
+    .where('mahakrama_step_id', '=', stepId)
+    .where('language', '=', language)
+    .executeTakeFirst()
+
+  if (existing) {
+    throw new HTTPException(400, { message: `A document for language "${language}" already exists for this step. Delete it first or use replace.` })
+  }
+
+  const row = await db
+    .insertInto('mahakrama_step_document')
+    .values({
+      mahakrama_step_id: stepId,
+      language,
+      document_data: data,
+      document_filename: filename,
+      created_by: userId,
+    })
+    .returning(['id', 'mahakrama_step_id', 'language', 'document_filename', 'created_at', 'created_by'])
+    .executeTakeFirstOrThrow()
+
+  return {
+    id: row.id,
+    mahakramaStepId: row.mahakrama_step_id,
+    language: row.language,
+    documentFilename: row.document_filename,
+    createdAt: row.created_at ?? null,
+    createdBy: row.created_by,
+  }
+}
+
+export const replaceStepDocument = async (
+  docId: string,
+  data: Buffer,
+  filename: string,
+): Promise<MahakramaStepDocumentRecord> => {
+  const row = await db
+    .updateTable('mahakrama_step_document')
+    .set({ document_data: data, document_filename: filename })
+    .where('id', '=', docId)
+    .returning(['id', 'mahakrama_step_id', 'language', 'document_filename', 'created_at', 'created_by'])
+    .executeTakeFirst()
+
+  if (!row) throw new HTTPException(404, { message: 'Document not found' })
+
+  return {
+    id: row.id,
+    mahakramaStepId: row.mahakrama_step_id,
+    language: row.language,
+    documentFilename: row.document_filename,
+    createdAt: row.created_at ?? null,
+    createdBy: row.created_by,
+  }
+}
+
+export const getStepDocumentData = async (docId: string) => {
+  return db
+    .selectFrom('mahakrama_step_document')
+    .select(['document_data', 'document_filename'])
+    .where('id', '=', docId)
+    .executeTakeFirst()
+}
+
+export const deleteStepDocument = async (docId: string): Promise<void> => {
+  const result = await db
+    .deleteFrom('mahakrama_step_document')
+    .where('id', '=', docId)
+    .executeTakeFirst()
+
+  const deleted = result?.numDeletedRows
+  const hasDeleted = typeof deleted === 'number' ? deleted > 0 : Number(deleted ?? 0) > 0
+  if (!hasDeleted) throw new HTTPException(404, { message: 'Document not found' })
+}
+
+export const requestMahakramaCompletion = async (
+  historyId: string,
+  personId: string,
+  payload: PersonMahakramaRequestCompletionInput,
+  userId: string,
+) => {
+  return db.transaction().execute(async (trx) => {
+    const history = await trx
+      .selectFrom('mahakrama_history as mh')
+      .select([
+        'mh.id as id',
+        'mh.person_id as personId',
+        'mh.status as status',
+      ])
+      .where('mh.id', '=', historyId)
+      .executeTakeFirst()
+
+    if (!history) {
+      throw new HTTPException(404, { message: 'Mahakrama history record not found' })
+    }
+
+    if (history.personId !== personId) {
+      throw new HTTPException(403, { message: 'You can only request completion for your own Mahakrama step.' })
+    }
+
+    if (history.status !== 'current') {
+      throw new HTTPException(400, { message: 'Only the current Mahakrama step can be marked for completion.' })
+    }
+
+    await trx
+      .updateTable('mahakrama_history')
+      .set({
+        status: 'requested_completion',
+        student_notes: payload.completionNotes ?? null,
+        last_updated_by: userId,
+        updated_at: new Date(),
+      })
+      .where('id', '=', historyId)
+      .executeTakeFirstOrThrow()
 
     return true
   })

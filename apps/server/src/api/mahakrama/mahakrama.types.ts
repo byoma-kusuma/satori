@@ -22,9 +22,15 @@ export const personMahakramaCompleteSchema = z.object({
   completedDate: z.coerce.date(),
   instructorId: z.string().uuid(),
   completionNotes: z.string().nullable().optional(),
+  sendDocumentIds: z.array(z.string().uuid()).optional(),
+})
+
+export const personMahakramaRequestCompletionSchema = z.object({
+  completionNotes: z.string().nullable().optional(),
 })
 
 export type MahakramaStepInput = z.infer<typeof mahakramaStepInputSchema>
 export type MahakramaStepUpdateInput = z.infer<typeof mahakramaStepUpdateSchema>
 export type PersonMahakramaStartInput = z.infer<typeof personMahakramaStartSchema>
 export type PersonMahakramaCompleteInput = z.infer<typeof personMahakramaCompleteSchema>
+export type PersonMahakramaRequestCompletionInput = z.infer<typeof personMahakramaRequestCompletionSchema>

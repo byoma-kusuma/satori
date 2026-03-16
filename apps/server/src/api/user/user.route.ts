@@ -81,6 +81,14 @@ export const usersRoutes = users
     const user = await createUser(data);
     return c.json(user, 201);
   })
+  .get("/me", async (c) => {
+    const sessionUser = c.get("user");
+    if (!sessionUser) {
+      throw new HTTPException(401, { message: "Authentication required" });
+    }
+    const user = await getUserById(sessionUser.id);
+    return c.json(user);
+  })
   .get("/:id", zValidator("param", paramsSchema), requirePermission("canViewUsers"), async (c) => {
     const { id } = c.req.valid("param");
     const user = await getUserById(id);

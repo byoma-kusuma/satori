@@ -175,6 +175,23 @@ export const useRemovePersonFromGroup = () => {
   })
 }
 
+export const sendGroupEmail = async (
+  groupId: string,
+  payload: { subject: string; message: string }
+): Promise<{ sent: number; skipped: number; failed: number }> => {
+  return fetchWithCredentials(`${GROUP_API_URL}/${groupId}/email`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+}
+
+export const useSendGroupEmail = () => {
+  return useMutation({
+    mutationFn: ({ groupId, subject, message }: { groupId: string; subject: string; message: string }) =>
+      sendGroupEmail(groupId, { subject, message }),
+  })
+}
+
 export const useBulkAddPersonsToGroups = () => {
   const queryClient = useQueryClient()
 

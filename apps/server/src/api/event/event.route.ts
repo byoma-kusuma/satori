@@ -31,6 +31,8 @@ const jsonValueSchema: z.ZodType<JsonValue> = z.lazy(() =>
 )
 const metadataSchema = z.record(jsonValueSchema)
 
+const audienceTypeSchema = z.enum(['all', 'groups', 'centers'])
+
 const createEventSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   description: z.string().optional().nullable(),
@@ -50,6 +52,9 @@ const createEventSchema = z.object({
     .nullable(),
   metadata: metadataSchema.optional().nullable(),
   requiresFullAttendance: z.boolean().optional().nullable(),
+  audienceType: audienceTypeSchema.optional(),
+  targetGroupIds: z.array(z.string().uuid()).optional(),
+  targetCenterIds: z.array(z.string().uuid()).optional(),
 })
 
 const updateEventSchema = createEventSchema.partial().extend({
@@ -74,6 +79,7 @@ const addAttendeeSchema = z.object({
 const updateAttendeeSchema = z.object({
   notes: z.string().max(2000).optional().nullable(),
   metadata: metadataSchema.optional().nullable(),
+  isCancelled: z.boolean().optional(),
 })
 
 const checkInSchema = z.object({
@@ -143,6 +149,9 @@ const toCreateEventInput = (payload: CreateEventRequest): CreateEventInput => ({
     : undefined,
   metadata: payload.metadata ?? null,
   requiresFullAttendance: payload.requiresFullAttendance ?? null,
+  audienceType: payload.audienceType ?? 'all',
+  targetGroupIds: payload.targetGroupIds ?? [],
+  targetCenterIds: payload.targetCenterIds ?? [],
 })
 
 type UpdateEventRequest = z.infer<typeof updateEventSchema>
@@ -170,6 +179,9 @@ const toUpdateEventInput = (payload: UpdateEventRequest): UpdateEventInput => {
   if (payload.metadata !== undefined) input.metadata = payload.metadata
   if (payload.requiresFullAttendance !== undefined) input.requiresFullAttendance = payload.requiresFullAttendance
   if (payload.status !== undefined) input.status = payload.status
+  if (payload.audienceType !== undefined) input.audienceType = payload.audienceType
+  if (payload.targetGroupIds !== undefined) input.targetGroupIds = payload.targetGroupIds
+  if (payload.targetCenterIds !== undefined) input.targetCenterIds = payload.targetCenterIds
 
   return input
 }

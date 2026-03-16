@@ -35,7 +35,15 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import { Header } from '@/components/layout/header'
 import { Main } from '@/components/layout/main'
 import { Search } from '@/components/search'
@@ -143,23 +151,35 @@ function AssignPersonDialog({
                 <FormItem>
                   <FormLabel>Person</FormLabel>
                   <FormControl>
-                    <Select
-                      value={field.value}
-                      onValueChange={field.onChange}
-                      disabled={isLoading || availablePersons.length === 0}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder={availablePersons.length ? 'Select person' : 'No persons available'} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {availablePersons.map((person) => (
-                          <SelectItem key={person.id} value={person.id}>
-                            {person.firstName} {person.lastName}
-                            {person.emailId ? ` • ${person.emailId}` : ''}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Command className='rounded-md border'>
+                      <CommandInput placeholder='Search person…' disabled={isLoading} />
+                      <CommandList>
+                        <CommandEmpty>
+                          {isLoading ? 'Loading…' : 'No person found.'}
+                        </CommandEmpty>
+                        <CommandGroup>
+                          <ScrollArea className='h-48'>
+                            {availablePersons.map((person) => (
+                              <CommandItem
+                                key={person.id}
+                                value={`${person.firstName} ${person.lastName} ${person.emailId ?? ''}`}
+                                onSelect={() => field.onChange(person.id)}
+                                className={field.value === person.id ? 'bg-accent' : ''}
+                              >
+                                <span className='font-medium'>
+                                  {person.firstName} {person.lastName}
+                                </span>
+                                {person.emailId && (
+                                  <span className='ml-2 text-xs text-muted-foreground'>
+                                    {person.emailId}
+                                  </span>
+                                )}
+                              </CommandItem>
+                            ))}
+                          </ScrollArea>
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
                   </FormControl>
                   <FormMessage />
                 </FormItem>

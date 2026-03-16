@@ -48,15 +48,11 @@ export async function getAllPersons(userRole?: UserRole, userPersonId?: string |
         .as('hasMajorEmpowerment'),
     )
 
-  // Apply role-based filtering
-  if (userRole === 'krama_instructor' && userPersonId) {
-    // Krama Instructor can only see persons assigned to them
-    query = query.where('p.krama_instructor_person_id', '=', userPersonId)
-  } else if (userRole === 'viewer' && userPersonId) {
-    // Viewer can only see their own record
+  // Viewer can only see their own record
+  if (userRole === 'viewer' && userPersonId) {
     query = query.where('p.id', '=', userPersonId)
   }
-  // Admin has no restrictions
+  // krama_instructor and admin see all persons — client-side filtering handles "My Students"
 
   return query.execute();
 }

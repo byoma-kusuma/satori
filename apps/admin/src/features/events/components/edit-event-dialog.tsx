@@ -37,7 +37,10 @@ import { getEmpowermentsQueryOptions } from '@/api/empowerments'
 import { getGurusQueryOptions } from '@/features/gurus/data/api'
 import { getEventGroupsQueryOptions, useCreateEventGroup } from '@/api/event-groups'
 import { Textarea } from '@/components/ui/textarea'
-import { CreateEventPayload } from '../types'
+import { Checkbox } from '@/components/ui/checkbox'
+import { getGroupsQueryOptions } from '@/api/groups'
+import { getCentersQueryOptions } from '@/api/centers'
+import { CreateEventPayload, EventAudienceType } from '../types'
 
 type Props = {
   eventId: string | null
@@ -57,6 +60,9 @@ const formSchema = z
     guruId: z.string().uuid().optional().nullable(),
     eventGroupId: z.string().uuid().optional().nullable(),
     requiresFullAttendance: z.boolean().optional().nullable(),
+    audienceType: z.enum(['all', 'groups', 'centers']).default('all'),
+    targetGroupIds: z.array(z.string().uuid()).default([]),
+    targetCenterIds: z.array(z.string().uuid()).default([]),
   })
   .refine((data) => {
     if (!data.endDate) return true
@@ -83,6 +89,8 @@ export function EditEventDialog({ eventId, open, onOpenChange }: Props) {
     enabled: open,
   })
   const { data: eventGroups = [], isLoading: groupsLoading, error: groupsError } = useQuery({ ...getEventGroupsQueryOptions(), enabled: open })
+  const { data: allGroups = [] } = useQuery({ ...getGroupsQueryOptions, enabled: open })
+  const { data: allCenters = [] } = useQuery({ ...getCentersQueryOptions, enabled: open })
   const createGroupMutation = useCreateEventGroup()
   const [showNewGroup, setShowNewGroup] = useState(false)
   const [newGroupName, setNewGroupName] = useState('')
@@ -105,6 +113,9 @@ export function EditEventDialog({ eventId, open, onOpenChange }: Props) {
       guruId: null,
       eventGroupId: null,
       requiresFullAttendance: null,
+      audienceType: 'all' as EventAudienceType,
+      targetGroupIds: [],
+      targetCenterIds: [],
     },
   })
 
@@ -122,10 +133,16 @@ export function EditEventDialog({ eventId, open, onOpenChange }: Props) {
       guruId: eventDetail.guruId,
       eventGroupId: eventDetail.eventGroupId ?? null,
       requiresFullAttendance: eventDetail.requiresFullAttendance,
+      audienceType: eventDetail.audienceType ?? 'all',
+      targetGroupIds: eventDetail.targetGroupIds ?? [],
+      targetCenterIds: eventDetail.targetCenterIds ?? [],
     })
   }, [eventDetail, form])
 
   const categoryId = form.watch('categoryId')
+  const audienceType = form.watch('audienceType')
+  const targetGroupIds = form.watch('targetGroupIds')
+  const targetCenterIds = form.watch('targetCenterIds')
   const selectedCategory = categories.find((category) => category.id === categoryId)
   const isEmpowermentEvent = selectedCategory?.code === 'EMPOWERMENT'
 
@@ -142,6 +159,15 @@ export function EditEventDialog({ eventId, open, onOpenChange }: Props) {
 
   const handleSubmit = async (values: z.infer<typeof formSchema>) => {
     if (!eventId || !eventDetail) return
+
+    if (values.audienceType === 'groups' && values.targetGroupIds.length === 0) {
+      toast({ title: 'Validation error', description: 'Select at least one group for the audience.', variant: 'destructive' })
+      return
+    }
+    if (values.audienceType === 'centers' && values.targetCenterIds.length === 0) {
+      toast({ title: 'Validation error', description: 'Select at least one center for the audience.', variant: 'destructive' })
+      return
+    }
 
     if (isEmpowermentEvent) {
       let hasError = false
@@ -186,6 +212,9 @@ export function EditEventDialog({ eventId, open, onOpenChange }: Props) {
       empowermentId: isEmpowermentEvent ? values.empowermentId! : null,
       guruId: isEmpowermentEvent ? values.guruId! : null,
       metadata,
+      audienceType: values.audienceType,
+      targetGroupIds: values.audienceType === 'groups' ? values.targetGroupIds : [],
+      targetCenterIds: values.audienceType === 'centers' ? values.targetCenterIds : [],
     }
 
     try {
@@ -213,7 +242,7 @@ export function EditEventDialog({ eventId, open, onOpenChange }: Props) {
         }
       }}
     >
-      <DialogContent className='sm:max-w-lg'>
+      <DialogContent className='sm:max-w-lg max-h-[90vh] overflow-y-auto'>
         <DialogHeader>
           <DialogTitle>Edit Event</DialogTitle>
         </DialogHeader>
@@ -517,6 +546,87 @@ export function EditEventDialog({ eventId, open, onOpenChange }: Props) {
                     </FormItem>
                   )}
                 />
+              </div>
+            )}
+
+            <FormField
+              control={form.control}
+              name='audienceType'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Audience</FormLabel>
+                  <FormControl>
+                    <RadioGroup
+                      onValueChange={(val) => {
+                        field.onChange(val)
+                        form.setValue('targetGroupIds', [])
+                        form.setValue('targetCenterIds', [])
+                      }}
+                      value={field.value}
+                      className='grid grid-cols-3 gap-2'
+                    >
+                      {[
+                        { value: 'all', label: 'Everyone' },
+                        { value: 'groups', label: 'Specific Groups' },
+                        { value: 'centers', label: 'Specific Centers' },
+                      ].map((opt) => (
+                        <FormItem key={opt.value} className='flex items-center space-x-2 space-y-0 rounded-md border p-3'>
+                          <FormControl>
+                            <RadioGroupItem value={opt.value} />
+                          </FormControl>
+                          <FormLabel className='text-sm font-medium cursor-pointer'>{opt.label}</FormLabel>
+                        </FormItem>
+                      ))}
+                    </RadioGroup>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {audienceType === 'groups' && (
+              <div className='space-y-2'>
+                <p className='text-sm font-medium'>Select Groups</p>
+                <div className='max-h-40 overflow-y-auto rounded-md border p-2 space-y-1'>
+                  {allGroups.length === 0 ? (
+                    <p className='text-sm text-muted-foreground p-2'>No groups available.</p>
+                  ) : allGroups.map((g: { id: string; name: string }) => (
+                    <label key={g.id} className='flex items-center gap-2 px-2 py-1 rounded hover:bg-muted/50 cursor-pointer'>
+                      <Checkbox
+                        checked={targetGroupIds.includes(g.id)}
+                        onCheckedChange={(checked) => {
+                          const current = form.getValues('targetGroupIds')
+                          form.setValue('targetGroupIds', checked ? [...current, g.id] : current.filter((id) => id !== g.id))
+                        }}
+                      />
+                      <span className='text-sm'>{g.name}</span>
+                    </label>
+                  ))}
+                </div>
+                {targetGroupIds.length === 0 && <p className='text-xs text-destructive'>Select at least one group.</p>}
+              </div>
+            )}
+
+            {audienceType === 'centers' && (
+              <div className='space-y-2'>
+                <p className='text-sm font-medium'>Select Centers</p>
+                <div className='max-h-40 overflow-y-auto rounded-md border p-2 space-y-1'>
+                  {allCenters.length === 0 ? (
+                    <p className='text-sm text-muted-foreground p-2'>No centers available.</p>
+                  ) : allCenters.map((c: { id: string; name: string }) => (
+                    <label key={c.id} className='flex items-center gap-2 px-2 py-1 rounded hover:bg-muted/50 cursor-pointer'>
+                      <Checkbox
+                        checked={targetCenterIds.includes(c.id)}
+                        onCheckedChange={(checked) => {
+                          const current = form.getValues('targetCenterIds')
+                          form.setValue('targetCenterIds', checked ? [...current, c.id] : current.filter((id) => id !== c.id))
+                        }}
+                      />
+                      <span className='text-sm'>{c.name}</span>
+                    </label>
+                  ))}
+                </div>
+                {targetCenterIds.length === 0 && <p className='text-xs text-destructive'>Select at least one center.</p>}
               </div>
             )}
 

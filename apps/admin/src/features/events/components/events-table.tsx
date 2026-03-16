@@ -32,6 +32,7 @@ interface EventsTableProps<TData, TValue> {
   data: TData[]
   onAdd?: () => void
   groupFilterOptions?: { label: string; value: string }[]
+  onRowClick?: (eventId: string) => void
 }
 
 export function EventsTable<TData, TValue>({
@@ -39,6 +40,7 @@ export function EventsTable<TData, TValue>({
   data,
   onAdd,
   groupFilterOptions = [],
+  onRowClick,
 }: EventsTableProps<TData, TValue>) {
   const navigate = useNavigate()
   const [rowSelection, setRowSelection] = React.useState({})
@@ -74,8 +76,12 @@ export function EventsTable<TData, TValue>({
     if (target.closest('button, a, [role="button"]')) {
       return
     }
-    
-    navigate({ to: '/events/$eventId/view', params: { eventId } })
+
+    if (onRowClick) {
+      onRowClick(eventId)
+    } else {
+      navigate({ to: '/events/$eventId/view', params: { eventId } })
+    }
   }
 
   return (

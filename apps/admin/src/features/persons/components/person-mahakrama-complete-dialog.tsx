@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { format, differenceInCalendarDays } from 'date-fns'
 
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Dialog,
   DialogContent,
@@ -48,8 +49,12 @@ interface MahakramaCompleteDialogProps {
   startDate: Date
   stepName: string
   instructors: Array<{ id: string; firstName: string; lastName: string }>
-  onSubmit: (values: MahakramaCompleteFormValues, metadata: { daysElapsed: number }) => void
+  hasNextStep?: boolean
+  nextStepDocuments?: Array<{ id: string; language: string; documentFilename: string }>
+  onSubmit: (values: MahakramaCompleteFormValues, metadata: { daysElapsed: number; sendDocumentIds: string[] }) => void
   submitting?: boolean
+  studentNotes?: string | null
+  studentEmail?: string | null
 }
 
 export function MahakramaCompleteDialog({
@@ -58,10 +63,16 @@ export function MahakramaCompleteDialog({
   startDate,
   stepName,
   instructors,
+  hasNextStep = false,
+  nextStepDocuments = [],
   onSubmit,
   submitting,
+  studentNotes,
+  studentEmail,
 }: MahakramaCompleteDialogProps) {
   const [daysElapsed, setDaysElapsed] = useState<number>(0)
+  const [sendDocuments, setSendDocuments] = useState(false)
+  const [selectedDocIds, setSelectedDocIds] = useState<string[]>([])
   const form = useForm<MahakramaCompleteFormValues>({
     resolver: zodResolver(completeSchema),
     defaultValues: {
@@ -74,12 +85,17 @@ export function MahakramaCompleteDialog({
   useEffect(() => {
     if (open) {
       const now = new Date()
+      const minDate = new Date(startDate)
+      minDate.setDate(minDate.getDate() + 1)
+      const completedDate = minDate > now ? minDate : now
       form.reset({
-        completedDate: now,
+        completedDate,
         instructorId: '',
         completionNotes: null,
       })
-      setDaysElapsed(differenceInCalendarDays(now, startDate))
+      setDaysElapsed(differenceInCalendarDays(completedDate, startDate))
+      setSendDocuments(false)
+      setSelectedDocIds([])
     }
   }, [open, form, startDate])
 
@@ -94,7 +110,7 @@ export function MahakramaCompleteDialog({
       }
     }
 
-    onSubmit(values, { daysElapsed: diff })
+    onSubmit(values, { daysElapsed: diff, sendDocumentIds: sendDocuments ? selectedDocIds : [] })
   }
 
   return (
@@ -111,6 +127,14 @@ export function MahakramaCompleteDialog({
             <div className='rounded-md border bg-muted/30 px-3 py-2 text-sm text-muted-foreground'>
               Started on {format(startDate, 'MMM d, yyyy')} — {daysElapsed} day{daysElapsed === 1 ? '' : 's'} elapsed
             </div>
+            {studentNotes && (
+              <div className='space-y-1'>
+                <label className='text-sm font-medium'>Student Notes</label>
+                <div className='rounded-md border bg-muted/30 px-3 py-2 text-sm text-muted-foreground whitespace-pre-wrap'>
+                  {studentNotes}
+                </div>
+              </div>
+            )}
             <FormField
               control={form.control}
               name='completedDate'
@@ -195,6 +219,56 @@ export function MahakramaCompleteDialog({
                 </FormItem>
               )}
             />
+            {hasNextStep && (
+              <div className='space-y-3 rounded-md border p-3'>
+                <div className='flex items-center gap-2'>
+                  <Checkbox
+                    id='send-documents'
+                    checked={sendDocuments}
+                    onCheckedChange={(checked) => {
+                      setSendDocuments(Boolean(checked))
+                      if (!checked) setSelectedDocIds([])
+                    }}
+                    disabled={submitting || nextStepDocuments.length === 0}
+                  />
+                  <label htmlFor='send-documents' className={`text-sm font-medium ${nextStepDocuments.length === 0 ? 'text-muted-foreground' : 'cursor-pointer'}`}>
+                    Send instructions for next step
+                  </label>
+                </div>
+                {nextStepDocuments.length === 0 ? (
+                  <p className='ml-6 text-xs text-muted-foreground'>No documents have been uploaded for the next step yet.</p>
+                ) : sendDocuments ? (
+                  <div className='ml-6 space-y-2'>
+                    {studentEmail ? (
+                      <p className='text-xs text-muted-foreground'>
+                        Will be sent to: <span className='font-medium text-foreground'>{studentEmail}</span>
+                      </p>
+                    ) : (
+                      <p className='text-xs text-destructive'>Student has no email address on file — email cannot be sent.</p>
+                    )}
+                    <p className='text-xs text-muted-foreground'>Select languages to email:</p>
+                    {nextStepDocuments.map((doc) => (
+                      <div key={doc.id} className='flex items-center gap-2'>
+                        <Checkbox
+                          id={`doc-${doc.id}`}
+                          checked={selectedDocIds.includes(doc.id)}
+                          onCheckedChange={(checked) =>
+                            setSelectedDocIds((prev) =>
+                              checked ? [...prev, doc.id] : prev.filter((id) => id !== doc.id),
+                            )
+                          }
+                          disabled={submitting}
+                        />
+                        <label htmlFor={`doc-${doc.id}`} className='cursor-pointer text-sm'>
+                          {doc.language}
+                          <span className='ml-1 text-xs text-muted-foreground'>({doc.documentFilename})</span>
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+            )}
             <DialogFooter>
               <Button type='button' variant='outline' onClick={() => onOpenChange(false)} disabled={submitting}>
                 Cancel

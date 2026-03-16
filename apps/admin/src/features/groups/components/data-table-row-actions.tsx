@@ -1,6 +1,7 @@
 import { Pencil, Trash, UsersRound } from 'lucide-react'
 import { DotsHorizontalIcon } from '@radix-ui/react-icons'
 import { Row } from '@tanstack/react-table'
+import { useNavigate } from '@tanstack/react-router'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -21,6 +22,7 @@ export function DataTableRowActions<TData>({
   row,
 }: DataTableRowActionsProps<TData>) {
   const { setOpen, setCurrentRow } = useGroups()
+  const navigate = useNavigate()
   const group = row.original as Group
 
   return (
@@ -45,10 +47,7 @@ export function DataTableRowActions<TData>({
           Edit
         </DropdownMenuItem>
         <DropdownMenuItem
-          onClick={() => {
-            setCurrentRow(group)
-            setOpen('members')
-          }}
+          onClick={() => navigate({ to: '/groups/$groupId', params: { groupId: group.id } })}
         >
           <UsersRound className="mr-2 h-4 w-4" />
           Members

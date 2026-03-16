@@ -13,8 +13,8 @@ export const userRoleLabels: Record<UserRole, string> = {
 // Role descriptions
 export const userRoleDescriptions: Record<UserRole, string> = {
   sysadmin: 'Full system access with elevated privileges for system configuration and management',
-  admin: 'Full system access including user management, all CRUD operations, and system settings',
-  krama_instructor: 'Full system access including user management, all CRUD operations, and system settings',
+  admin: 'Full system access including user management and all CRUD operations, except Mahakrama and Import',
+  krama_instructor: 'Access to persons, events, and groups management; cannot access Users, Gurus, Empowerments, Mahakrama, or Import',
   viewer: 'Read-only access to persons and events, no create/edit/delete permissions',
 };
 
@@ -45,6 +45,11 @@ export interface Permission {
   
   // System settings
   canManageSettings: boolean;
+
+  // Section access
+  canAccessMahakrama: boolean;
+  canImport: boolean;
+  canManageNotifications: boolean;
 }
 
 // Define permissions for each role
@@ -74,6 +79,11 @@ export const rolePermissions: Record<UserRole, Permission> = {
 
     // System settings
     canManageSettings: true,
+
+    // Section access
+    canAccessMahakrama: true,
+    canImport: true,
+    canManageNotifications: true,
   },
 
   admin: {
@@ -101,60 +111,75 @@ export const rolePermissions: Record<UserRole, Permission> = {
 
     // System settings
     canManageSettings: true,
+
+    // Section access
+    canAccessMahakrama: false,
+    canImport: false,
+    canManageNotifications: true,
   },
-  
+
   krama_instructor: {
     // User management
-    canManageUsers: true,
-    canViewUsers: true,
-    
+    canManageUsers: false,
+    canViewUsers: false,
+
     // Person management
     canCreatePersons: true,
     canEditPersons: true,
     canDeletePersons: true,
     canViewPersons: true,
-    
+
     // Event management
     canCreateEvents: true,
     canEditEvents: true,
     canDeleteEvents: true,
     canViewEvents: true,
-    
+
     // Group management
     canCreateGroups: true,
     canEditGroups: true,
     canDeleteGroups: true,
     canViewGroups: true,
-    
+
     // System settings
-    canManageSettings: true,
+    canManageSettings: false,
+
+    // Section access
+    canAccessMahakrama: false,
+    canImport: false,
+    canManageNotifications: false,
   },
-  
+
   viewer: {
     // User management
     canManageUsers: false,
     canViewUsers: false,
-    
+
     // Person management
     canCreatePersons: false,
     canEditPersons: false,
     canDeletePersons: false,
     canViewPersons: true,
-    
+
     // Event management
     canCreateEvents: false,
     canEditEvents: false,
     canDeleteEvents: false,
     canViewEvents: true,
-    
+
     // Group management
     canCreateGroups: false,
     canEditGroups: false,
     canDeleteGroups: false,
     canViewGroups: true,
-    
+
     // System settings
     canManageSettings: false,
+
+    // Section access
+    canAccessMahakrama: false,
+    canImport: false,
+    canManageNotifications: false,
   },
 };
 

@@ -23,12 +23,13 @@ export async function sendEmailAzure(options: EmailOptions): Promise<void> {
       html: options.html || options.text,
     },
     recipients: {
-      to: [
-        {
-          address: options.to,
-        },
-      ],
+      to: [{ address: options.to }],
     },
+    attachments: options.attachments?.map((a) => ({
+      name: a.filename,
+      contentType: a.contentType,
+      contentInBase64: a.content.toString('base64'),
+    })),
   };
 
   const poller = await client.beginSend(message);

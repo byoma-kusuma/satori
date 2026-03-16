@@ -34,9 +34,12 @@ declare module '@tanstack/react-table' {
 interface DataTableProps<TData> {
   columns: ColumnDef<TData>[]
   data: TData[]
+  showStudentFilter?: boolean
+  studentView?: 'mine' | 'all'
+  onStudentViewChange?: (view: 'mine' | 'all') => void
 }
 
-export function PersonsTable<TData>({ columns, data }: DataTableProps<TData>) {
+export function PersonsTable<TData>({ columns, data, showStudentFilter, studentView, onStudentViewChange }: DataTableProps<TData>) {
   const navigate = useNavigate()
   const [rowSelection, setRowSelection] = useState({})
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
@@ -67,7 +70,12 @@ export function PersonsTable<TData>({ columns, data }: DataTableProps<TData>) {
 
   return (
     <div className='space-y-4'>
-      <DataTableToolbar table={table} />
+      <DataTableToolbar
+        table={table}
+        showStudentFilter={showStudentFilter}
+        studentView={studentView}
+        onStudentViewChange={onStudentViewChange}
+      />
       <div className='rounded-md border'>
         <Table>
           <TableHeader>

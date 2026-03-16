@@ -5,6 +5,7 @@ import { z } from 'zod'
 import { db } from '../../database'
 import { auth } from '../../lib/auth'
 import { authenticated } from '../../middlewares/session'
+import { requirePermission } from '../../middlewares/authorization'
 import type { Updateable } from 'kysely'
 import type { Empowerment } from '../../types'
 
@@ -60,7 +61,7 @@ export const empowermentRoute = app
     
     return c.json(empowerment)
   })
-  .post('/', zValidator('json', empowermentInputSchema), async (c) => {
+  .post('/', requirePermission('canManageSettings'), zValidator('json', empowermentInputSchema), async (c) => {
     const data = c.req.valid('json')
     const user = requireUser(c.get('user'))
 
@@ -78,7 +79,7 @@ export const empowermentRoute = app
 
     return c.json(empowerment, 201)
   })
-  .put('/:id', zValidator('json', empowermentUpdateSchema), async (c) => {
+  .put('/:id', requirePermission('canManageSettings'), zValidator('json', empowermentUpdateSchema), async (c) => {
     const id = c.req.param('id')
     const data = c.req.valid('json')
     const user = requireUser(c.get('user'))
@@ -112,7 +113,7 @@ export const empowermentRoute = app
     
     return c.json(empowerment)
   })
-  .delete('/:id', async (c) => {
+  .delete('/:id', requirePermission('canManageSettings'), async (c) => {
     const id = c.req.param('id')
 
     // Check if empowerment exists

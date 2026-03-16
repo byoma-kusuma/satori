@@ -7,6 +7,7 @@ import {
   IconSun,
 } from '@tabler/icons-react';
 import { useAtom } from 'jotai';
+import { useQuery } from '@tanstack/react-query';
 import { searchOpenAtom } from '@/stores/searchAtom';
 import { themeAtom } from '@/stores/appearanceAtoms';
 import {
@@ -18,13 +19,30 @@ import {
   CommandList,
   CommandSeparator,
 } from '@/components/ui/command';
-import { sidebarData } from './layout/data/sidebar-data';
+import { getSidebarData } from './layout/data/sidebar-data';
 import { ScrollArea } from './ui/scroll-area';
+import { useAuth } from '@/hooks/use-auth';
+import { usePermissions } from '@/contexts/permission-context';
+import { getCurrentUserQueryOptions } from '@/api/users';
 
 export function CommandMenu() {
   const navigate = useNavigate();
   const [, setTheme] = useAtom(themeAtom);
   const [open, setOpen] = useAtom(searchOpenAtom);
+  const { user } = useAuth();
+  const { userRole } = usePermissions();
+
+  const { data: currentUser } = useQuery({
+    ...getCurrentUserQueryOptions(),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const viewerProfileUrl =
+    userRole === 'viewer' && currentUser?.personId
+      ? `/persons/${currentUser.personId}/edit`
+      : undefined;
+
+  const sidebarData = getSidebarData(user, userRole, viewerProfileUrl);
 
   const runCommand = React.useCallback(
     (command: () => void) => {

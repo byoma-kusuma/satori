@@ -15,7 +15,7 @@ import {
   updateRegistration,
 } from './registration.service'
 import { db } from '../../database'
-import { adminOnly } from '../../middlewares/authorization'
+import { requirePermission } from '../../middlewares/authorization'
 import { bulkAddAttendees } from '../event/event.service'
 import { generatePersonCode } from '../person/person.service'
 
@@ -358,27 +358,27 @@ export const registrationRoutes = app
     const rows = await listRegistrations()
     return c.json(rows)
   })
-  .post('/import', adminOnly, zValidator('json', importSchema), async (c) => {
+  .post('/import', requirePermission('canImport'), zValidator('json', importSchema), async (c) => {
     const user = c.get('user')
     if (!user) throw new HTTPException(401, { message: 'Unauthorized' })
     const { rows } = c.req.valid('json')
     const summary = await importRegistrations(rows, user.id)
     return c.json(summary)
   })
-  .get('/import-history', adminOnly, async (c) => {
+  .get('/import-history', requirePermission('canImport'), async (c) => {
     const user = c.get('user')
     if (!user) throw new HTTPException(401, { message: 'Unauthorized' })
     const rows = await (await import('./registration.service')).listImportHistory(20)
     return c.json(rows)
   })
-  .post('/set-invalid', adminOnly, zValidator('json', setInvalidSchema), async (c) => {
+  .post('/set-invalid', requirePermission('canImport'), zValidator('json', setInvalidSchema), async (c) => {
     const user = c.get('user')
     if (!user) throw new HTTPException(401, { message: 'Unauthorized' })
     const { ids, reason } = c.req.valid('json')
     await setInvalid(ids, reason, user.id)
     return c.json({ success: true })
   })
-  .post('/convert', adminOnly, zValidator('json', convertSchema), async (c) => {
+  .post('/convert', requirePermission('canImport'), zValidator('json', convertSchema), async (c) => {
     const user = c.get('user')
     if (!user) throw new HTTPException(401, { message: 'Unauthorized' })
     const { ids } = c.req.valid('json')
@@ -497,7 +497,7 @@ export const registrationRoutes = app
 
     return c.json({ results })
   })
-  .delete('/clear-all', adminOnly, async (c) => {
+  .delete('/clear-all', requirePermission('canImport'), async (c) => {
     const user = c.get('user')
     if (!user) throw new HTTPException(401, { message: 'Unauthorized' })
     const result = await clearAllRegistrations()

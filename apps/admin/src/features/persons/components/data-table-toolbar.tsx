@@ -9,16 +9,46 @@ import { DataTableViewOptions } from './data-table-view-options'
 
 interface DataTableToolbarProps<TData> {
   table: Table<TData>
+  showStudentFilter?: boolean
+  studentView?: 'mine' | 'all'
+  onStudentViewChange?: (view: 'mine' | 'all') => void
 }
 
 export function DataTableToolbar<TData>({
   table,
+  showStudentFilter,
+  studentView,
+  onStudentViewChange,
 }: DataTableToolbarProps<TData>) {
   const isFiltered = table.getState().columnFilters.length > 0
 
   return (
     <div className='flex items-center justify-between gap-2'>
       <div className='flex flex-1 items-center space-x-2'>
+        {showStudentFilter && onStudentViewChange && (
+          <div className='flex h-8 items-center rounded-md border bg-muted p-0.5 text-sm'>
+            <button
+              onClick={() => onStudentViewChange('mine')}
+              className={`rounded px-2.5 py-1 text-xs font-medium transition-colors ${
+                studentView === 'mine'
+                  ? 'bg-background text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              My Students
+            </button>
+            <button
+              onClick={() => onStudentViewChange('all')}
+              className={`rounded px-2.5 py-1 text-xs font-medium transition-colors ${
+                studentView === 'all'
+                  ? 'bg-background text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              All
+            </button>
+          </div>
+        )}
         <Input
           placeholder='Filter persons...'
           value={(table.getColumn('firstName')?.getFilterValue() as string) ?? ''}

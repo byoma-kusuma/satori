@@ -3,7 +3,6 @@ import { Group } from '../data/schema'
 import { DataTableColumnHeader } from './data-table-column-header'
 import { format } from 'date-fns'
 import { DataTableRowActions } from './data-table-row-actions'
-import { UserName } from './groups-columns'
 
 export const columns: ColumnDef<Group>[] = [
   {
@@ -20,11 +19,11 @@ export const columns: ColumnDef<Group>[] = [
     },
   },
   {
-    accessorKey: 'createdBy',
+    accessorKey: 'createdByName',
     header: ({ column }) => <DataTableColumnHeader column={column} title="Created By" />,
     cell: ({ row }) => {
-      const userId = row.getValue('createdBy') as string
-      return <UserName userId={userId} />
+      const name = row.getValue('createdByName') as string | null
+      return <div>{name ?? '—'}</div>
     },
   },
   {

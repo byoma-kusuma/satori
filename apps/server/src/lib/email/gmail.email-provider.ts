@@ -15,7 +15,12 @@ export async function sendEmailGmail(options: EmailOptions): Promise<void> {
     to: options.to,
     subject: options.subject,
     text: options.text,
-    html: options.html || ""
+    html: options.html || "",
+    attachments: options.attachments?.map((a) => ({
+      filename: a.filename,
+      content: a.content,
+      contentType: a.contentType,
+    })),
   };
 
   await transporter.sendMail(mailOptions);

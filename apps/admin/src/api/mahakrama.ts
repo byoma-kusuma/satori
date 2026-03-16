@@ -4,8 +4,10 @@ import { API_BASE_URL } from './base-url'
 import type {
   MahakramaCompletePayload,
   MahakramaHistory,
+  MahakramaRequestCompletionPayload,
   MahakramaStartPayload,
   MahakramaStep,
+  MahakramaStepDocument,
   MahakramaStepInput,
 } from '@/features/mahakrama/data/schema'
 
@@ -84,6 +86,96 @@ export const completeMahakramaStep = (
     method: 'POST',
     body: JSON.stringify(payload),
   })
+
+export const requestMahakramaCompletion = (
+  personId: string,
+  historyId: string,
+  payload: MahakramaRequestCompletionPayload,
+) =>
+  fetchWithCredentials(`${MAHAKRAMA_API_URL}/person/${personId}/history/${historyId}/request-completion`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+
+export const listStepDocuments = (stepId: string): Promise<MahakramaStepDocument[]> =>
+  fetchWithCredentials(`${MAHAKRAMA_API_URL}/steps/${stepId}/documents`)
+
+export const uploadStepDocument = async (stepId: string, language: string, file: File): Promise<MahakramaStepDocument> => {
+  const session = await authClient.getSession()
+  const headers = new Headers()
+  if (session) headers.set('Authorization', `Bearer ${session.token}`)
+  const body = new FormData()
+  body.append('file', file)
+  body.append('language', language)
+  const response = await fetch(`${MAHAKRAMA_API_URL}/steps/${stepId}/documents`, {
+    method: 'POST',
+    credentials: 'include',
+    headers,
+    body,
+  })
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null)
+    throw new Error(errorData?.message || `API error: ${response.status}`)
+  }
+  return response.json()
+}
+
+export const replaceStepDocument = async (stepId: string, docId: string, file: File): Promise<MahakramaStepDocument> => {
+  const session = await authClient.getSession()
+  const headers = new Headers()
+  if (session) headers.set('Authorization', `Bearer ${session.token}`)
+  const body = new FormData()
+  body.append('file', file)
+  const response = await fetch(`${MAHAKRAMA_API_URL}/steps/${stepId}/documents/${docId}`, {
+    method: 'PUT',
+    credentials: 'include',
+    headers,
+    body,
+  })
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null)
+    throw new Error(errorData?.message || `API error: ${response.status}`)
+  }
+  return response.json()
+}
+
+export const deleteStepDocument = (stepId: string, docId: string): Promise<void> =>
+  fetchWithCredentials(`${MAHAKRAMA_API_URL}/steps/${stepId}/documents/${docId}`, { method: 'DELETE' })
+
+export const downloadStepDocument = async (stepId: string, docId: string): Promise<void> => {
+  const session = await authClient.getSession()
+  const headers = new Headers()
+  if (session) headers.set('Authorization', `Bearer ${session.token}`)
+  const response = await fetch(`${MAHAKRAMA_API_URL}/steps/${stepId}/documents/${docId}`, {
+    credentials: 'include',
+    headers,
+  })
+  if (!response.ok) throw new Error(`Failed to download document`)
+  const blob = await response.blob()
+  const url = URL.createObjectURL(blob)
+  window.open(url, '_blank')
+  setTimeout(() => URL.revokeObjectURL(url), 10000)
+}
+
+export const getStepDocumentsQueryOptions = (stepId: string) =>
+  queryOptions({
+    queryKey: ['mahakrama-step-documents', stepId],
+    queryFn: (): Promise<MahakramaStepDocument[]> => listStepDocuments(stepId),
+    enabled: Boolean(stepId),
+  })
+
+export const getViewerHistoryDocuments = (personId: string, historyId: string): Promise<MahakramaStepDocument[]> =>
+  fetchWithCredentials(`${MAHAKRAMA_API_URL}/person/${personId}/history/${historyId}/documents`)
+
+export const getViewerHistoryDocumentsQueryOptions = (personId: string, historyId: string) =>
+  queryOptions({
+    queryKey: ['mahakrama-history-documents', personId, historyId],
+    queryFn: (): Promise<MahakramaStepDocument[]> => getViewerHistoryDocuments(personId, historyId),
+    enabled: Boolean(personId) && Boolean(historyId),
+  })
+
+export const getViewerHistoryDocumentUrl = (personId: string, historyId: string, docId: string) =>
+  `${MAHAKRAMA_API_URL}/person/${personId}/history/${historyId}/documents/${docId}`
 
 export const getMahakramaStepsQueryOptions = () =>
   queryOptions({

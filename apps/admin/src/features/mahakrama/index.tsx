@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { IconLoader, IconPencil, IconPlus, IconTrash, IconUpload } from '@tabler/icons-react'
+import { IconFile, IconLoader, IconPencil, IconPlus, IconTrash, IconUpload } from '@tabler/icons-react'
 
 import { Header } from '@/components/layout/header'
 import { Main } from '@/components/layout/main'
@@ -21,6 +21,7 @@ import {
 } from '@/api/mahakrama'
 import { MahakramaStepDialog } from './components/mahakrama-step-dialog'
 import { MahakramaImportDialog } from './components/mahakrama-import-dialog'
+import { MahakramaDocumentsDialog } from './components/mahakrama-documents-dialog'
 import { mahakramaStepSchema, MahakramaStep, MahakramaStepInput } from './data/schema'
 
 export function MahakramaPage() {
@@ -32,6 +33,7 @@ export function MahakramaPage() {
   const [editingStep, setEditingStep] = useState<MahakramaStep | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<MahakramaStep | null>(null)
   const [importOpen, setImportOpen] = useState(false)
+  const [documentsStep, setDocumentsStep] = useState<MahakramaStep | null>(null)
 
   const createMutation = useMutation({
     mutationFn: (payload: MahakramaStepInput) => createMahakramaStep(payload),
@@ -165,6 +167,7 @@ export function MahakramaPage() {
                       <TableHead>Step ID</TableHead>
                       <TableHead>Step Name</TableHead>
                       <TableHead>Description</TableHead>
+                      <TableHead className='w-[100px]'>Documents</TableHead>
                       <TableHead className='w-[120px] text-right'>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -178,6 +181,19 @@ export function MahakramaPage() {
                         <TableCell>{step.stepName}</TableCell>
                         <TableCell className='max-w-md break-words text-sm text-muted-foreground'>
                           {step.description || '—'}
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            size='sm'
+                            variant='ghost'
+                            className='gap-1.5'
+                            onClick={() => setDocumentsStep(step)}
+                          >
+                            <IconFile className='h-4 w-4' />
+                            {(step.documentCount ?? 0) > 0 ? (
+                              <span className='text-xs'>{step.documentCount}</span>
+                            ) : null}
+                          </Button>
                         </TableCell>
                         <TableCell className='text-right'>
                           <div className='flex justify-end gap-2'>
@@ -244,6 +260,15 @@ export function MahakramaPage() {
         handleConfirm={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}
         isLoading={deleteMutation.isPending}
       />
+
+      {documentsStep && (
+        <MahakramaDocumentsDialog
+          open={Boolean(documentsStep)}
+          onOpenChange={(open) => { if (!open) setDocumentsStep(null) }}
+          stepId={documentsStep.id}
+          stepName={documentsStep.stepName}
+        />
+      )}
     </>
   )
 }

@@ -1,5 +1,6 @@
-import { Suspense, useState, useEffect } from 'react'
-import { useSuspenseQuery } from '@tanstack/react-query'
+import { Suspense, useMemo, useState, useEffect } from 'react'
+import { useQuery, useSuspenseQuery } from '@tanstack/react-query'
+import { useNavigate } from '@tanstack/react-router'
 import { IconLoader } from '@tabler/icons-react'
 
 import { Header } from '@/components/layout/header'
@@ -7,9 +8,13 @@ import { Main } from '@/components/layout/main'
 import { ProfileDropdown } from '@/components/profile-dropdown'
 import { Search } from '@/components/search'
 import { ThemeSwitch } from '@/components/theme-switch'
+import { Button } from '@/components/ui/button'
 
 import { getEventsQueryOptions } from '@/api/events'
 import { getEventGroupsQueryOptions } from '@/api/event-groups'
+import { getCurrentUserQueryOptions } from '@/api/users'
+import { getPersonEventsQueryOptions } from '@/api/persons'
+import { Badge } from '@/components/ui/badge'
 import { EventsTable } from './components/events-table'
 import { CreateEventDialog } from './components/create-event-dialog'
 import { EditEventDialog } from './components/edit-event-dialog'
@@ -17,14 +22,39 @@ import { EventsDeleteDialog } from './components/events-delete-dialog'
 import { getColumns } from './components/events-columns'
 import { EventBadgesPrintDialog } from './components/event-badges-print-dialog'
 import EventsProvider from './context/events-context'
+import { usePermissions } from '@/contexts/permission-context'
 
 
 function EventsPage() {
+  const navigate = useNavigate()
   const [createOpen, setCreateOpen] = useState(false)
   const [editEventId, setEditEventId] = useState<string | null>(null)
   const [printEventIds, setPrintEventIds] = useState<string[] | null>(null)
   const { data: events } = useSuspenseQuery(getEventsQueryOptions())
   const { data: groups = [] } = useSuspenseQuery(getEventGroupsQueryOptions())
+  const { userRole } = usePermissions()
+  const isViewer = userRole === 'viewer'
+
+  // Fetch current user & their registered events (viewers only)
+  const { data: currentUser } = useQuery({
+    ...getCurrentUserQueryOptions(),
+    enabled: isViewer,
+  })
+  const personId = currentUser?.personId
+  const { data: personEvents } = useQuery({
+    ...getPersonEventsQueryOptions(personId ?? ''),
+    enabled: isViewer && Boolean(personId),
+  })
+  const { registeredEventIds, disapprovedEventIds } = useMemo(() => {
+    if (!personEvents || !Array.isArray(personEvents))
+      return { registeredEventIds: new Set<string>(), disapprovedEventIds: new Set<string>() }
+    const entries = personEvents as { eventId: string; isCancelled: boolean }[]
+    return {
+      registeredEventIds: new Set(entries.filter((pe) => !pe.isCancelled).map((pe) => pe.eventId)),
+      disapprovedEventIds: new Set(entries.filter((pe) => pe.isCancelled).map((pe) => pe.eventId)),
+    }
+  }, [personEvents])
+
   const groupNameById = Object.fromEntries(groups.map(g => [g.id, g.name]))
   const groupFilterOptions = [
     { label: 'No Group', value: 'NULL' },
@@ -51,11 +81,54 @@ function EventsPage() {
     }
   }, [events])
 
-  const columns = getColumns(
-    (eventId) => setEditEventId(eventId),
+  const allColumns = getColumns(
+    isViewer ? undefined : (eventId) => setEditEventId(eventId),
     groupNameById,
-    (eventId) => setPrintEventIds([eventId])
+    isViewer ? undefined : (eventId) => setPrintEventIds([eventId])
   )
+  const viewerHiddenColumns = ['actions', 'totalAttendees', 'checkedInAttendees']
+  const columns = isViewer
+    ? [
+        ...allColumns.filter(col => {
+          const colId = col.id ?? ('accessorKey' in col ? String(col.accessorKey) : '')
+          return !viewerHiddenColumns.includes(colId)
+        }),
+        {
+          id: 'registrationStatus',
+          header: 'Status',
+          cell: ({ row }: { row: { original: { id: string } } }) => {
+            if (disapprovedEventIds.has(row.original.id)) {
+              return <Badge variant='destructive'>Disapproved</Badge>
+            }
+            if (registeredEventIds.has(row.original.id)) {
+              return <Badge variant='default'>Registered</Badge>
+            }
+            return <Badge variant='secondary'>Not Registered</Badge>
+          },
+        },
+        {
+          id: 'register',
+          header: '',
+          cell: ({ row }: { row: { original: { id: string } } }) => {
+            if (registeredEventIds.has(row.original.id) || disapprovedEventIds.has(row.original.id)) {
+              return null
+            }
+            return (
+              <Button
+                size='sm'
+                variant='outline'
+                onClick={(e) => {
+                  e.stopPropagation()
+                  navigate({ to: '/events/$eventId/register', params: { eventId: row.original.id } })
+                }}
+              >
+                Register
+              </Button>
+            )
+          },
+        },
+      ]
+    : allColumns
 
   return (
     <>
@@ -75,21 +148,26 @@ function EventsPage() {
         <EventsTable
           columns={columns}
           data={events}
-          onAdd={() => setCreateOpen(true)}
+          onAdd={isViewer ? undefined : () => setCreateOpen(true)}
           groupFilterOptions={groupFilterOptions}
+          onRowClick={isViewer ? (eventId) => navigate({ to: '/events/$eventId/register', params: { eventId } }) : undefined}
         />
       </Main>
-      <CreateEventDialog open={createOpen} onOpenChange={setCreateOpen} />
-      <EditEventDialog
-        open={Boolean(editEventId)}
-        eventId={editEventId}
-        onOpenChange={(open) => {
-          if (!open) {
-            setEditEventId(null)
-          }
-        }}
-      />
-      <EventsDeleteDialog />
+      {!isViewer && (
+        <>
+          <CreateEventDialog open={createOpen} onOpenChange={setCreateOpen} />
+          <EditEventDialog
+            open={Boolean(editEventId)}
+            eventId={editEventId}
+            onOpenChange={(open) => {
+              if (!open) {
+                setEditEventId(null)
+              }
+            }}
+          />
+          <EventsDeleteDialog />
+        </>
+      )}
       <EventBadgesPrintDialog
         open={Array.isArray(printEventIds)}
         onOpenChange={(open) => { if (!open) setPrintEventIds(null) }}
