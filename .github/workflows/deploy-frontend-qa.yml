@@ -7,6 +7,7 @@ on:
     paths:
       - 'apps/admin/**'
       - 'packages/**'
+      - 'pnpm-lock.yaml'
       - '.github/workflows/deploy-frontend-qa.yml'
 
 jobs:
