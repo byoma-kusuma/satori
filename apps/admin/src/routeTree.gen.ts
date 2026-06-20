@@ -80,6 +80,9 @@ const AuthenticatedCentersIndexLazyImport = createFileRoute(
 const AuthenticatedAppsIndexLazyImport = createFileRoute(
   '/_authenticated/apps/',
 )()
+const AuthenticatedSystemSetupGeneralLazyImport = createFileRoute(
+  '/_authenticated/system-setup/general',
+)()
 const AuthenticatedSettingsNotificationsLazyImport = createFileRoute(
   '/_authenticated/settings/notifications',
 )()
@@ -361,6 +364,17 @@ const AuthenticatedAppsIndexLazyRoute = AuthenticatedAppsIndexLazyImport.update(
   import('./routes/_authenticated/apps/index.lazy').then((d) => d.Route),
 )
 
+const AuthenticatedSystemSetupGeneralLazyRoute =
+  AuthenticatedSystemSetupGeneralLazyImport.update({
+    id: '/system-setup/general',
+    path: '/system-setup/general',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any).lazy(() =>
+    import('./routes/_authenticated/system-setup/general.lazy').then(
+      (d) => d.Route,
+    ),
+  )
+
 const AuthenticatedSettingsNotificationsLazyRoute =
   AuthenticatedSettingsNotificationsLazyImport.update({
     id: '/notifications',
@@ -617,6 +631,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSettingsNotificationsLazyImport
       parentRoute: typeof AuthenticatedSettingsRouteLazyImport
     }
+    '/_authenticated/system-setup/general': {
+      id: '/_authenticated/system-setup/general'
+      path: '/system-setup/general'
+      fullPath: '/system-setup/general'
+      preLoaderRoute: typeof AuthenticatedSystemSetupGeneralLazyImport
+      parentRoute: typeof AuthenticatedRouteImport
+    }
     '/_authenticated/apps/': {
       id: '/_authenticated/apps/'
       path: '/apps'
@@ -799,6 +820,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedSettingsRouteLazyRoute: typeof AuthenticatedSettingsRouteLazyRouteWithChildren
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedPersonsCreateLazyRoute: typeof AuthenticatedPersonsCreateLazyRoute
+  AuthenticatedSystemSetupGeneralLazyRoute: typeof AuthenticatedSystemSetupGeneralLazyRoute
   AuthenticatedAppsIndexLazyRoute: typeof AuthenticatedAppsIndexLazyRoute
   AuthenticatedCentersIndexLazyRoute: typeof AuthenticatedCentersIndexLazyRoute
   AuthenticatedChatsIndexLazyRoute: typeof AuthenticatedChatsIndexLazyRoute
@@ -826,6 +848,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
     AuthenticatedSettingsRouteLazyRouteWithChildren,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedPersonsCreateLazyRoute: AuthenticatedPersonsCreateLazyRoute,
+  AuthenticatedSystemSetupGeneralLazyRoute:
+    AuthenticatedSystemSetupGeneralLazyRoute,
   AuthenticatedAppsIndexLazyRoute: AuthenticatedAppsIndexLazyRoute,
   AuthenticatedCentersIndexLazyRoute: AuthenticatedCentersIndexLazyRoute,
   AuthenticatedChatsIndexLazyRoute: AuthenticatedChatsIndexLazyRoute,
@@ -877,6 +901,7 @@ export interface FileRoutesByFullPath {
   '/settings/appearance': typeof AuthenticatedSettingsAppearanceLazyRoute
   '/settings/display': typeof AuthenticatedSettingsDisplayLazyRoute
   '/settings/notifications': typeof AuthenticatedSettingsNotificationsLazyRoute
+  '/system-setup/general': typeof AuthenticatedSystemSetupGeneralLazyRoute
   '/apps': typeof AuthenticatedAppsIndexLazyRoute
   '/centers': typeof AuthenticatedCentersIndexLazyRoute
   '/chats': typeof AuthenticatedChatsIndexLazyRoute
@@ -917,6 +942,7 @@ export interface FileRoutesByTo {
   '/settings/appearance': typeof AuthenticatedSettingsAppearanceLazyRoute
   '/settings/display': typeof AuthenticatedSettingsDisplayLazyRoute
   '/settings/notifications': typeof AuthenticatedSettingsNotificationsLazyRoute
+  '/system-setup/general': typeof AuthenticatedSystemSetupGeneralLazyRoute
   '/apps': typeof AuthenticatedAppsIndexLazyRoute
   '/centers': typeof AuthenticatedCentersIndexLazyRoute
   '/chats': typeof AuthenticatedChatsIndexLazyRoute
@@ -961,6 +987,7 @@ export interface FileRoutesById {
   '/_authenticated/settings/appearance': typeof AuthenticatedSettingsAppearanceLazyRoute
   '/_authenticated/settings/display': typeof AuthenticatedSettingsDisplayLazyRoute
   '/_authenticated/settings/notifications': typeof AuthenticatedSettingsNotificationsLazyRoute
+  '/_authenticated/system-setup/general': typeof AuthenticatedSystemSetupGeneralLazyRoute
   '/_authenticated/apps/': typeof AuthenticatedAppsIndexLazyRoute
   '/_authenticated/centers/': typeof AuthenticatedCentersIndexLazyRoute
   '/_authenticated/chats/': typeof AuthenticatedChatsIndexLazyRoute
@@ -1005,6 +1032,7 @@ export interface FileRouteTypes {
     | '/settings/appearance'
     | '/settings/display'
     | '/settings/notifications'
+    | '/system-setup/general'
     | '/apps'
     | '/centers'
     | '/chats'
@@ -1044,6 +1072,7 @@ export interface FileRouteTypes {
     | '/settings/appearance'
     | '/settings/display'
     | '/settings/notifications'
+    | '/system-setup/general'
     | '/apps'
     | '/centers'
     | '/chats'
@@ -1086,6 +1115,7 @@ export interface FileRouteTypes {
     | '/_authenticated/settings/appearance'
     | '/_authenticated/settings/display'
     | '/_authenticated/settings/notifications'
+    | '/_authenticated/system-setup/general'
     | '/_authenticated/apps/'
     | '/_authenticated/centers/'
     | '/_authenticated/chats/'
@@ -1170,6 +1200,7 @@ export const routeTree = rootRoute
         "/_authenticated/settings",
         "/_authenticated/",
         "/_authenticated/persons/create",
+        "/_authenticated/system-setup/general",
         "/_authenticated/apps/",
         "/_authenticated/centers/",
         "/_authenticated/chats/",
@@ -1259,6 +1290,10 @@ export const routeTree = rootRoute
     "/_authenticated/settings/notifications": {
       "filePath": "_authenticated/settings/notifications.lazy.tsx",
       "parent": "/_authenticated/settings"
+    },
+    "/_authenticated/system-setup/general": {
+      "filePath": "_authenticated/system-setup/general.lazy.tsx",
+      "parent": "/_authenticated"
     },
     "/_authenticated/apps/": {
       "filePath": "_authenticated/apps/index.lazy.tsx",
