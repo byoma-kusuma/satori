@@ -1,3 +1,4 @@
+-- migrate:up
 CREATE TABLE IF NOT EXISTS user_group_assignment (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id TEXT NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
@@ -5,3 +6,5 @@ CREATE TABLE IF NOT EXISTS user_group_assignment (
   created_at TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE(user_id, group_id)
 );
+
+-- migrate:down

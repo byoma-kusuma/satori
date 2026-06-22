@@ -29,17 +29,15 @@ export type JsonValue = JsonArray | JsonObject | JsonPrimitive;
 
 export type MembershipType = "Board Member" | "General Member" | "Honorary Member" | "Life Time";
 
+export type NotificationTargetType = "all" | "centers" | "groups" | "users";
+
 export type PersonTitle = "dharma_dhar" | "dharmacharya" | "khenpo" | "sahayak_dharmacharya" | "sahayak_samathacharya";
-
-export type PersonType = "attended_orientation" | "contact" | "interested" | "sangha_member";
-
-export type NotificationTargetType = "all" | "centers" | "groups";
 
 export type RegistrationStatus = "complete" | "invalid" | "new";
 
 export type Timestamp = ColumnType<Date, Date | string, Date | string>;
 
-export type UserRole = "admin" | "krama_instructor" | "sysadmin" | "viewer";
+export type UserRole = "admin" | "center_admin" | "group_admin" | "krama_instructor" | "sysadmin" | "viewer";
 
 export interface Account {
   accessToken: string | null;
@@ -117,16 +115,6 @@ export interface Event {
   updated_at: Generated<Timestamp | null>;
 }
 
-export interface EventTargetGroup {
-  event_id: string;
-  group_id: string;
-}
-
-export interface EventTargetCenter {
-  event_id: string;
-  center_id: string;
-}
-
 export interface EventAttendance {
   checked_in_at: Generated<Timestamp>;
   checked_in_by: string;
@@ -175,6 +163,16 @@ export interface EventGroup {
   updated_at: Generated<Timestamp | null>;
 }
 
+export interface EventTargetCenter {
+  center_id: string;
+  event_id: string;
+}
+
+export interface EventTargetGroup {
+  event_id: string;
+  group_id: string;
+}
+
 export interface Group {
   createdAt: Generated<Timestamp | null>;
   createdBy: string;
@@ -196,7 +194,6 @@ export interface Guru {
 
 export interface MahakramaHistory {
   completion_notes: string | null;
-  student_notes: string | null;
   created_at: Generated<Timestamp | null>;
   created_by: string;
   end_date: Timestamp | null;
@@ -207,6 +204,7 @@ export interface MahakramaHistory {
   person_id: string;
   start_date: Timestamp;
   status: string;
+  student_notes: string | null;
   updated_at: Generated<Timestamp | null>;
 }
 
@@ -225,13 +223,55 @@ export interface MahakramaStep {
 }
 
 export interface MahakramaStepDocument {
-  id: Generated<string>;
-  mahakrama_step_id: string;
-  language: string;
-  document_data: Buffer;
-  document_filename: string;
   created_at: Generated<Timestamp | null>;
   created_by: string;
+  document_data: Buffer;
+  document_filename: string;
+  id: Generated<string>;
+  language: string;
+  mahakrama_step_id: string;
+}
+
+export interface Notification {
+  created_at: Generated<Timestamp | null>;
+  created_by: string;
+  expires_at: Timestamp | null;
+  id: Generated<string>;
+  is_active: Generated<boolean>;
+  message: string;
+  target_type: Generated<NotificationTargetType>;
+  title: string;
+  updated_at: Generated<Timestamp | null>;
+}
+
+export interface NotificationAcknowledgement {
+  acknowledged_at: Generated<Timestamp | null>;
+  notification_id: string;
+  user_id: string;
+}
+
+export interface NotificationAttachment {
+  created_at: Generated<Timestamp | null>;
+  file_data: Buffer;
+  filename: string;
+  id: Generated<string>;
+  mime_type: string;
+  notification_id: string;
+}
+
+export interface NotificationTargetCenter {
+  center_id: string;
+  notification_id: string;
+}
+
+export interface NotificationTargetGroup {
+  group_id: string;
+  notification_id: string;
+}
+
+export interface NotificationTargetUser {
+  notification_id: string;
+  user_id: string;
 }
 
 export interface Person {
@@ -318,7 +358,7 @@ export interface Person {
    * Dharma title for Sangha members
    */
   title: PersonTitle | null;
-  type: Generated<PersonType>;
+  type: Generated<string>;
   updatedAt: Generated<Timestamp | null>;
   viber_number: string | null;
   yearOfBirth: number | null;
@@ -370,6 +410,16 @@ export interface PersonRelationship {
   updated_at: Generated<Timestamp | null>;
 }
 
+export interface PersonTypeConfig {
+  code: string;
+  created_at: Generated<Timestamp | null>;
+  id: Generated<string>;
+  is_active: Generated<boolean>;
+  label: string;
+  sort_order: Generated<number>;
+  updated_at: Generated<Timestamp | null>;
+}
+
 export interface Registration {
   address: string | null;
   country: string | null;
@@ -396,48 +446,6 @@ export interface Registration {
   status_updated_by: string | null;
   updatedAt: Generated<Timestamp | null>;
   viber_number: string | null;
-}
-
-export interface Notification {
-  id: Generated<string>;
-  title: string;
-  message: string;
-  target_type: Generated<NotificationTargetType>;
-  is_active: Generated<boolean>;
-  expires_at: Timestamp | null;
-  created_by: string;
-  created_at: Generated<Timestamp | null>;
-  updated_at: Generated<Timestamp | null>;
-}
-
-export interface NotificationTargetGroup {
-  notification_id: string;
-  group_id: string;
-}
-
-export interface NotificationTargetCenter {
-  notification_id: string;
-  center_id: string;
-}
-
-export interface NotificationTargetUser {
-  notification_id: string;
-  user_id: string;
-}
-
-export interface NotificationAttachment {
-  id: Generated<string>;
-  notification_id: string;
-  filename: string;
-  mime_type: string;
-  file_data: Buffer;
-  created_at: Generated<Timestamp | null>;
-}
-
-export interface NotificationAcknowledgement {
-  notification_id: string;
-  user_id: string;
-  acknowledged_at: Generated<Timestamp | null>;
 }
 
 export interface SchemaMigrations {
@@ -469,6 +477,20 @@ export interface User {
    */
   role: Generated<UserRole>;
   updatedAt: Timestamp;
+}
+
+export interface UserCenterAssignment {
+  center_id: string;
+  created_at: Generated<Timestamp | null>;
+  id: Generated<string>;
+  user_id: string;
+}
+
+export interface UserGroupAssignment {
+  created_at: Generated<Timestamp | null>;
+  group_id: string;
+  id: Generated<string>;
+  user_id: string;
 }
 
 export interface Verification {
@@ -508,9 +530,12 @@ export interface DB {
   person_empowerment: PersonEmpowerment;
   person_group: PersonGroup;
   person_relationship: PersonRelationship;
+  person_type_config: PersonTypeConfig;
   registration: Registration;
   schema_migrations: SchemaMigrations;
   session: Session;
   user: User;
+  user_center_assignment: UserCenterAssignment;
+  user_group_assignment: UserGroupAssignment;
   verification: Verification;
 }

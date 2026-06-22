@@ -1,5 +1,6 @@
 import { config } from "dotenv";
-config({ override: true }); // Load environment variables from .env file, overriding existing ones
+config({ override: true });
+config({ path: ".env.local", override: true });
 
 import { Hono } from "hono";
 import { cors } from "hono/cors";

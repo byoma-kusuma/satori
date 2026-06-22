@@ -1,3 +1,4 @@
+-- migrate:up
 CREATE TABLE IF NOT EXISTS person_type_config (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   code VARCHAR(64) NOT NULL UNIQUE,
@@ -15,3 +16,5 @@ INSERT INTO person_type_config (code, label, is_active, sort_order) VALUES
   ('attended_orientation', 'Attended Orientation', true, 2),
   ('sangha_member', 'Sangha Member', true, 3)
 ON CONFLICT (code) DO NOTHING;
+
+-- migrate:down
