@@ -33,6 +33,7 @@ import { getGurusQueryOptions } from '@/features/gurus/data/api'
 import { getGroupsQueryOptions } from '@/api/groups'
 import { getCentersQueryOptions } from '@/api/centers'
 import { CreateEventPayload, EventAudienceType } from '../types'
+import { usePermissions } from '@/contexts/permission-context'
 
 type Props = {
   open: boolean
@@ -65,7 +66,12 @@ const formSchema = z
 
 export function CreateEventDialog({ open, onOpenChange }: Props) {
   const { toast } = useToast()
+  const { userRole } = usePermissions()
   const createEventMutation = useCreateEvent()
+
+  const isCenterAdmin = userRole === 'center_admin'
+  const isGroupAdmin = userRole === 'group_admin'
+  const isScopedAdmin = isCenterAdmin || isGroupAdmin
 
   const { data: categories = [], isLoading: categoriesLoading } = useQuery(getEventCategoriesQueryOptions())
   const { data: empowerments = [] } = useQuery(getEmpowermentsQueryOptions())
@@ -77,6 +83,8 @@ export function CreateEventDialog({ open, onOpenChange }: Props) {
   const [showNewGroup, setShowNewGroup] = useState(false)
   const [newGroupName, setNewGroupName] = useState('')
   const [newGroupDesc, setNewGroupDesc] = useState('')
+
+  const defaultAudienceType: EventAudienceType = isCenterAdmin ? 'centers' : isGroupAdmin ? 'groups' : 'all'
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -91,7 +99,7 @@ export function CreateEventDialog({ open, onOpenChange }: Props) {
       guruId: null,
       eventGroupId: null,
       requiresFullAttendance: null,
-      audienceType: 'all' as EventAudienceType,
+      audienceType: defaultAudienceType,
       targetGroupIds: [],
       targetCenterIds: [],
     },
@@ -103,6 +111,21 @@ export function CreateEventDialog({ open, onOpenChange }: Props) {
   const targetCenterIds = form.watch('targetCenterIds')
   const selectedCategory = categories.find((category) => category.id === categoryId)
   const isEmpowermentEvent = selectedCategory?.code === 'EMPOWERMENT'
+
+  // For scoped admins: auto-select all their assigned groups/centers when the list loads
+  useEffect(() => {
+    if (isCenterAdmin && allCenters.length > 0 && form.getValues('targetCenterIds').length === 0) {
+      form.setValue('audienceType', 'centers')
+      form.setValue('targetCenterIds', allCenters.map((c: { id: string }) => c.id))
+    }
+  }, [isCenterAdmin, allCenters, form])
+
+  useEffect(() => {
+    if (isGroupAdmin && allGroups.length > 0 && form.getValues('targetGroupIds').length === 0) {
+      form.setValue('audienceType', 'groups')
+      form.setValue('targetGroupIds', allGroups.map((g: { id: string }) => g.id))
+    }
+  }, [isGroupAdmin, allGroups, form])
 
   useEffect(() => {
     if (!isEmpowermentEvent) {
@@ -199,7 +222,21 @@ export function CreateEventDialog({ open, onOpenChange }: Props) {
   return (
     <Dialog open={open} onOpenChange={(next) => {
       if (!next) {
-        form.reset()
+        form.reset({
+          name: '',
+          description: '',
+          registrationMode: 'PRE_REGISTRATION',
+          categoryId: '',
+          startDate: '',
+          endDate: '',
+          empowermentId: null,
+          guruId: null,
+          eventGroupId: null,
+          requiresFullAttendance: null,
+          audienceType: defaultAudienceType,
+          targetGroupIds: isGroupAdmin ? allGroups.map((g: { id: string }) => g.id) : [],
+          targetCenterIds: isCenterAdmin ? allCenters.map((c: { id: string }) => c.id) : [],
+        })
       }
       onOpenChange(next)
     }}>
@@ -508,85 +545,133 @@ export function CreateEventDialog({ open, onOpenChange }: Props) {
               </div>
             )}
 
-            <FormField
-              control={form.control}
-              name='audienceType'
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Audience</FormLabel>
-                  <FormControl>
-                    <RadioGroup
-                      onValueChange={(val) => {
-                        field.onChange(val)
-                        form.setValue('targetGroupIds', [])
-                        form.setValue('targetCenterIds', [])
-                      }}
-                      value={field.value}
-                      className='grid grid-cols-3 gap-2'
-                    >
-                      {[
-                        { value: 'all', label: 'Everyone' },
-                        { value: 'groups', label: 'Specific Groups' },
-                        { value: 'centers', label: 'Specific Centers' },
-                      ].map((opt) => (
-                        <FormItem key={opt.value} className='flex items-center space-x-2 space-y-0 rounded-md border p-3'>
-                          <FormControl>
-                            <RadioGroupItem value={opt.value} />
-                          </FormControl>
-                          <FormLabel className='text-sm font-medium cursor-pointer'>{opt.label}</FormLabel>
-                        </FormItem>
+            {isScopedAdmin ? (
+              <div className='space-y-2'>
+                <p className='text-sm font-medium'>Audience</p>
+                {isCenterAdmin && (
+                  <div className='space-y-2'>
+                    <p className='text-xs text-muted-foreground'>This event will be for your assigned center(s).</p>
+                    <div className='max-h-40 overflow-y-auto rounded-md border p-2 space-y-1'>
+                      {allCenters.map((c: { id: string; name: string }) => (
+                        <label key={c.id} className='flex items-center gap-2 px-2 py-1 rounded hover:bg-muted/50 cursor-pointer'>
+                          <Checkbox
+                            checked={targetCenterIds.includes(c.id)}
+                            onCheckedChange={(checked) => {
+                              const current = form.getValues('targetCenterIds')
+                              form.setValue('targetCenterIds', checked ? [...current, c.id] : current.filter((id) => id !== c.id))
+                            }}
+                          />
+                          <span className='text-sm'>{c.name}</span>
+                        </label>
                       ))}
-                    </RadioGroup>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {audienceType === 'groups' && (
-              <div className='space-y-2'>
-                <p className='text-sm font-medium'>Select Groups</p>
-                <div className='max-h-40 overflow-y-auto rounded-md border p-2 space-y-1'>
-                  {allGroups.length === 0 ? (
-                    <p className='text-sm text-muted-foreground p-2'>No groups available.</p>
-                  ) : allGroups.map((g: { id: string; name: string }) => (
-                    <label key={g.id} className='flex items-center gap-2 px-2 py-1 rounded hover:bg-muted/50 cursor-pointer'>
-                      <Checkbox
-                        checked={targetGroupIds.includes(g.id)}
-                        onCheckedChange={(checked) => {
-                          const current = form.getValues('targetGroupIds')
-                          form.setValue('targetGroupIds', checked ? [...current, g.id] : current.filter((id) => id !== g.id))
-                        }}
-                      />
-                      <span className='text-sm'>{g.name}</span>
-                    </label>
-                  ))}
-                </div>
-                {targetGroupIds.length === 0 && <p className='text-xs text-destructive'>Select at least one group.</p>}
+                    </div>
+                    {targetCenterIds.length === 0 && <p className='text-xs text-destructive'>Select at least one center.</p>}
+                  </div>
+                )}
+                {isGroupAdmin && (
+                  <div className='space-y-2'>
+                    <p className='text-xs text-muted-foreground'>This event will be for your assigned group(s).</p>
+                    <div className='max-h-40 overflow-y-auto rounded-md border p-2 space-y-1'>
+                      {allGroups.map((g: { id: string; name: string }) => (
+                        <label key={g.id} className='flex items-center gap-2 px-2 py-1 rounded hover:bg-muted/50 cursor-pointer'>
+                          <Checkbox
+                            checked={targetGroupIds.includes(g.id)}
+                            onCheckedChange={(checked) => {
+                              const current = form.getValues('targetGroupIds')
+                              form.setValue('targetGroupIds', checked ? [...current, g.id] : current.filter((id) => id !== g.id))
+                            }}
+                          />
+                          <span className='text-sm'>{g.name}</span>
+                        </label>
+                      ))}
+                    </div>
+                    {targetGroupIds.length === 0 && <p className='text-xs text-destructive'>Select at least one group.</p>}
+                  </div>
+                )}
               </div>
-            )}
+            ) : (
+              <>
+                <FormField
+                  control={form.control}
+                  name='audienceType'
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Audience</FormLabel>
+                      <FormControl>
+                        <RadioGroup
+                          onValueChange={(val) => {
+                            field.onChange(val)
+                            form.setValue('targetGroupIds', [])
+                            form.setValue('targetCenterIds', [])
+                          }}
+                          value={field.value}
+                          className='grid grid-cols-3 gap-2'
+                        >
+                          {[
+                            { value: 'all', label: 'Everyone' },
+                            { value: 'groups', label: 'Specific Groups' },
+                            { value: 'centers', label: 'Specific Centers' },
+                          ].map((opt) => (
+                            <FormItem key={opt.value} className='flex items-center space-x-2 space-y-0 rounded-md border p-3'>
+                              <FormControl>
+                                <RadioGroupItem value={opt.value} />
+                              </FormControl>
+                              <FormLabel className='text-sm font-medium cursor-pointer'>{opt.label}</FormLabel>
+                            </FormItem>
+                          ))}
+                        </RadioGroup>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-            {audienceType === 'centers' && (
-              <div className='space-y-2'>
-                <p className='text-sm font-medium'>Select Centers</p>
-                <div className='max-h-40 overflow-y-auto rounded-md border p-2 space-y-1'>
-                  {allCenters.length === 0 ? (
-                    <p className='text-sm text-muted-foreground p-2'>No centers available.</p>
-                  ) : allCenters.map((c: { id: string; name: string }) => (
-                    <label key={c.id} className='flex items-center gap-2 px-2 py-1 rounded hover:bg-muted/50 cursor-pointer'>
-                      <Checkbox
-                        checked={targetCenterIds.includes(c.id)}
-                        onCheckedChange={(checked) => {
-                          const current = form.getValues('targetCenterIds')
-                          form.setValue('targetCenterIds', checked ? [...current, c.id] : current.filter((id) => id !== c.id))
-                        }}
-                      />
-                      <span className='text-sm'>{c.name}</span>
-                    </label>
-                  ))}
-                </div>
-                {targetCenterIds.length === 0 && <p className='text-xs text-destructive'>Select at least one center.</p>}
-              </div>
+                {audienceType === 'groups' && (
+                  <div className='space-y-2'>
+                    <p className='text-sm font-medium'>Select Groups</p>
+                    <div className='max-h-40 overflow-y-auto rounded-md border p-2 space-y-1'>
+                      {allGroups.length === 0 ? (
+                        <p className='text-sm text-muted-foreground p-2'>No groups available.</p>
+                      ) : allGroups.map((g: { id: string; name: string }) => (
+                        <label key={g.id} className='flex items-center gap-2 px-2 py-1 rounded hover:bg-muted/50 cursor-pointer'>
+                          <Checkbox
+                            checked={targetGroupIds.includes(g.id)}
+                            onCheckedChange={(checked) => {
+                              const current = form.getValues('targetGroupIds')
+                              form.setValue('targetGroupIds', checked ? [...current, g.id] : current.filter((id) => id !== g.id))
+                            }}
+                          />
+                          <span className='text-sm'>{g.name}</span>
+                        </label>
+                      ))}
+                    </div>
+                    {targetGroupIds.length === 0 && <p className='text-xs text-destructive'>Select at least one group.</p>}
+                  </div>
+                )}
+
+                {audienceType === 'centers' && (
+                  <div className='space-y-2'>
+                    <p className='text-sm font-medium'>Select Centers</p>
+                    <div className='max-h-40 overflow-y-auto rounded-md border p-2 space-y-1'>
+                      {allCenters.length === 0 ? (
+                        <p className='text-sm text-muted-foreground p-2'>No centers available.</p>
+                      ) : allCenters.map((c: { id: string; name: string }) => (
+                        <label key={c.id} className='flex items-center gap-2 px-2 py-1 rounded hover:bg-muted/50 cursor-pointer'>
+                          <Checkbox
+                            checked={targetCenterIds.includes(c.id)}
+                            onCheckedChange={(checked) => {
+                              const current = form.getValues('targetCenterIds')
+                              form.setValue('targetCenterIds', checked ? [...current, c.id] : current.filter((id) => id !== c.id))
+                            }}
+                          />
+                          <span className='text-sm'>{c.name}</span>
+                        </label>
+                      ))}
+                    </div>
+                    {targetCenterIds.length === 0 && <p className='text-xs text-destructive'>Select at least one center.</p>}
+                  </div>
+                )}
+              </>
             )}
 
             <div className='flex justify-end gap-2'>
@@ -603,5 +688,3 @@ export function CreateEventDialog({ open, onOpenChange }: Props) {
     </Dialog>
   )
 }
-
-

@@ -1,7 +1,7 @@
 import { Person } from '../../types';
 
-// Define the person type enum
-export type PersonType = 'interested' | 'contact' | 'sangha_member' | 'attended_orientation';
+// Define the person type — now a dynamic string (configured via person_type_config table)
+export type PersonType = string;
 
 // Define the person title enum
 export type PersonTitle = 'dharma_dhar' | 'sahayak_dharmacharya' | 'sahayak_samathacharya' | 'khenpo' | 'dharmacharya';
@@ -14,7 +14,6 @@ export type CalendarType = 'BS' | 'AD';
 
 // Extend the Person interface from the generated types
 export interface PersonWithType extends Omit<Person, 'type'> {
-  // Override the type field to use our more specific type
   type: PersonType;
 }
 
@@ -55,13 +54,7 @@ export type PersonInput = {
   centerId?: string | null;
 };
 
-// Define human-readable labels for the person types
-export const personTypeLabels: Record<PersonType, string> = {
-  interested: 'Interested',
-  contact: 'Contact',
-  sangha_member: 'Sangha Member',
-  attended_orientation: 'Attended Orientation'
-};
+// Note: person type labels are now dynamic and stored in the person_type_config table
 
 // Define human-readable labels for the title types
 export const personTitleLabels: Record<PersonTitle, string> = {

@@ -20,6 +20,7 @@ import { registrationRoutes } from "./api/registration/registration.route";
 import { eventGroupRoutes } from "./api/event-group/event-group.route";
 import { notificationRoutes } from "./api/notification/notification.route";
 import { dashboardRoutes } from "./api/dashboard/dashboard.route";
+import { personTypeConfigRoutes } from "./api/person-type-config/person-type-config.route";
 
 const app = new Hono();
 
@@ -30,7 +31,6 @@ const port = (() => {
 
 // check if origin is set in environment variables if not default to localhost for development
 if (!process.env.ORIGIN) {
-  console.log("No ORIGIN set in environment variables, defaulting to http://localhost:3000");
   process.env.ORIGIN = `http://localhost:${process.env.FRONTEND_PORT ?? 3000}`;
 }
 
@@ -76,6 +76,7 @@ app.route("/api/registration", registrationRoutes);
 app.route("/api/event-groups", eventGroupRoutes);
 app.route("/api/notification", notificationRoutes);
 app.route("/api/dashboard", dashboardRoutes);
+app.route("/api/person-type-config", personTypeConfigRoutes);
 
 export default {
   port,

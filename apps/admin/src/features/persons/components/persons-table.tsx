@@ -37,9 +37,13 @@ interface DataTableProps<TData> {
   showStudentFilter?: boolean
   studentView?: 'mine' | 'all'
   onStudentViewChange?: (view: 'mine' | 'all') => void
+  showInstructorFilter?: boolean
+  instructorOptions?: { id: string; name: string }[]
+  instructorFilter?: string | null
+  onInstructorFilterChange?: (instructorId: string | null) => void
 }
 
-export function PersonsTable<TData>({ columns, data, showStudentFilter, studentView, onStudentViewChange }: DataTableProps<TData>) {
+export function PersonsTable<TData>({ columns, data, showStudentFilter, studentView, onStudentViewChange, showInstructorFilter, instructorOptions, instructorFilter, onInstructorFilterChange }: DataTableProps<TData>) {
   const navigate = useNavigate()
   const [rowSelection, setRowSelection] = useState({})
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
@@ -75,6 +79,10 @@ export function PersonsTable<TData>({ columns, data, showStudentFilter, studentV
         showStudentFilter={showStudentFilter}
         studentView={studentView}
         onStudentViewChange={onStudentViewChange}
+        showInstructorFilter={showInstructorFilter}
+        instructorOptions={instructorOptions}
+        instructorFilter={instructorFilter}
+        onInstructorFilterChange={onInstructorFilterChange}
       />
       <div className='rounded-md border'>
         <Table>

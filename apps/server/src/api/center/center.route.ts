@@ -17,6 +17,8 @@ import {
   removePersonFromCenter,
   centerExists,
 } from './center.service'
+import { getUserById } from '../user/user.service'
+import { db } from '../../database'
 
 const centerInputSchema = z.object({
   name: z.string().min(1, 'Center name is required'),
@@ -44,6 +46,20 @@ const centers = new Hono<{
 centers.use(authenticated)
 
 centers.get('/', async (c) => {
+  const sessionUser = c.get('user')
+  if (sessionUser) {
+    const userData = await getUserById(sessionUser.id)
+    if (userData.role === 'center_admin') {
+      const assignments = await db
+        .selectFrom('user_center_assignment')
+        .select('center_id')
+        .where('user_id', '=', sessionUser.id)
+        .execute()
+      const centerIds = assignments.map((a) => a.center_id)
+      const data = await listCenters(centerIds)
+      return c.json(data)
+    }
+  }
   const data = await listCenters()
   return c.json(data)
 })

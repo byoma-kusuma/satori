@@ -22,7 +22,9 @@ function PersonsList() {
   const { data: currentUser } = useSuspenseQuery(getCurrentUserQueryOptions())
 
   const isKramaInstructor = currentUser?.role === 'krama_instructor'
+  const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'sysadmin'
   const [studentView, setStudentView] = useState<'mine' | 'all'>('mine')
+  const [instructorFilter, setInstructorFilter] = useState<string | null>(null)
 
   // Redirect viewers to their own person edit page
   useEffect(() => {
@@ -31,15 +33,31 @@ function PersonsList() {
     }
   }, [currentUser, navigate])
 
+  const instructorOptions = useMemo(
+    () =>
+      (personList as Person[])
+        .filter((p) => p.is_krama_instructor)
+        .map((p) => ({ id: p.id, name: `${p.firstName} ${p.lastName}` }))
+        .sort((a, b) => a.name.localeCompare(b.name)),
+    [personList]
+  )
+
   const filteredPersonList = useMemo(() => {
+    let list = personList as Person[]
+
     if (isKramaInstructor && studentView === 'mine') {
       if (!currentUser?.personId) return []
-      return (personList as Person[]).filter(
-        (p) => p.krama_instructor_person_id === currentUser.personId
-      )
+      list = list.filter((p) => p.krama_instructor_person_id === currentUser.personId)
     }
-    return personList as Person[]
-  }, [personList, isKramaInstructor, studentView, currentUser?.personId])
+
+    if (isAdmin && instructorFilter === '__none__') {
+      list = list.filter((p) => p.krama_instructor_person_id == null)
+    } else if (isAdmin && instructorFilter != null) {
+      list = list.filter((p) => p.krama_instructor_person_id === instructorFilter)
+    }
+
+    return list
+  }, [personList, isKramaInstructor, studentView, currentUser?.personId, isAdmin, instructorFilter])
 
   return (
     <>
@@ -67,6 +85,10 @@ function PersonsList() {
             showStudentFilter={isKramaInstructor}
             studentView={studentView}
             onStudentViewChange={setStudentView}
+            showInstructorFilter={isAdmin}
+            instructorOptions={instructorOptions}
+            instructorFilter={instructorFilter}
+            onInstructorFilterChange={setInstructorFilter}
           />
         </div>
       </Main>

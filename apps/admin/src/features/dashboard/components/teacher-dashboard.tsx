@@ -4,8 +4,6 @@ import { StatCard } from './widgets/stat-card'
 import { KramaStepChart } from './widgets/krama-step-chart'
 import { TeacherStudentsOverTime } from './widgets/teacher-students-over-time'
 import { TeacherStudentsTable } from './widgets/teacher-students-table'
-import { ActiveEventsWidget } from './widgets/active-events-widget'
-import { NotificationsWidget } from './widgets/notifications-widget'
 import { teacherStatsQueryOptions } from '@/api/dashboard'
 
 export function TeacherDashboard() {
@@ -45,9 +43,6 @@ export function TeacherDashboard() {
       <KramaStepChart variant='teacher' />
       <TeacherStudentsOverTime />
 
-      {/* Sidebar widgets */}
-      <ActiveEventsWidget />
-      <NotificationsWidget />
 
       {/* Full-width student table */}
       <TeacherStudentsTable />

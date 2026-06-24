@@ -42,6 +42,7 @@ export interface AvailablePerson {
 export interface UpdateUserInput {
   personId?: string | null
   role?: UserRole
+  name?: string
 }
 
 export interface UpdateUserRoleInput {
@@ -249,6 +250,97 @@ export const useUndeleteUser = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] })
       queryClient.invalidateQueries({ queryKey: ['available-persons'] })
+    },
+  })
+}
+
+// User scope assignment types
+export interface UserCenterAssignment {
+  center_id: string
+  centerName: string
+}
+
+export interface UserGroupAssignment {
+  group_id: string
+  groupName: string
+}
+
+export const getUserCenterAssignments = async (userId: string): Promise<UserCenterAssignment[]> => {
+  const response = await fetchWithCredentials(`${USER_API_URL}/${userId}/centers`)
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}))
+    throw new Error((error as { message?: string })?.message || 'Failed to load center assignments')
+  }
+  return await response.json()
+}
+
+export const updateUserCenterAssignments = async (userId: string, centerIds: string[]): Promise<{ success: boolean }> => {
+  const response = await fetchWithCredentials(`${USER_API_URL}/${userId}/centers`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ centerIds }),
+  })
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}))
+    throw new Error((error as { message?: string })?.message || 'Failed to update center assignments')
+  }
+  return await response.json()
+}
+
+export const getUserGroupAssignments = async (userId: string): Promise<UserGroupAssignment[]> => {
+  const response = await fetchWithCredentials(`${USER_API_URL}/${userId}/groups`)
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}))
+    throw new Error((error as { message?: string })?.message || 'Failed to load group assignments')
+  }
+  return await response.json()
+}
+
+export const updateUserGroupAssignments = async (userId: string, groupIds: string[]): Promise<{ success: boolean }> => {
+  const response = await fetchWithCredentials(`${USER_API_URL}/${userId}/groups`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ groupIds }),
+  })
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}))
+    throw new Error((error as { message?: string })?.message || 'Failed to update group assignments')
+  }
+  return await response.json()
+}
+
+export const getUserCenterAssignmentsQueryOptions = (userId: string) =>
+  queryOptions({
+    queryKey: ['user-center-assignments', userId],
+    queryFn: () => getUserCenterAssignments(userId),
+    retry: false,
+  })
+
+export const getUserGroupAssignmentsQueryOptions = (userId: string) =>
+  queryOptions({
+    queryKey: ['user-group-assignments', userId],
+    queryFn: () => getUserGroupAssignments(userId),
+    retry: false,
+  })
+
+export const useUpdateUserCenterAssignments = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ userId, centerIds }: { userId: string; centerIds: string[] }) =>
+      updateUserCenterAssignments(userId, centerIds),
+    onSuccess: (_, { userId }) => {
+      queryClient.invalidateQueries({ queryKey: ['user-center-assignments', userId] })
+    },
+  })
+}
+
+export const useUpdateUserGroupAssignments = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ userId, groupIds }: { userId: string; groupIds: string[] }) =>
+      updateUserGroupAssignments(userId, groupIds),
+    onSuccess: (_, { userId }) => {
+      queryClient.invalidateQueries({ queryKey: ['user-group-assignments', userId] })
     },
   })
 }

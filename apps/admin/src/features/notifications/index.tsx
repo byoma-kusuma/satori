@@ -29,15 +29,24 @@ import {
   type NotificationInput,
 } from '@/api/notifications'
 import { NotificationDialog } from './components/notification-dialog'
+import { usePermissions } from '@/contexts/permission-context'
 import { format } from 'date-fns'
 
 const targetTypeLabel: Record<string, string> = {
   all: 'All users',
   groups: 'Groups',
   centers: 'Centers',
+  users: 'My Students',
+  'my-centers': 'My Centers',
+  'my-groups': 'My Groups',
 }
 
 export default function NotificationsPage() {
+  const { userRole } = usePermissions()
+  const isInstructor = userRole === 'krama_instructor'
+  const isCenterAdmin = userRole === 'center_admin'
+  const isGroupAdmin = userRole === 'group_admin'
+
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingNotification, setEditingNotification] = useState<Notification | null>(null)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
@@ -181,6 +190,9 @@ export default function NotificationsPage() {
           notification={editingNotification}
           onSave={handleSave}
           isSaving={isSaving}
+          isInstructor={isInstructor}
+          isCenterAdmin={isCenterAdmin}
+          isGroupAdmin={isGroupAdmin}
         />
 
         <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

@@ -2,7 +2,7 @@
 
 import { z } from 'zod'
 import { useForm } from 'react-hook-form'
-import { useRef, useMemo } from 'react'
+import { useRef, useMemo, useState, useEffect } from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useNavigate, useParams } from '@tanstack/react-router'
 import { useSuspenseQuery, useQuery } from '@tanstack/react-query'
@@ -25,6 +25,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Label } from '@/components/ui/label'
 import { Header } from '@/components/layout/header'
 import { Main } from '@/components/layout/main'
 import { ProfileDropdown } from '@/components/profile-dropdown'
@@ -34,8 +36,19 @@ import { IconChevronLeft } from '@tabler/icons-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Suspense } from 'react'
 import { userRoleEnum, userRoleLabels } from '@/types/user-roles'
-import { useUpdateUser, getUserQueryOptions, getAvailablePersonsQueryOptions, AvailablePerson } from '@/api/users'
+import {
+  useUpdateUser,
+  getUserQueryOptions,
+  getAvailablePersonsQueryOptions,
+  AvailablePerson,
+  getUserCenterAssignmentsQueryOptions,
+  getUserGroupAssignmentsQueryOptions,
+  useUpdateUserCenterAssignments,
+  useUpdateUserGroupAssignments,
+} from '@/api/users'
 import { PersonSelect, type PersonOption } from '@/components/ui/person-select'
+import { getCentersQueryOptions } from '@/api/centers'
+import { getGroupsQueryOptions } from '@/api/groups'
 
 const userEditSchema = z.object({
   name: z.string().min(1, 'Name is required'),
@@ -58,12 +71,38 @@ function EditUserForm({ userId }: { userId: string }) {
   const navigate = useNavigate()
   const formRef = useRef<HTMLFormElement>(null)
   const updateUserMutation = useUpdateUser()
+  const updateCenterAssignments = useUpdateUserCenterAssignments()
+  const updateGroupAssignments = useUpdateUserGroupAssignments()
 
   // Fetch the user data
   const { data: user } = useSuspenseQuery(getUserQueryOptions(userId))
 
   // Fetch available persons
   const { data: availablePersons = [], isLoading: personsLoading } = useQuery(getAvailablePersonsQueryOptions())
+
+  // Fetch all centers and groups for scope assignment
+  const { data: allCenters = [] } = useQuery(getCentersQueryOptions)
+  const { data: allGroups = [] } = useQuery(getGroupsQueryOptions)
+
+  // Fetch existing assignments — no default [] to avoid unstable references
+  const { data: centerAssignments } = useQuery(getUserCenterAssignmentsQueryOptions(userId))
+  const { data: groupAssignments } = useQuery(getUserGroupAssignmentsQueryOptions(userId))
+
+  const [selectedCenterIds, setSelectedCenterIds] = useState<string[]>([])
+  const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>([])
+
+  // Sync assignment state only when data actually loads (guard against undefined)
+  useEffect(() => {
+    if (centerAssignments) {
+      setSelectedCenterIds(centerAssignments.map((a) => a.center_id))
+    }
+  }, [centerAssignments])
+
+  useEffect(() => {
+    if (groupAssignments) {
+      setSelectedGroupIds(groupAssignments.map((a) => a.group_id))
+    }
+  }, [groupAssignments])
 
   const form = useForm<UserEditForm>({
     resolver: zodResolver(userEditSchema),
@@ -110,22 +149,29 @@ function EditUserForm({ userId }: { userId: string }) {
       .sort((a, b) => `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`))
   }, [availablePersons, currentPersonOption])
 
-  const onSubmit = (vals: UserEditForm) => {
-    updateUserMutation.mutate({
-      id: userId,
-      updateData: {
-        personId: vals.personId ?? null,
-        role: vals.role,
+  const onSubmit = async (vals: UserEditForm) => {
+    try {
+      await updateUserMutation.mutateAsync({
+        id: userId,
+        updateData: {
+          name: vals.name,
+          personId: vals.personId ?? null,
+          role: vals.role,
+        }
+      })
+
+      // Update scope assignments based on role
+      if (vals.role === 'center_admin') {
+        await updateCenterAssignments.mutateAsync({ userId, centerIds: selectedCenterIds })
+      } else if (vals.role === 'group_admin') {
+        await updateGroupAssignments.mutateAsync({ userId, groupIds: selectedGroupIds })
       }
-    }, {
-      onSuccess: () => {
-        toast({ title: 'User updated successfully' })
-        navigate({ to: '/users' })
-      },
-      onError: (error) => {
-        toast({ title: 'Update failed', description: error instanceof Error ? error.message : String(error), variant: 'destructive' })
-      }
-    })
+
+      toast({ title: 'User updated successfully' })
+      navigate({ to: '/users' })
+    } catch (error) {
+      toast({ title: 'Update failed', description: error instanceof Error ? error.message : String(error), variant: 'destructive' })
+    }
   }
 
   return (
@@ -190,7 +236,7 @@ function EditUserForm({ userId }: { userId: string }) {
                   <FormItem className="space-y-1">
                     <FormLabel>Name</FormLabel>
                     <FormControl>
-                      <Input placeholder="Enter name" {...field} disabled />
+                      <Input placeholder="Enter name" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -234,6 +280,68 @@ function EditUserForm({ userId }: { userId: string }) {
                 )}
               />
             </div>
+
+            {watchRole === 'center_admin' && (
+              <div className="space-y-2">
+                <Label>Assigned Centers</Label>
+                <p className="text-sm text-muted-foreground">
+                  This user will only see persons and events belonging to these centers.
+                </p>
+                <div className="rounded-md border p-3 space-y-2 max-h-48 overflow-y-auto">
+                  {(allCenters as { id: string; name: string }[]).map((center) => (
+                    <div key={center.id} className="flex items-center gap-2">
+                      <Checkbox
+                        id={`center-${center.id}`}
+                        checked={selectedCenterIds.includes(center.id)}
+                        onCheckedChange={(checked) => {
+                          setSelectedCenterIds((prev) =>
+                            checked ? [...prev, center.id] : prev.filter((id) => id !== center.id)
+                          )
+                        }}
+                        disabled={updateUserMutation.isPending}
+                      />
+                      <Label htmlFor={`center-${center.id}`} className="font-normal cursor-pointer">
+                        {center.name}
+                      </Label>
+                    </div>
+                  ))}
+                  {(allCenters as { id: string; name: string }[]).length === 0 && (
+                    <p className="text-sm text-muted-foreground">No centers available</p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {watchRole === 'group_admin' && (
+              <div className="space-y-2">
+                <Label>Assigned Groups</Label>
+                <p className="text-sm text-muted-foreground">
+                  This user will only see persons and events belonging to these groups.
+                </p>
+                <div className="rounded-md border p-3 space-y-2 max-h-48 overflow-y-auto">
+                  {(allGroups as { id: string; name: string }[]).map((group) => (
+                    <div key={group.id} className="flex items-center gap-2">
+                      <Checkbox
+                        id={`group-${group.id}`}
+                        checked={selectedGroupIds.includes(group.id)}
+                        onCheckedChange={(checked) => {
+                          setSelectedGroupIds((prev) =>
+                            checked ? [...prev, group.id] : prev.filter((id) => id !== group.id)
+                          )
+                        }}
+                        disabled={updateUserMutation.isPending}
+                      />
+                      <Label htmlFor={`group-${group.id}`} className="font-normal cursor-pointer">
+                        {group.name}
+                      </Label>
+                    </div>
+                  ))}
+                  {(allGroups as { id: string; name: string }[]).length === 0 && (
+                    <p className="text-sm text-muted-foreground">No groups available</p>
+                  )}
+                </div>
+              </div>
+            )}
           </form>
         </Form>
       </CardContent>
@@ -247,7 +355,7 @@ function EditUserForm({ userId }: { userId: string }) {
         <Button
           type="submit"
           form="user-form"
-          disabled={updateUserMutation.isPending}
+          disabled={updateUserMutation.isPending || updateCenterAssignments.isPending || updateGroupAssignments.isPending}
         >
           Update User
         </Button>

@@ -24,6 +24,8 @@ import { useState } from 'react'
 import { useCreatePerson } from '@/api/persons'
 import { useToast } from '@/hooks/use-toast'
 import { personTypeLabels } from '@/features/persons/data/schema'
+import { useQuery } from '@tanstack/react-query'
+import { personTypeConfigQueryOptions } from '@/api/person-type-config'
 import PhoneInput from 'react-phone-number-input'
 import 'react-phone-number-input/style.css'
 
@@ -40,7 +42,7 @@ const createPersonSchema = z.object({
   ]).optional(),
   phoneNumber: z.string().optional(),
   center: z.enum(['Nepal', 'USA', 'Australia', 'UK']),
-  type: z.enum(['interested', 'contact', 'sangha_member']),
+  type: z.string().min(1),
 })
 
 type CreatePersonFormValues = z.infer<typeof createPersonSchema>
@@ -56,6 +58,8 @@ export function CreatePersonDialog({ open, onClose, onSuccess, initialName = '' 
   const { toast } = useToast()
   const createPersonMutation = useCreatePerson()
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const { data: personTypeConfigs = [] } = useQuery(personTypeConfigQueryOptions)
+  const activePersonTypes = personTypeConfigs.filter((t) => t.is_active)
   
   // Parse the initial name into first and last name
   const getNameParts = (fullName: string): { firstName: string, lastName: string } => {
@@ -249,9 +253,11 @@ export function CreatePersonDialog({ open, onClose, onSuccess, initialName = '' 
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="interested">{personTypeLabels.interested}</SelectItem>
-                        <SelectItem value="contact">{personTypeLabels.contact}</SelectItem>
-                        <SelectItem value="sangha_member">{personTypeLabels.sangha_member}</SelectItem>
+                        {activePersonTypes.map((t) => (
+                          <SelectItem key={t.code} value={t.code}>
+                            {personTypeLabels[t.code as keyof typeof personTypeLabels] ?? t.label}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                     <FormMessage />

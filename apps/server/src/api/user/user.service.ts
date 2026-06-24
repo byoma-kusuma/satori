@@ -222,7 +222,7 @@ export async function createUser(input: CreateUserInput): Promise<UserResponse> 
     throw new HTTPException(400, { message: 'Password must be at least 8 characters.' })
   }
 
-  return db.transaction().execute(async (trx) => {
+  const userId = await db.transaction().execute(async (trx) => {
     const signUpUrl = new URL('/api/auth/sign-up/email', process.env.BETTER_AUTH_URL ?? 'http://localhost')
     const origin = process.env.ORIGIN?.split(',')[0]?.trim()
 
@@ -255,7 +255,7 @@ export async function createUser(input: CreateUserInput): Promise<UserResponse> 
     }
 
     if (input.personId) {
-      const updateResult = await trx
+      await trx
         .updateTable('user')
         .set({ person_id: input.personId, updatedAt: new Date() })
         .where('id', '=', userId)
@@ -271,8 +271,11 @@ export async function createUser(input: CreateUserInput): Promise<UserResponse> 
       }
     }
 
-    return getUserById(userId)
+    return userId
   })
+
+  // Fetch AFTER the transaction commits so the response reflects the correct role
+  return getUserById(userId)
 }
 
 export async function resendVerificationEmail(userId: string): Promise<void> {

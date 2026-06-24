@@ -31,6 +31,9 @@ interface NotificationDialogProps {
   notification?: Notification | null
   onSave: (data: NotificationInput) => void
   isSaving?: boolean
+  isInstructor?: boolean
+  isCenterAdmin?: boolean
+  isGroupAdmin?: boolean
 }
 
 const defaultForm: NotificationInput = {
@@ -51,6 +54,9 @@ export function NotificationDialog({
   notification,
   onSave,
   isSaving,
+  isInstructor = false,
+  isCenterAdmin = false,
+  isGroupAdmin = false,
 }: NotificationDialogProps) {
   const [form, setForm] = useState<NotificationInput>(defaultForm)
 
@@ -115,22 +121,36 @@ export function NotificationDialog({
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
               <Label>Target</Label>
-              <Select
-                value={form.target_type}
-                onValueChange={(val) =>
-                  setForm({ ...form, target_type: val as NotificationTargetType, group_ids: [], center_ids: [], user_ids: [] })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All users</SelectItem>
-                  <SelectItem value="groups">Specific groups</SelectItem>
-                  <SelectItem value="centers">Specific centers</SelectItem>
-                  <SelectItem value="users">Specific users</SelectItem>
-                </SelectContent>
-              </Select>
+              {isInstructor ? (
+                <div className="flex h-10 items-center rounded-md border bg-muted px-3 text-sm text-muted-foreground">
+                  My Students
+                </div>
+              ) : isCenterAdmin ? (
+                <div className="flex h-10 items-center rounded-md border bg-muted px-3 text-sm text-muted-foreground">
+                  My Centers
+                </div>
+              ) : isGroupAdmin ? (
+                <div className="flex h-10 items-center rounded-md border bg-muted px-3 text-sm text-muted-foreground">
+                  My Groups
+                </div>
+              ) : (
+                <Select
+                  value={form.target_type}
+                  onValueChange={(val) =>
+                    setForm({ ...form, target_type: val as NotificationTargetType, group_ids: [], center_ids: [], user_ids: [] })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All users</SelectItem>
+                    <SelectItem value="groups">Specific groups</SelectItem>
+                    <SelectItem value="centers">Specific centers</SelectItem>
+                    <SelectItem value="users">Specific users</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
             </div>
 
             <div className="space-y-1">
@@ -146,7 +166,7 @@ export function NotificationDialog({
             </div>
           </div>
 
-          {form.target_type === 'groups' && (
+          {!isInstructor && !isCenterAdmin && !isGroupAdmin && form.target_type === 'groups' && (
             <div className="space-y-1">
               <Label>Groups</Label>
               <div className="rounded-md border p-2 space-y-2">
@@ -169,7 +189,7 @@ export function NotificationDialog({
             </div>
           )}
 
-          {form.target_type === 'centers' && (
+          {!isInstructor && !isCenterAdmin && !isGroupAdmin && form.target_type === 'centers' && (
             <div className="space-y-1">
               <Label>Centers</Label>
               <div className="rounded-md border p-2 space-y-2">
@@ -192,7 +212,7 @@ export function NotificationDialog({
             </div>
           )}
 
-          {form.target_type === 'users' && (
+          {!isInstructor && !isCenterAdmin && !isGroupAdmin && form.target_type === 'users' && (
             <div className="space-y-1">
               <Label>Users</Label>
               <div className="rounded-md border p-2 space-y-2">

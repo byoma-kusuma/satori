@@ -29,7 +29,7 @@ export const generatePersonCode = async (firstName: string, lastName: string): P
   return `${initials}${nextNumber}`;
 };
 
-export async function getAllPersons(userRole?: UserRole, userPersonId?: string | null) {
+export async function getAllPersons(userRole?: UserRole, userPersonId?: string | null, userId?: string) {
   let query = db
     .selectFrom('person as p')
     .leftJoin('center as c', 'c.id', 'p.center_id')
@@ -54,10 +54,42 @@ export async function getAllPersons(userRole?: UserRole, userPersonId?: string |
   }
   // krama_instructor and admin see all persons — client-side filtering handles "My Students"
 
+  // center_admin sees only persons in their assigned centers
+  if (userRole === 'center_admin' && userId) {
+    const assignments = await db
+      .selectFrom('user_center_assignment')
+      .select('center_id')
+      .where('user_id', '=', userId)
+      .execute()
+    const centerIds = assignments.map((a) => a.center_id)
+    if (centerIds.length > 0) {
+      query = query.where('p.center_id', 'in', centerIds)
+    } else {
+      query = query.where('p.id', '=', '') // no centers = no persons
+    }
+  }
+
+  // group_admin sees only persons in their assigned groups
+  if (userRole === 'group_admin' && userId) {
+    const assignments = await db
+      .selectFrom('user_group_assignment')
+      .select('group_id')
+      .where('user_id', '=', userId)
+      .execute()
+    const groupIds = assignments.map((a) => a.group_id)
+    if (groupIds.length > 0) {
+      query = query
+        .innerJoin('person_group as pg_scope', 'pg_scope.personId', 'p.id')
+        .where('pg_scope.groupId', 'in', groupIds)
+    } else {
+      query = query.where('p.id', '=', '') // no groups = no persons
+    }
+  }
+
   return query.execute();
 }
 
-export async function getPersonById(id: string, userRole?: UserRole, userPersonId?: string | null) {
+export async function getPersonById(id: string, userRole?: UserRole, userPersonId?: string | null, userId?: string) {
   let query = db
     .selectFrom('person as p')
     .leftJoin('center as c', 'c.id', 'p.center_id')
@@ -84,16 +116,39 @@ export async function getPersonById(id: string, userRole?: UserRole, userPersonI
     .where('p.id', '=', id)
 
   // Apply role-based filtering
-  if (userRole === 'krama_instructor' && userPersonId) {
-    // Krama Instructor can only see persons assigned to them
-    query = query.where('p.krama_instructor_person_id', '=', userPersonId)
-  } else if (userRole === 'viewer' && userPersonId) {
+  if (userRole === 'viewer' && userPersonId) {
     // Viewer can only see their own record
     query = query.where('p.id', '=', userPersonId)
+  } else if (userRole === 'center_admin' && userId) {
+    const assignments = await db
+      .selectFrom('user_center_assignment')
+      .select('center_id')
+      .where('user_id', '=', userId)
+      .execute()
+    const centerIds = assignments.map((a) => a.center_id)
+    if (centerIds.length > 0) {
+      query = query.where('p.center_id', 'in', centerIds)
+    } else {
+      query = query.where('p.id', '=', '')
+    }
+  } else if (userRole === 'group_admin' && userId) {
+    const assignments = await db
+      .selectFrom('user_group_assignment')
+      .select('group_id')
+      .where('user_id', '=', userId)
+      .execute()
+    const groupIds = assignments.map((a) => a.group_id)
+    if (groupIds.length > 0) {
+      query = query
+        .innerJoin('person_group as pg_scope', 'pg_scope.personId', 'p.id')
+        .where('pg_scope.groupId', 'in', groupIds)
+    } else {
+      query = query.where('p.id', '=', '')
+    }
   }
   // Admin has no restrictions
 
-  return query.executeTakeFirstOrThrow();
+  return query.executeTakeFirst() ?? null;
 }
 
 export async function createPerson(personData: PersonInput, createdBy: string) {

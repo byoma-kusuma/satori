@@ -16,6 +16,8 @@ import {
 import { authenticated } from "../../middlewares/session";
 import { auth } from "../../lib/auth";
 import { sendEmail } from "../../lib/email";
+import { getUserById } from "../user/user.service";
+import { db } from "../../database";
 
 const groups = new Hono<{
   Variables: {
@@ -27,6 +29,20 @@ const groups = new Hono<{
 export const groupsRoutes = groups
   .use(authenticated)
   .get("/", async (c) => {
+    const sessionUser = c.get("user");
+    if (sessionUser) {
+      const userData = await getUserById(sessionUser.id);
+      if (userData.role === "group_admin") {
+        const assignments = await db
+          .selectFrom("user_group_assignment")
+          .select("group_id")
+          .where("user_id", "=", sessionUser.id)
+          .execute();
+        const groupIds = assignments.map((a) => a.group_id);
+        const groups = await getAllGroups(groupIds);
+        return c.json(groups);
+      }
+    }
     const groups = await getAllGroups();
     return c.json(groups);
   })

@@ -23,7 +23,9 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Textarea } from '@/components/ui/textarea'
 import { countries, kramaInstructorSchema, membershipTypeLabels, titleLabels, type Person, type PersonInput } from '../data/schema'
 import { getKramaInstructorsQueryOptions } from '../data/api'
+import { personTypeConfigQueryOptions } from '@/api/person-type-config'
 import { SearchableNationalitySelect } from '@/components/ui/searchable-nationality-select'
+import { usePermissions } from '@/contexts/permission-context'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { IconUpload, IconX, IconId } from '@tabler/icons-react'
 import React from 'react'
@@ -110,6 +112,8 @@ const validateImageFile = (file: File): { isValid: boolean; error?: string } => 
 }
 
 export function GeneralInfoTab({ form, person, formRef, onSubmit, readOnly = false }: GeneralInfoTabProps) {
+  const { userRole } = usePermissions()
+  const isCenterAdmin = userRole === 'center_admin'
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false)
   const [showPhotoIdDialog, setShowPhotoIdDialog] = useState(false)
   const [primaryPhoneCountry, setPrimaryPhoneCountry] = useState<Country>('NP')
@@ -153,6 +157,10 @@ export function GeneralInfoTab({ form, person, formRef, onSubmit, readOnly = fal
     }
   }, [selectedCountry, primaryPhone, secondaryPhone, viberNumber])
   
+  // Fetch dynamic person types from config
+  const { data: personTypeConfigs = [] } = useQuery(personTypeConfigQueryOptions)
+  const activePersonTypes = personTypeConfigs.filter((t) => t.is_active)
+
   // Fetch Krama Instructors when person type is attended_orientation or sangha_member
   const { data: kramaInstructors = [] } = useQuery({
     ...getKramaInstructorsQueryOptions(),
@@ -190,10 +198,9 @@ export function GeneralInfoTab({ form, person, formRef, onSubmit, readOnly = fal
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value="interested">Interested</SelectItem>
-                    <SelectItem value="contact">Contact</SelectItem>
-                    <SelectItem value="sangha_member">Sangha Member</SelectItem>
-                    <SelectItem value="attended_orientation">Attended Orientation</SelectItem>
+                    {activePersonTypes.map((t) => (
+                      <SelectItem key={t.code} value={t.code}>{t.label}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
                 <FormMessage />
@@ -381,6 +388,7 @@ export function GeneralInfoTab({ form, person, formRef, onSubmit, readOnly = fal
                     value={field.value ?? undefined}
                     onValueChange={(value) => field.onChange(value)}
                     placeholder="Select center"
+                    disabled={isCenterAdmin}
                   />
                 </FormControl>
                 <FormMessage />

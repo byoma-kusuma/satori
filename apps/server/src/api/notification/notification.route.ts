@@ -125,6 +125,16 @@ export const notificationRoutes = app
       }
     }
 
+    // Instructors only see their own created notifications
+    if (userRole === 'krama_instructor') {
+      query = query.where('notification.created_by', '=', user.id)
+    }
+
+    // Scoped admins only see their own created notifications
+    if (userRole === 'center_admin' || userRole === 'group_admin') {
+      query = query.where('notification.created_by', '=', user.id)
+    }
+
     const notifications = await query.orderBy('notification.created_at', 'desc').execute()
 
     // Attach group/center IDs for admin views
@@ -315,10 +325,56 @@ export const notificationRoutes = app
     })
   })
 
-  // POST /api/notification - create (admin/sysadmin only)
+  // POST /api/notification - create (admin/sysadmin/instructor)
   .post('/', requirePermission('canManageNotifications'), zValidator('json', notificationInputSchema), async (c) => {
     const user = c.get('user')!
-    const data = c.req.valid('json')
+    let data = c.req.valid('json')
+
+    // Instructors can only notify their own students — override targeting
+    const role = await getUserRole(user.id)
+    if (role === 'krama_instructor') {
+      const userRecord = await db
+        .selectFrom('user')
+        .select('person_id')
+        .where('id', '=', user.id)
+        .executeTakeFirst()
+      const personId = userRecord?.person_id
+      if (!personId) return c.json({ error: 'Instructor person record not found' }, 403)
+
+      const studentPersonIds = await db
+        .selectFrom('person')
+        .select('id')
+        .where('krama_instructor_person_id', '=', personId)
+        .execute()
+
+      const studentUsers = studentPersonIds.length
+        ? await db
+            .selectFrom('user')
+            .select('id')
+            .where('person_id', 'in', studentPersonIds.map((s) => s.id))
+            .execute()
+        : []
+
+      data = { ...data, target_type: 'users', user_ids: studentUsers.map((u) => u.id) }
+    }
+
+    if (role === 'center_admin') {
+      const assignments = await db
+        .selectFrom('user_center_assignment')
+        .select('center_id')
+        .where('user_id', '=', user.id)
+        .execute()
+      data = { ...data, target_type: 'centers', center_ids: assignments.map((a) => a.center_id) }
+    }
+
+    if (role === 'group_admin') {
+      const assignments = await db
+        .selectFrom('user_group_assignment')
+        .select('group_id')
+        .where('user_id', '=', user.id)
+        .execute()
+      data = { ...data, target_type: 'groups', group_ids: assignments.map((a) => a.group_id) }
+    }
 
     const notification = await db
       .insertInto('notification')
@@ -395,13 +451,19 @@ export const notificationRoutes = app
     return c.json(notification, 201)
   })
 
-  // PUT /api/notification/:id - update (admin/sysadmin only)
+  // PUT /api/notification/:id - update (admin/sysadmin/instructor)
   .put('/:id', requirePermission('canManageNotifications'), zValidator('json', notificationUpdateSchema), async (c) => {
+    const user = c.get('user')!
     const id = c.req.param('id')
     const data = c.req.valid('json')
 
-    const existing = await db.selectFrom('notification').select('id').where('id', '=', id).executeTakeFirst()
+    const existing = await db.selectFrom('notification').select(['id', 'created_by']).where('id', '=', id).executeTakeFirst()
     if (!existing) return c.json({ error: 'Not found' }, 404)
+
+    const role = await getUserRole(user.id)
+    if ((role === 'krama_instructor' || role === 'center_admin' || role === 'group_admin') && existing.created_by !== user.id) {
+      return c.json({ error: 'Forbidden' }, 403)
+    }
 
     const { group_ids, center_ids, user_ids, ...notificationData } = data
 
@@ -448,11 +510,17 @@ export const notificationRoutes = app
     return c.json(notification)
   })
 
-  // DELETE /api/notification/:id - delete (admin/sysadmin only)
+  // DELETE /api/notification/:id - delete (admin/sysadmin/instructor)
   .delete('/:id', requirePermission('canManageNotifications'), async (c) => {
+    const user = c.get('user')!
     const id = c.req.param('id')
-    const existing = await db.selectFrom('notification').select('id').where('id', '=', id).executeTakeFirst()
+    const existing = await db.selectFrom('notification').select(['id', 'created_by']).where('id', '=', id).executeTakeFirst()
     if (!existing) return c.json({ error: 'Not found' }, 404)
+
+    const role = await getUserRole(user.id)
+    if ((role === 'krama_instructor' || role === 'center_admin' || role === 'group_admin') && existing.created_by !== user.id) {
+      return c.json({ error: 'Forbidden' }, 403)
+    }
 
     await db.deleteFrom('notification').where('id', '=', id).execute()
     return c.json({ message: 'Deleted successfully' })

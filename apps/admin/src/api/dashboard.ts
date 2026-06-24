@@ -110,6 +110,43 @@ export const teacherStudentsOverTimeQueryOptions = (period: '7d' | '30d') =>
     queryFn: () => get<TimeSeriesPoint[]>(`${BASE}/teacher-students-over-time?period=${period}`),
   })
 
+export interface KramaInstructorCoverage {
+  withInstructor: number
+  withoutInstructor: number
+}
+
+export const kramaInstructorCoverageQueryOptions = queryOptions({
+  queryKey: ['dashboard', 'krama-instructor-coverage'],
+  queryFn: () => get<KramaInstructorCoverage>(`${BASE}/krama-instructor-coverage`),
+})
+
+export interface ScopedStats {
+  totalPersons: number
+  newPersonsThisMonth: number
+  newPersonsThisWeek: number
+  activeEvents: number
+  personTypeDistribution: { type: string; count: number }[]
+  scopeNames: string[]
+}
+
+export interface ScopedPerson {
+  id: string
+  firstName: string
+  lastName: string
+  type: string
+  createdAt: string | null
+}
+
+export const scopedStatsQueryOptions = queryOptions({
+  queryKey: ['dashboard', 'scoped-stats'],
+  queryFn: () => get<ScopedStats>(`${BASE}/scoped-stats`),
+})
+
+export const scopedRecentPersonsQueryOptions = queryOptions({
+  queryKey: ['dashboard', 'scoped-recent-persons'],
+  queryFn: () => get<ScopedPerson[]>(`${BASE}/scoped-recent-persons`),
+})
+
 // --- Viewer types ---
 
 export interface ViewerProfile {

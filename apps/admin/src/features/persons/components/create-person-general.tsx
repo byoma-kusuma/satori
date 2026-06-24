@@ -2,9 +2,10 @@
 
 import { z } from 'zod'
 import { useForm } from 'react-hook-form'
-import { useRef } from 'react'
+import { useRef, useEffect } from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useNavigate } from '@tanstack/react-router'
+import { useQuery } from '@tanstack/react-query'
 import { toast } from '@/hooks/use-toast'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -16,6 +17,8 @@ import { ProfileDropdown } from '@/components/profile-dropdown'
 import { Search } from '@/components/search'
 import { ThemeSwitch } from '@/components/theme-switch'
 import { GeneralInfoTab } from './general-info-tab'
+import { usePermissions } from '@/contexts/permission-context'
+import { getCentersQueryOptions } from '@/api/centers'
 
 type PersonForm = z.infer<typeof personInputSchema>
 
@@ -23,6 +26,8 @@ export function CreatePersonPage() {
   const navigate = useNavigate()
   const formRef = useRef<HTMLFormElement>(null)
   const createPersonMutation = useCreatePerson()
+  const { userRole } = usePermissions()
+  const { data: centers = [] } = useQuery(getCentersQueryOptions)
 
   const form = useForm<PersonForm>({
     resolver: zodResolver(personInputSchema),
@@ -60,6 +65,13 @@ export function CreatePersonPage() {
       referredBy: undefined,
     },
   })
+
+  // Auto-set center for center_admin when their centers load
+  useEffect(() => {
+    if (userRole === 'center_admin' && centers.length > 0 && !form.getValues('centerId')) {
+      form.setValue('centerId', (centers[0] as { id: string }).id)
+    }
+  }, [userRole, centers, form])
 
   const onSubmit = (vals: PersonForm) => {
     const processedVals: PersonForm = {

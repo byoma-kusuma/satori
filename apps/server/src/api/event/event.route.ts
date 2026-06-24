@@ -5,6 +5,8 @@ import { zValidator } from '@hono/zod-validator'
 
 import { auth } from '../../lib/auth'
 import { authenticated } from '../../middlewares/session'
+import { getUserById } from '../user/user.service'
+import { db } from '../../database'
 import type { CreateEventInput, UpdateEventInput } from './event.types'
 import {
   addAttendee,
@@ -218,6 +220,38 @@ export const eventsRoutes = events
     try {
       const user = requireUser(c.get('user'))
       const payload = await c.req.valid('json')
+
+      const userData = await getUserById(user.id)
+      if (userData.role === 'center_admin') {
+        const assignments = await db
+          .selectFrom('user_center_assignment')
+          .select('center_id')
+          .where('user_id', '=', user.id)
+          .execute()
+        const allowedCenterIds = new Set(assignments.map((a) => a.center_id))
+        if (payload.audienceType !== 'centers') {
+          throw new HTTPException(403, { message: 'Center admins can only create events for their assigned centers.' })
+        }
+        const invalidIds = (payload.targetCenterIds ?? []).filter((id) => !allowedCenterIds.has(id))
+        if (invalidIds.length > 0) {
+          throw new HTTPException(403, { message: 'One or more selected centers are not in your assigned scope.' })
+        }
+      } else if (userData.role === 'group_admin') {
+        const assignments = await db
+          .selectFrom('user_group_assignment')
+          .select('group_id')
+          .where('user_id', '=', user.id)
+          .execute()
+        const allowedGroupIds = new Set(assignments.map((a) => a.group_id))
+        if (payload.audienceType !== 'groups') {
+          throw new HTTPException(403, { message: 'Group admins can only create events for their assigned groups.' })
+        }
+        const invalidIds = (payload.targetGroupIds ?? []).filter((id) => !allowedGroupIds.has(id))
+        if (invalidIds.length > 0) {
+          throw new HTTPException(403, { message: 'One or more selected groups are not in your assigned scope.' })
+        }
+      }
+
       const event = await createEvent(toCreateEventInput(payload), user.id)
       return c.json(event, 201)
     } catch (error) {

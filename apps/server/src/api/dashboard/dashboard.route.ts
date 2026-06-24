@@ -142,6 +142,32 @@ export const dashboardRoutes = app
     )
   })
 
+  // Admin & SysAdmin: persons with vs without a krama instructor
+  .get('/krama-instructor-coverage', async (c) => {
+    const user = c.get('user')
+    if (!user) return c.json({ error: 'Unauthorized' }, 401)
+    const role = await getUserRole(user.id)
+    if (role !== 'admin' && role !== 'sysadmin') return c.json({ error: 'Forbidden' }, 403)
+
+    const [withInstructor, withoutInstructor] = await Promise.all([
+      db
+        .selectFrom('person')
+        .select(db.fn.count<string>('id').as('count'))
+        .where('krama_instructor_person_id', 'is not', null)
+        .executeTakeFirst(),
+      db
+        .selectFrom('person')
+        .select(db.fn.count<string>('id').as('count'))
+        .where('krama_instructor_person_id', 'is', null)
+        .executeTakeFirst(),
+    ])
+
+    return c.json({
+      withInstructor: Number(withInstructor?.count ?? 0),
+      withoutInstructor: Number(withoutInstructor?.count ?? 0),
+    })
+  })
+
   // Active events list (admin + teacher)
   .get('/active-events', async (c) => {
     const user = c.get('user')
@@ -320,6 +346,85 @@ export const dashboardRoutes = app
       .execute()
 
     return c.json(rows.map((r) => ({ date: r.date, count: Number(r.count) })))
+  })
+
+  // Center Admin / Group Admin: scoped KPI stats
+  .get('/scoped-stats', async (c) => {
+    const user = c.get('user')
+    if (!user) return c.json({ error: 'Unauthorized' }, 401)
+    const role = await getUserRole(user.id)
+    if (role !== 'center_admin' && role !== 'group_admin') return c.json({ error: 'Forbidden' }, 403)
+
+    if (role === 'center_admin') {
+      const assignments = await db
+        .selectFrom('user_center_assignment as uca')
+        .innerJoin('center as c', 'c.id', 'uca.center_id')
+        .select(['uca.center_id', 'c.name as centerName'])
+        .where('uca.user_id', '=', user.id)
+        .execute()
+      const centerIds = assignments.map((a) => a.center_id)
+      const scopeNames = assignments.map((a) => a.centerName)
+
+      if (centerIds.length === 0) {
+        return c.json({ totalPersons: 0, newPersonsThisMonth: 0, newPersonsThisWeek: 0, activeEvents: 0, personTypeDistribution: [], scopeNames: [] })
+      }
+
+      const [typeRows, thisMonth, thisWeek, activeEventCount] = await Promise.all([
+        db.selectFrom('person').select(['type', db.fn.count<string>('id').as('count')]).where('center_id', 'in', centerIds).groupBy('type').execute(),
+        db.selectFrom('person').select(db.fn.count<string>('id').as('count')).where('center_id', 'in', centerIds).where('createdAt', '>=', sql<Date>`NOW() - INTERVAL '30 days'`).executeTakeFirst(),
+        db.selectFrom('person').select(db.fn.count<string>('id').as('count')).where('center_id', 'in', centerIds).where('createdAt', '>=', sql<Date>`NOW() - INTERVAL '7 days'`).executeTakeFirst(),
+        db.selectFrom('event').select(db.fn.count<string>('id').as('count')).where('status', '=', 'ACTIVE').executeTakeFirst(),
+      ])
+
+      const distribution = typeRows.map((r) => ({ type: r.type, count: Number(r.count) }))
+      return c.json({ totalPersons: distribution.reduce((s, r) => s + r.count, 0), newPersonsThisMonth: Number(thisMonth?.count ?? 0), newPersonsThisWeek: Number(thisWeek?.count ?? 0), activeEvents: Number(activeEventCount?.count ?? 0), personTypeDistribution: distribution, scopeNames })
+    }
+
+    // group_admin
+    const assignments = await db
+      .selectFrom('user_group_assignment as uga')
+      .innerJoin('group as g', 'g.id', 'uga.group_id')
+      .select(['uga.group_id', 'g.name as groupName'])
+      .where('uga.user_id', '=', user.id)
+      .execute()
+    const groupIds = assignments.map((a) => a.group_id)
+    const scopeNames = assignments.map((a) => a.groupName)
+
+    if (groupIds.length === 0) {
+      return c.json({ totalPersons: 0, newPersonsThisMonth: 0, newPersonsThisWeek: 0, activeEvents: 0, personTypeDistribution: [], scopeNames: [] })
+    }
+
+    const [typeRows, thisMonth, thisWeek, activeEventCount] = await Promise.all([
+      db.selectFrom('person as p').innerJoin('person_group as pg', 'pg.personId', 'p.id').select(['p.type', db.fn.count<string>('p.id').as('count')]).where('pg.groupId', 'in', groupIds).groupBy('p.type').execute(),
+      db.selectFrom('person as p').innerJoin('person_group as pg', 'pg.personId', 'p.id').select(db.fn.count<string>('p.id').as('count')).where('pg.groupId', 'in', groupIds).where('p.createdAt', '>=', sql<Date>`NOW() - INTERVAL '30 days'`).executeTakeFirst(),
+      db.selectFrom('person as p').innerJoin('person_group as pg', 'pg.personId', 'p.id').select(db.fn.count<string>('p.id').as('count')).where('pg.groupId', 'in', groupIds).where('p.createdAt', '>=', sql<Date>`NOW() - INTERVAL '7 days'`).executeTakeFirst(),
+      db.selectFrom('event').select(db.fn.count<string>('id').as('count')).where('status', '=', 'ACTIVE').executeTakeFirst(),
+    ])
+
+    const distribution = typeRows.map((r) => ({ type: r.type, count: Number(r.count) }))
+    return c.json({ totalPersons: distribution.reduce((s, r) => s + r.count, 0), newPersonsThisMonth: Number(thisMonth?.count ?? 0), newPersonsThisWeek: Number(thisWeek?.count ?? 0), activeEvents: Number(activeEventCount?.count ?? 0), personTypeDistribution: distribution, scopeNames })
+  })
+
+  // Center Admin / Group Admin: recently added persons in scope
+  .get('/scoped-recent-persons', async (c) => {
+    const user = c.get('user')
+    if (!user) return c.json({ error: 'Unauthorized' }, 401)
+    const role = await getUserRole(user.id)
+    if (role !== 'center_admin' && role !== 'group_admin') return c.json({ error: 'Forbidden' }, 403)
+
+    if (role === 'center_admin') {
+      const assignments = await db.selectFrom('user_center_assignment').select('center_id').where('user_id', '=', user.id).execute()
+      const centerIds = assignments.map((a) => a.center_id)
+      if (centerIds.length === 0) return c.json([])
+      const rows = await db.selectFrom('person').select(['id', 'firstName', 'lastName', 'type', 'createdAt']).where('center_id', 'in', centerIds).orderBy('createdAt', 'desc').limit(10).execute()
+      return c.json(rows.map((r) => ({ id: r.id, firstName: r.firstName, lastName: r.lastName, type: r.type, createdAt: r.createdAt ? new Date(r.createdAt).toISOString() : null })))
+    }
+
+    const assignments = await db.selectFrom('user_group_assignment').select('group_id').where('user_id', '=', user.id).execute()
+    const groupIds = assignments.map((a) => a.group_id)
+    if (groupIds.length === 0) return c.json([])
+    const rows = await db.selectFrom('person as p').innerJoin('person_group as pg', 'pg.personId', 'p.id').select(['p.id', 'p.firstName', 'p.lastName', 'p.type', 'p.createdAt']).where('pg.groupId', 'in', groupIds).orderBy('p.createdAt', 'desc').limit(10).execute()
+    return c.json(rows.map((r) => ({ id: r.id, firstName: r.firstName, lastName: r.lastName, type: r.type, createdAt: r.createdAt ? new Date(r.createdAt).toISOString() : null })))
   })
 
   // Viewer: profile summary + krama instructor info

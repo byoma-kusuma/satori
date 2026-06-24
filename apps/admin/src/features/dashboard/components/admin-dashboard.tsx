@@ -4,10 +4,7 @@ import { StatCard } from './widgets/stat-card'
 import { PersonTypeDonut } from './widgets/person-type-donut'
 import { PersonsOverTimeChart } from './widgets/persons-over-time-chart'
 import { KramaInstructorChart } from './widgets/krama-instructor-chart'
-import { KramaInstructorTable } from './widgets/krama-instructor-table'
 import { KramaStepChart } from './widgets/krama-step-chart'
-import { ActiveEventsWidget } from './widgets/active-events-widget'
-import { NotificationsWidget } from './widgets/notifications-widget'
 import { RecentlyAddedPersons } from './widgets/recently-added-persons'
 import { adminStatsQueryOptions } from '@/api/dashboard'
 
@@ -54,14 +51,11 @@ export function AdminDashboard() {
       <PersonTypeDonut />
       <PersonsOverTimeChart />
 
-      {/* Instructor row */}
+      {/* Instructor chart */}
       <KramaInstructorChart />
-      <KramaInstructorTable />
 
       {/* Step distribution + sidebar widgets */}
       <KramaStepChart variant='admin' />
-      <ActiveEventsWidget />
-      <NotificationsWidget />
       <RecentlyAddedPersons />
     </div>
   )

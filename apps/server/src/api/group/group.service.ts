@@ -3,13 +3,17 @@ import { Group, Person } from '../../types';
 
 export type GroupInput = Omit<Group, 'id' | 'createdAt' | 'updatedAt' | 'createdBy' | 'lastUpdatedBy'>;
 
-export async function getAllGroups() {
-  return db
+export async function getAllGroups(groupIds?: string[]) {
+  if (groupIds !== undefined && groupIds.length === 0) return []
+  let query = db
     .selectFrom('group')
     .leftJoin('user', 'user.id', 'group.createdBy')
     .selectAll('group')
     .select('user.name as createdByName')
-    .execute();
+  if (groupIds && groupIds.length > 0) {
+    query = query.where('group.id', 'in', groupIds)
+  }
+  return query.execute()
 }
 
 export async function getGroupById(id: string) {

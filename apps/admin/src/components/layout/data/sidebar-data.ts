@@ -5,6 +5,7 @@ import {
   IconLayoutDashboard,
   IconPalette,
   IconSettings,
+  IconSettings2,
   IconUsers,
   IconUsersGroup,
   IconCertificate,
@@ -12,6 +13,7 @@ import {
   IconTimeline,
   IconClipboardList,
   IconBell,
+  IconTool,
 } from '@tabler/icons-react'
 import { AudioWaveform, GalleryVerticalEnd } from 'lucide-react'
 import { type SidebarData } from '../types'
@@ -72,34 +74,50 @@ const baseSidebarData = {
           icon: IconCalendar,
         },
         {
-          title: 'Mahakrama',
-          url: '/mahakrama',
-          icon: IconTimeline,
-        },
-        {
-          title: 'Empowerments',
-          url: '/empowerments',
-          icon: IconCertificate,
-        },
-        {
-          title: 'Gurus',
-          url: '/gurus',
-          icon: IconUser,
-        },
-        {
-          title: 'Users',
-          url: '/users',
-          icon: IconUsers,
-        },
-        {
-          title: 'Import',
-          url: '/registrations',
-          icon: IconClipboardList,
-        },
-        {
           title: 'Notifications',
           url: '/notifications',
           icon: IconBell,
+        },
+      ],
+    },
+    {
+      title: 'System Setup',
+      items: [
+        {
+          title: 'System Setup',
+          icon: IconTool,
+          items: [
+            {
+              title: 'General',
+              url: '/system-setup/general',
+              icon: IconSettings2,
+            },
+            {
+              title: 'Mahakrama',
+              url: '/mahakrama',
+              icon: IconTimeline,
+            },
+            {
+              title: 'Empowerments',
+              url: '/empowerments',
+              icon: IconCertificate,
+            },
+            {
+              title: 'Gurus',
+              url: '/gurus',
+              icon: IconUser,
+            },
+            {
+              title: 'Users',
+              url: '/users',
+              icon: IconUsers,
+            },
+            {
+              title: 'Import',
+              url: '/registrations',
+              icon: IconClipboardList,
+            },
+          ],
         },
       ],
     },
@@ -175,26 +193,53 @@ export const getSidebarData = (
     return viewerNav
   }
 
+  if (userRole === 'center_admin' || userRole === 'group_admin') {
+    const scopedNav: SidebarData = {
+      ...baseSidebarData,
+      navGroups: [
+        {
+          title: 'General',
+          items: [
+            { title: 'Dashboard', url: '/', icon: IconLayoutDashboard },
+            { title: 'Persons', url: '/persons', icon: IconUsers },
+            ...(userRole === 'center_admin' ? [{ title: 'Centers', url: '/centers', icon: IconBuilding }] : []),
+            { title: 'Events', url: '/events', icon: IconCalendar },
+            { title: 'Notifications', url: '/notifications', icon: IconBell },
+          ],
+        },
+      ],
+      user: user
+        ? { name: user.name, email: user.email, avatar: baseSidebarData.user.avatar }
+        : baseSidebarData.user,
+    } as SidebarData
+    return scopedNav
+  }
+
   // Filter nav items based on user role for non-viewers
-  const filteredNavGroups = baseSidebarData.navGroups.map((group) => ({
-    ...group,
-    items: group.items.filter((item) => {
-      // sysadmin sees everything
-      if (userRole === 'sysadmin') return true
-
-      // admin: hide Mahakrama and Import
-      if (userRole === 'admin') {
-        if (item.title === 'Mahakrama' || item.title === 'Import') return false
-      }
-
-      // krama_instructor (teachers): hide Mahakrama, Import, Users, Gurus, Empowerments, Notifications
-      if (userRole === 'krama_instructor') {
-        if (['Mahakrama', 'Import', 'Users', 'Gurus', 'Empowerments', 'Notifications'].includes(item.title)) return false
-      }
-
+  const filteredNavGroups = baseSidebarData.navGroups
+    .filter((group) => {
+      // Hide System Setup entirely from krama_instructor
+      if (group.title === 'System Setup' && userRole === 'krama_instructor') return false
       return true
-    }),
-  }))
+    })
+    .map((group) => {
+      if (group.title !== 'System Setup') return group
+
+      // For admin: filter out Mahakrama and Import from System Setup sub-items
+      return {
+        ...group,
+        items: group.items.map((item) => {
+          if (!('items' in item) || !item.items) return item
+          return {
+            ...item,
+            items: item.items.filter((sub) => {
+              if (userRole === 'admin' && (sub.title === 'Mahakrama' || sub.title === 'Import')) return false
+              return true
+            }),
+          }
+        }),
+      }
+    })
 
   return {
     ...baseSidebarData,

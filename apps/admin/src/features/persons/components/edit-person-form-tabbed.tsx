@@ -32,7 +32,7 @@ import { getCurrentUserQueryOptions } from '@/api/users'
 
 type PersonForm = z.infer<typeof personInputSchema>
 
-function EditPersonForm({ personId }: { personId: string }) {
+function EditPersonForm({ personId, currentUserPersonId }: { personId: string; currentUserPersonId?: string | null }) {
   const navigate = useNavigate()
   const { tab: initialTab } = useSearch({ from: '/_authenticated/persons/$personId/edit' })
   const formRef = useRef<HTMLFormElement>(null)
@@ -44,6 +44,11 @@ function EditPersonForm({ personId }: { personId: string }) {
 
   // Fetch the person data
   const { data: person } = useSuspenseQuery(getPersonQueryOptions(personId))
+
+  // Krama instructors only see the Mahakrama tab for their own students
+  const isOwnStudent = userRole === 'krama_instructor'
+    ? person.krama_instructor_person_id === currentUserPersonId
+    : true
   
   const form = useForm<PersonForm>({
     resolver: zodResolver(personInputSchema),
@@ -172,7 +177,7 @@ function EditPersonForm({ personId }: { personId: string }) {
               <IconUserCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0 text-muted-foreground transition-colors group-data-[state=active]:text-primary" />
               <span className="truncate"><span className="sm:hidden">General</span><span className="hidden sm:inline">General Info</span></span>
             </TabsTrigger>
-            {userRole !== 'admin' && userRole !== 'krama_instructor' && (
+            {userRole !== 'admin' && isOwnStudent && (
               <TabsTrigger
                 value="mahakrama"
                 className="group inline-flex h-8 sm:h-10 items-center gap-1.5 sm:gap-2 rounded-xl bg-transparent px-2 sm:px-3 py-0 text-[11px] font-semibold text-muted-foreground transition-all hover:bg-muted/40 hover:text-foreground sm:text-sm data-[state=active]:bg-background data-[state=active]:text-primary"
@@ -188,16 +193,14 @@ function EditPersonForm({ personId }: { personId: string }) {
               <IconUsers className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0 text-muted-foreground transition-colors group-data-[state=active]:text-primary" />
               <span className="truncate"><span className="sm:hidden">Relations</span><span className="hidden sm:inline">Family / Relationships</span></span>
             </TabsTrigger>
-            {userRole !== 'krama_instructor' && (
-              <TabsTrigger
-                value="empowerments"
-                disabled={personType !== 'sangha_member'}
-                className="group inline-flex h-8 sm:h-10 items-center gap-1.5 sm:gap-2 rounded-xl bg-transparent px-2 sm:px-3 py-0 text-[11px] font-semibold text-muted-foreground transition-all hover:bg-muted/40 hover:text-foreground disabled:opacity-60 sm:text-sm data-[state=active]:bg-background data-[state=active]:text-primary"
-              >
-                <IconSparkles className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0 text-muted-foreground transition-colors group-data-[state=active]:text-primary" />
-                <span className="truncate"><span className="sm:hidden">Empower</span><span className="hidden sm:inline">Empowerments</span></span>
-              </TabsTrigger>
-            )}
+            <TabsTrigger
+              value="empowerments"
+              disabled={personType !== 'sangha_member'}
+              className="group inline-flex h-8 sm:h-10 items-center gap-1.5 sm:gap-2 rounded-xl bg-transparent px-2 sm:px-3 py-0 text-[11px] font-semibold text-muted-foreground transition-all hover:bg-muted/40 hover:text-foreground disabled:opacity-60 sm:text-sm data-[state=active]:bg-background data-[state=active]:text-primary"
+            >
+              <IconSparkles className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0 text-muted-foreground transition-colors group-data-[state=active]:text-primary" />
+              <span className="truncate"><span className="sm:hidden">Empower</span><span className="hidden sm:inline">Empowerments</span></span>
+            </TabsTrigger>
             <TabsTrigger
               value="events"
               className="group inline-flex h-8 sm:h-10 items-center gap-1.5 sm:gap-2 rounded-xl bg-transparent px-2 sm:px-3 py-0 text-[11px] font-semibold text-muted-foreground transition-all hover:bg-muted/40 hover:text-foreground sm:text-sm data-[state=active]:bg-background data-[state=active]:text-primary"
@@ -233,7 +236,7 @@ function EditPersonForm({ personId }: { personId: string }) {
             )}
           </TabsContent>
 
-          {userRole !== 'admin' && userRole !== 'krama_instructor' && (
+          {userRole !== 'admin' && (
             <TabsContent value="mahakrama" className="mt-6">
               <MahakramaTab personId={personId} readOnly={false} isViewer={isViewer} studentEmail={person.emailId} />
             </TabsContent>
@@ -243,11 +246,9 @@ function EditPersonForm({ personId }: { personId: string }) {
             <FamilyRelationshipsTab personId={personId} readOnly={isViewer} />
           </TabsContent>
 
-          {userRole !== 'krama_instructor' && (
-            <TabsContent value="empowerments" className="mt-6">
-              <EmpowermentsTab personId={personId} readOnly={isViewer} />
-            </TabsContent>
-          )}
+          <TabsContent value="empowerments" className="mt-6">
+            <EmpowermentsTab personId={personId} readOnly={isViewer} />
+          </TabsContent>
 
           <TabsContent value="events" className="mt-6">
             <EventsTab personId={personId} readOnly={isViewer} />
@@ -347,7 +348,7 @@ export function EditPersonPage() {
       <Main>
         <Suspense fallback={<EditPersonSkeleton />}>
           <EditPersonHeader personId={personId} />
-          <EditPersonForm personId={personId} />
+          <EditPersonForm personId={personId} currentUserPersonId={currentUser?.personId} />
         </Suspense>
       </Main>
     </>

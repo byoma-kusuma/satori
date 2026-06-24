@@ -49,12 +49,12 @@ const centerSelection = [
   'center.updated_at as updated_at',
 ] as const
 
-export async function listCenters(): Promise<CenterRow[]> {
-  return db
-    .selectFrom('center')
-    .select(centerSelection)
-    .orderBy('name')
-    .execute()
+export async function listCenters(centerIds?: string[]): Promise<CenterRow[]> {
+  let query = db.selectFrom('center').select(centerSelection).orderBy('name')
+  if (centerIds && centerIds.length > 0) {
+    query = query.where('center.id', 'in', centerIds)
+  }
+  return query.execute()
 }
 
 export async function centerExists(id: string): Promise<boolean> {
