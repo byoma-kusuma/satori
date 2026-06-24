@@ -2,6 +2,8 @@ import { queryOptions } from '@tanstack/react-query'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { API_BASE_URL } from '@/api/base-url'
 import { authClient } from '@/auth-client'
+import { z } from 'zod'
+import { guruSchema, type Guru, type GuruInput } from './schema'
 
 const GURU_API_URL = `${API_BASE_URL}/api/guru`
 
@@ -34,22 +36,31 @@ const fetchWithCredentials = async (url: string, options?: RequestInit) => {
   return response.json()
 }
 
-export const getGurus = async () => {
-  try {
-    const result = await fetchWithCredentials(`${GURU_API_URL}`)
-    // Transform guruName to name for frontend compatibility
-    return result.map((guru: any) => ({
-      ...guru,
-      name: guru.guruName,
-      created_at: guru.createdAt,
-      updated_at: guru.updatedAt,
-      created_by: guru.createdBy,
-      last_updated_by: guru.lastUpdatedBy,
-    }))
-  } catch (error) {
-    console.error('Failed to fetch gurus:', error)
-    throw error // Don't silently return empty array, let React Query handle the error
-  }
+const backendGuruSchema = z.object({
+  id: z.string(),
+  guruName: z.string(),
+  createdAt: z.string().nullable(),
+  updatedAt: z.string().nullable(),
+  createdBy: z.string(),
+  lastUpdatedBy: z.string(),
+})
+
+type BackendGuru = z.infer<typeof backendGuruSchema>
+
+const toGuru = (guru: BackendGuru): Guru =>
+  guruSchema.parse({
+    id: guru.id,
+    name: guru.guruName,
+    created_at: guru.createdAt,
+    updated_at: guru.updatedAt,
+    created_by: guru.createdBy,
+    last_updated_by: guru.lastUpdatedBy,
+  })
+
+export const getGurus = async (): Promise<Guru[]> => {
+  const result = await fetchWithCredentials(`${GURU_API_URL}`)
+  const gurus = z.array(backendGuruSchema).parse(result)
+  return gurus.map(toGuru)
 }
 
 export const getGurusQueryOptions = () => queryOptions({
@@ -60,14 +71,14 @@ export const getGurusQueryOptions = () => queryOptions({
   refetchOnWindowFocus: false, // Prevent refetch loops on focus
 })
 
-export const createGuru = async (data: { name: string }) => {
+export const createGuru = async (data: GuruInput) => {
   return fetchWithCredentials(`${GURU_API_URL}`, {
     method: 'POST',
     body: JSON.stringify(data),
   })
 }
 
-export const updateGuru = async (id: string, data: { name: string }) => {
+export const updateGuru = async (id: string, data: GuruInput) => {
   return fetchWithCredentials(`${GURU_API_URL}/${id}`, {
     method: 'PUT',
     body: JSON.stringify(data),
@@ -93,9 +104,9 @@ export const useCreateGuru = () => {
 
 export const useUpdateGuru = () => {
   const queryClient = useQueryClient()
-
+  
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: { name: string } }) =>
+    mutationFn: ({ id, data }: { id: string; data: GuruInput }) =>
       updateGuru(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['gurus'] })

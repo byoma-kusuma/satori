@@ -5,7 +5,12 @@ import { DataTableColumnHeader } from './data-table-column-header'
 import { DataTableRowActions } from './data-table-row-actions'
 import { Guru } from '../data/schema'
 
-export const columns: ColumnDef<Guru>[] = [
+type GuruColumnsOptions = {
+  onEdit?: (guru: Guru) => void
+  onDelete?: (guru: Guru) => void
+}
+
+export const getGuruColumns = ({ onEdit, onDelete }: GuruColumnsOptions): ColumnDef<Guru>[] => [
   {
     id: 'select',
     header: ({ table }) => (
@@ -50,6 +55,8 @@ export const columns: ColumnDef<Guru>[] = [
   },
   {
     id: 'actions',
-    cell: DataTableRowActions,
+    cell: ({ row }) => (
+      <DataTableRowActions row={row} onEdit={onEdit} onDelete={onDelete} />
+    ),
   },
 ]

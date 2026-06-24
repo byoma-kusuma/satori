@@ -1,5 +1,6 @@
 import { config } from "dotenv";
-config({ override: true }); // Load environment variables from .env file, overriding existing ones
+config({ override: true });
+config({ path: ".env.local", override: true });
 
 import { Hono } from "hono";
 import { cors } from "hono/cors";
@@ -17,12 +18,19 @@ import { mahakramaRoutes } from "./api/mahakrama/mahakrama.route";
 import { personRelationshipRoutes } from "./api/person-relationship/person-relationship.route";
 import { registrationRoutes } from "./api/registration/registration.route";
 import { eventGroupRoutes } from "./api/event-group/event-group.route";
+import { notificationRoutes } from "./api/notification/notification.route";
+import { dashboardRoutes } from "./api/dashboard/dashboard.route";
+import { personTypeConfigRoutes } from "./api/person-type-config/person-type-config.route";
 
 const app = new Hono();
 
+const port = (() => {
+  const parsed = process.env.PORT ? Number(process.env.PORT) : 3000;
+  return Number.isFinite(parsed) ? parsed : 3000;
+})();
+
 // check if origin is set in environment variables if not default to localhost for development
 if (!process.env.ORIGIN) {
-  console.log("No ORIGIN set in environment variables, defaulting to http://localhost:3000");
   process.env.ORIGIN = `http://localhost:${process.env.FRONTEND_PORT ?? 3000}`;
 }
 
@@ -30,7 +38,7 @@ if (!process.env.ORIGIN) {
 app.use(
   '*',
   cors({
-     origin: (origin:any) => {
+     origin: (origin: string) => {
       const allowed = process.env.ORIGIN?.split(',').map(o => o.trim()) || []
       // only return the origin if it's explicitly allowed
       if (origin && allowed.includes(origin)) {
@@ -66,9 +74,12 @@ app.route("/api/mahakrama", mahakramaRoutes);
 app.route("/api/person-relationship", personRelationshipRoutes);
 app.route("/api/registration", registrationRoutes);
 app.route("/api/event-groups", eventGroupRoutes);
+app.route("/api/notification", notificationRoutes);
+app.route("/api/dashboard", dashboardRoutes);
+app.route("/api/person-type-config", personTypeConfigRoutes);
 
 export default {
-  port: process.env.PORT || 3000,
+  port,
   hostname: "0.0.0.0",
   fetch: app.fetch,
 };

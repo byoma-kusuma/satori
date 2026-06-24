@@ -20,7 +20,7 @@ export const personSchema = z.object({
   updatedAt: z.coerce.date().nullable(),
   createdBy: z.string(),
   lastUpdatedBy: z.string(),
-  type: z.enum(['interested', 'contact', 'sangha_member', 'attended_orientation']),
+  type: z.string(),
   membershipCardNumber: z.string().nullable(),
   middleName: z.string().nullable(),
   primaryPhone: z.string().nullable(),
@@ -67,7 +67,7 @@ export const personInputSchema = z.object({
   ),
   gender: z.enum(['male', 'female', 'other', 'prefer_not_to_say']).optional(),
   centerId: z.string().optional(),
-  type: z.enum(['interested', 'contact', 'sangha_member', 'attended_orientation']),
+  type: z.string().min(1),
   country: z.string().optional(),
   nationality: z.string().optional(),
   languagePreference: z.string().optional(),
@@ -89,6 +89,14 @@ export const personInputSchema = z.object({
 })
 
 export type PersonInput = z.infer<typeof personInputSchema>
+
+export type PersonUpsertPayload = {
+  [K in keyof PersonInput]: undefined extends PersonInput[K]
+    ? PersonInput[K] | null
+    : PersonInput[K]
+}
+
+export type PersonUpdatePayload = Partial<PersonUpsertPayload>
 
 // Krama Instructor specific types
 export const kramaInstructorSchema = z.object({

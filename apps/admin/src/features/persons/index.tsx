@@ -1,4 +1,4 @@
-import { Suspense, useEffect } from 'react'
+import { Suspense, useEffect, useState, useMemo } from 'react'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { IconLoader } from '@tabler/icons-react'
 import { useNavigate } from '@tanstack/react-router'
@@ -13,35 +13,51 @@ import { PersonsDialogs } from './components/persons-dialogs'
 import { PersonsPrimaryButtons } from './components/persons-primary-buttons'
 import { PersonsTable } from './components/persons-table'
 import PersonsProvider from './context/persons-context'
-import { authClient } from '@/auth-client'
-import { getUserQueryOptions } from '@/api/users'
-import { useQuery } from '@tanstack/react-query'
+import { getCurrentUserQueryOptions } from '@/api/users'
+import type { Person } from './data/schema'
 
 function PersonsList() {
   const navigate = useNavigate()
   const { data: personList } = useSuspenseQuery(getPersonsQueryOptions())
+  const { data: currentUser } = useSuspenseQuery(getCurrentUserQueryOptions())
 
-  // Get current user session
-  const { data: session } = useQuery({
-    queryKey: ['session'],
-    queryFn: async () => {
-      const { data } = await authClient.getSession()
-      return data
-    },
-  })
-
-  // Get full user data with role and personId
-  const { data: currentUser } = useQuery({
-    ...getUserQueryOptions(session?.user?.id || ''),
-    enabled: !!session?.user?.id,
-  })
+  const isKramaInstructor = currentUser?.role === 'krama_instructor'
+  const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'sysadmin'
+  const [studentView, setStudentView] = useState<'mine' | 'all'>('mine')
+  const [instructorFilter, setInstructorFilter] = useState<string | null>(null)
 
   // Redirect viewers to their own person edit page
   useEffect(() => {
-    if (currentUser && currentUser.role === 'viewer' && currentUser.personId) {
+    if (currentUser?.role === 'viewer' && currentUser.personId) {
       navigate({ to: '/persons/$personId/edit', params: { personId: currentUser.personId } })
     }
   }, [currentUser, navigate])
+
+  const instructorOptions = useMemo(
+    () =>
+      (personList as Person[])
+        .filter((p) => p.is_krama_instructor)
+        .map((p) => ({ id: p.id, name: `${p.firstName} ${p.lastName}` }))
+        .sort((a, b) => a.name.localeCompare(b.name)),
+    [personList]
+  )
+
+  const filteredPersonList = useMemo(() => {
+    let list = personList as Person[]
+
+    if (isKramaInstructor && studentView === 'mine') {
+      if (!currentUser?.personId) return []
+      list = list.filter((p) => p.krama_instructor_person_id === currentUser.personId)
+    }
+
+    if (isAdmin && instructorFilter === '__none__') {
+      list = list.filter((p) => p.krama_instructor_person_id == null)
+    } else if (isAdmin && instructorFilter != null) {
+      list = list.filter((p) => p.krama_instructor_person_id === instructorFilter)
+    }
+
+    return list
+  }, [personList, isKramaInstructor, studentView, currentUser?.personId, isAdmin, instructorFilter])
 
   return (
     <>
@@ -63,7 +79,17 @@ function PersonsList() {
           <PersonsPrimaryButtons />
         </div>
         <div className='-mx-4 flex-1 overflow-auto px-4 py-1 lg:flex-row lg:space-x-12 lg:space-y-0'>
-          <PersonsTable data={personList} columns={columns} />
+          <PersonsTable
+            data={filteredPersonList}
+            columns={columns}
+            showStudentFilter={isKramaInstructor}
+            studentView={studentView}
+            onStudentViewChange={setStudentView}
+            showInstructorFilter={isAdmin}
+            instructorOptions={instructorOptions}
+            instructorFilter={instructorFilter}
+            onInstructorFilterChange={setInstructorFilter}
+          />
         </div>
       </Main>
     </>

@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import {
-  ColumnDef,
   ColumnFiltersState,
   SortingState,
   VisibilityState,
@@ -23,7 +22,7 @@ import {
 } from '@/components/ui/table'
 import { useQuery } from '@tanstack/react-query'
 import { getEmpowermentsQueryOptions } from '../data/api'
-import { columns, Empowerment } from './empowerments-columns'
+import { columns } from './empowerments-columns'
 import { DataTablePagination } from './data-table-pagination'
 import { DataTableToolbar } from './data-table-toolbar'
 import { EmpowermentDialog } from './empowerment-dialog'

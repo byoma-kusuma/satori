@@ -1,5 +1,5 @@
 import { queryOptions } from '@tanstack/react-query'
-import { PersonInput } from '../features/persons/data/schema'
+import type { PersonUpdatePayload, PersonUpsertPayload } from '../features/persons/data/schema'
 
 // API base URL
 import { API_BASE_URL } from './base-url'
@@ -67,14 +67,14 @@ export const getPerson = async (id: string) => {
   return fetchWithCredentials(`${PERSON_API_URL}/${id}`)
 }
 
-export const createPerson = async (personData: PersonInput) => {
+export const createPerson = async (personData: PersonUpsertPayload) => {
   return fetchWithCredentials(`${PERSON_API_URL}`, {
     method: 'POST',
     body: JSON.stringify(personData),
   })
 }
 
-export const updatePerson = async (id: string, updateData: PersonInput) => {
+export const updatePerson = async (id: string, updateData: PersonUpdatePayload) => {
   return fetchWithCredentials(`${PERSON_API_URL}/${id}`, {
     method: 'PUT',
     body: JSON.stringify(updateData),
@@ -138,7 +138,7 @@ export const useCreatePerson = () => {
   const queryClient = useQueryClient()
   
   return useMutation({
-    mutationFn: (personData: PersonInput) => createPerson(personData),
+    mutationFn: (personData: PersonUpsertPayload) => createPerson(personData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['persons'] })
     },
@@ -149,7 +149,7 @@ export const useUpdatePerson = () => {
   const queryClient = useQueryClient()
   
   return useMutation({
-    mutationFn: ({ id, updateData }: { id: string; updateData: PersonInput }) =>
+    mutationFn: ({ id, updateData }: { id: string; updateData: PersonUpdatePayload }) =>
       updatePerson(id, updateData),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: ['persons'] })
@@ -168,4 +168,3 @@ export const useDeletePerson = () => {
     },
   })
 }
-

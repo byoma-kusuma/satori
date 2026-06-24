@@ -36,13 +36,7 @@ const fetchWithCredentials = async (url: string, options?: RequestInit) => {
 }
 
 export const getEmpowerments = async () => {
-  try {
-    const result = await fetchWithCredentials(`${EMPOWERMENT_API_URL}`)
-    return result
-  } catch (error) {
-    console.error('Failed to fetch empowerments:', error)
-    throw error // Don't silently return empty array, let React Query handle the error
-  }
+  return fetchWithCredentials(`${EMPOWERMENT_API_URL}`)
 }
 
 export const getEmpowerment = async (id: string) => {

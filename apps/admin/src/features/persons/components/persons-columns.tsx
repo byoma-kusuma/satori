@@ -92,19 +92,19 @@ export const columns: ColumnDef<Person>[] = [
       <DataTableColumnHeader column={column} title="Type" />
     ),
     cell: ({ row }) => {
-      const type = row.getValue<'interested' | 'contact' | 'sangha_member' | 'attended_orientation'>('type')
-      
-      const badgeVariant = type === 'sangha_member' 
-        ? 'default' 
-        : type === 'contact' 
-          ? 'secondary' 
+      const type = row.getValue<string>('type')
+
+      const badgeVariant = type === 'sangha_member'
+        ? 'default'
+        : type === 'contact'
+          ? 'secondary'
           : type === 'attended_orientation'
             ? 'destructive'
             : 'outline'
-          
+
       return (
         <Badge variant={badgeVariant}>
-          {personTypeLabels[type]}
+          {personTypeLabels[type as keyof typeof personTypeLabels] ?? type}
         </Badge>
       )
     },

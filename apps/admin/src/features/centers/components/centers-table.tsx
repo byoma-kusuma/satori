@@ -23,14 +23,14 @@ import {
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { getCentersQueryOptions } from '@/api/centers'
-import { columns } from './centers-columns'
+import { getCenterColumns } from './centers-columns'
 import { DataTablePagination } from './data-table-pagination'
 import { DataTableToolbar } from './data-table-toolbar'
 import { CenterDto } from '../data/schema'
 
 declare module '@tanstack/react-table' {
   interface ColumnMeta {
-    className: string
+    className?: string
   }
 }
 
@@ -48,24 +48,11 @@ export function CentersTable({ onEdit, onDelete, onAdd }: CentersTableProps) {
   const [sorting, setSorting] = useState<SortingState>([])
 
   const { data: centers = [] } = useSuspenseQuery(getCentersQueryOptions)
-
-  // Create columns with action handlers
-  const columnsWithActions = columns.map((col) => {
-    if (col.id === 'actions') {
-      return {
-        ...col,
-        cell: ({ row }: any) => {
-          const DataTableRowActions = col.cell as any
-          return <DataTableRowActions row={row} onEdit={onEdit} onDelete={onDelete} />
-        }
-      }
-    }
-    return col
-  })
+  const columns = getCenterColumns({ onEdit, onDelete })
 
   const table = useReactTable({
     data: centers,
-    columns: columnsWithActions,
+    columns,
     state: {
       sorting,
       columnVisibility,

@@ -7,6 +7,7 @@ import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
 import { HTTPException } from "hono/http-exception";
 import { userRoleEnum } from "../../types/user-roles";
+import { db } from "../../database";
 
 const users = new Hono<{
   Variables: {
@@ -39,8 +40,6 @@ const paramsSchema = z.object({
 });
 
 users.onError((err, c) => {
-  console.error(`User route error: ${err}`);
-
   if (err instanceof z.ZodError) {
     return c.json({
       success: false,
@@ -77,9 +76,17 @@ export const usersRoutes = users
     return c.json(persons);
   })
   .post("/", zValidator("json", createUserSchema), requirePermission("canManageUsers"), async (c) => {
-    const data = c.req.valid("json");
+    const data = createUserSchema.parse(c.req.valid("json"));
     const user = await createUser(data);
     return c.json(user, 201);
+  })
+  .get("/me", async (c) => {
+    const sessionUser = c.get("user");
+    if (!sessionUser) {
+      throw new HTTPException(401, { message: "Authentication required" });
+    }
+    const user = await getUserById(sessionUser.id);
+    return c.json(user);
   })
   .get("/:id", zValidator("param", paramsSchema), requirePermission("canViewUsers"), async (c) => {
     const { id } = c.req.valid("param");
@@ -122,6 +129,52 @@ export const usersRoutes = users
 
     const user = await undeleteUser(id);
     return c.json(user);
+  })
+  // GET /api/users/:id/centers - get assigned centers for a center_admin
+  .get("/:id/centers", zValidator("param", paramsSchema), requirePermission("canManageUsers"), async (c) => {
+    const { id } = c.req.valid("param")
+    const assignments = await db
+      .selectFrom('user_center_assignment')
+      .innerJoin('center', 'center.id', 'user_center_assignment.center_id')
+      .select(['user_center_assignment.center_id', 'center.name as centerName'])
+      .where('user_id', '=', id)
+      .execute()
+    return c.json(assignments)
+  })
+  // PUT /api/users/:id/centers - replace assigned centers for a center_admin
+  .put("/:id/centers", zValidator("param", paramsSchema), requirePermission("canManageUsers"), async (c) => {
+    const { id } = c.req.valid("param")
+    const body = await c.req.json()
+    const centerIds: string[] = body.centerIds ?? []
+
+    await db.deleteFrom('user_center_assignment').where('user_id', '=', id).execute()
+    if (centerIds.length > 0) {
+      await db.insertInto('user_center_assignment').values(centerIds.map((cid) => ({ user_id: id, center_id: cid }))).execute()
+    }
+    return c.json({ success: true })
+  })
+  // GET /api/users/:id/groups - get assigned groups for a group_admin
+  .get("/:id/groups", zValidator("param", paramsSchema), requirePermission("canManageUsers"), async (c) => {
+    const { id } = c.req.valid("param")
+    const assignments = await db
+      .selectFrom('user_group_assignment')
+      .innerJoin('group', 'group.id', 'user_group_assignment.group_id')
+      .select(['user_group_assignment.group_id', 'group.name as groupName'])
+      .where('user_id', '=', id)
+      .execute()
+    return c.json(assignments)
+  })
+  // PUT /api/users/:id/groups - replace assigned groups for a group_admin
+  .put("/:id/groups", requirePermission("canManageUsers"), async (c) => {
+    const id = c.req.param("id")
+    const body = await c.req.json()
+    const groupIds: string[] = body.groupIds ?? []
+
+    await db.deleteFrom('user_group_assignment').where('user_id', '=', id).execute()
+    if (groupIds.length > 0) {
+      await db.insertInto('user_group_assignment').values(groupIds.map((gid) => ({ user_id: id, group_id: gid }))).execute()
+    }
+    return c.json({ success: true })
   });
 
 export type UserType = typeof usersRoutes;

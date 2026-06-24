@@ -1,5 +1,4 @@
 import { UserAuthForm } from './components/user-auth-form'
-import { Link } from '@tanstack/react-router'
 import ByomaKusumaLogo from '@/assets/byoma-kusuma-logo.png'
 
 export default function SignIn2() {

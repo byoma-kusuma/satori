@@ -1,13 +1,15 @@
 import { sql } from 'kysely'
+import type { Updateable } from 'kysely'
 
 import { db } from '../../database'
-import type { EventRegistrationMode, EventStatus } from '../../types'
+import type { Event, EventAttendee, EventRegistrationMode, EventStatus, JsonObject, JsonValue, Person } from '../../types'
 import {
   AddAttendeeInput,
   CheckInInput,
   CloseEventInput,
   CreateEventInput,
   EventAttendeeDto,
+  EventAudienceType,
   EventCategoryDto,
   EventDayDto,
   EventDetailDto,
@@ -57,11 +59,14 @@ const buildEventDays = (start: Date, end: Date) => {
   return days
 }
 
-const isPlainObject = (value: unknown): value is Record<string, unknown> =>
+const isJsonObject = (value: JsonValue): value is JsonObject =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
 
-const normalizeMetadata = (value: unknown): EventMetadata => {
-  if (!isPlainObject(value)) {
+const normalizeMetadata = (value: JsonValue | null | undefined): EventMetadata => {
+  if (!value) {
+    return {}
+  }
+  if (!isJsonObject(value)) {
     return {}
   }
   return { ...value }
@@ -75,7 +80,7 @@ const sanitizeNonEmpowermentMetadata = (metadata: EventMetadata): EventMetadata 
   return next
 }
 
-const asValidId = (value: unknown): string | null =>
+const asValidId = (value: JsonValue | null | undefined): string | null =>
   typeof value === 'string' && value.trim().length > 0 ? value : null
 
 const ensureEmpowermentMetadata = (
@@ -155,6 +160,7 @@ export async function listEvents(): Promise<EventSummaryDto[]> {
       'e.registration_mode as registration_mode',
       'e.status as status',
       'e.event_group_id as event_group_id',
+      'e.audience_type as audience_type',
       'c.code as category_code',
       'c.name as category_name',
       sql<number>`COUNT(DISTINCT ${eb.ref('ea.id')})`.as('total_attendees'),
@@ -166,6 +172,28 @@ export async function listEvents(): Promise<EventSummaryDto[]> {
     .orderBy('e.start_date', 'desc')
     .execute()
 
+  // Fetch audience targets for all events in bulk
+  const eventIds = rows.map((r) => r.id)
+  const [groupTargets, centerTargets] = eventIds.length > 0
+    ? await Promise.all([
+        db.selectFrom('event_target_group').select(['event_id', 'group_id']).where('event_id', 'in', eventIds).execute(),
+        db.selectFrom('event_target_center').select(['event_id', 'center_id']).where('event_id', 'in', eventIds).execute(),
+      ])
+    : [[], []]
+
+  const groupMap = new Map<string, string[]>()
+  for (const g of groupTargets) {
+    const arr = groupMap.get(g.event_id) ?? []
+    arr.push(g.group_id)
+    groupMap.set(g.event_id, arr)
+  }
+  const centerMap = new Map<string, string[]>()
+  for (const ctr of centerTargets) {
+    const arr = centerMap.get(ctr.event_id) ?? []
+    arr.push(ctr.center_id)
+    centerMap.set(ctr.event_id, arr)
+  }
+
   return rows.map((row) => ({
     id: row.id,
     name: row.name,
@@ -173,12 +201,15 @@ export async function listEvents(): Promise<EventSummaryDto[]> {
     status: row.status as EventStatus,
     startDate: toIsoString(row.start_date)!,
     endDate: toIsoString(row.end_date)!,
-    eventGroupId: (row as any).event_group_id ?? null,
+    eventGroupId: row.event_group_id ?? null,
     categoryCode: row.category_code,
     categoryName: row.category_name,
     totalAttendees: Number(row.total_attendees ?? 0),
     checkedInAttendees: Number(row.checked_in_attendees ?? 0),
     daysCount: Number(row.days_count ?? 0),
+    audienceType: (row.audience_type ?? 'all') as EventAudienceType,
+    targetGroupIds: groupMap.get(row.id) ?? [],
+    targetCenterIds: centerMap.get(row.id) ?? [],
   }))
 }
 
@@ -202,6 +233,7 @@ export async function getEventDetail(eventId: string): Promise<EventDetailDto> {
       'e.closed_at as closed_at',
       'e.closed_by as closed_by',
       'e.metadata as metadata',
+      'e.audience_type as audience_type',
       'e.requires_full_attendance as event_requires_full_attendance',
       'c.id as category_id',
       'c.code as category_code',
@@ -215,12 +247,11 @@ export async function getEventDetail(eventId: string): Promise<EventDetailDto> {
     throw new Error('Event not found')
   }
 
-  const days = await db
-    .selectFrom('event_day')
-    .select(['id', 'day_number', 'event_date'])
-    .where('event_id', '=', eventId)
-    .orderBy('day_number')
-    .execute()
+  const [days, groupTargets, centerTargets] = await Promise.all([
+    db.selectFrom('event_day').select(['id', 'day_number', 'event_date']).where('event_id', '=', eventId).orderBy('day_number').execute(),
+    db.selectFrom('event_target_group').select('group_id').where('event_id', '=', eventId).execute(),
+    db.selectFrom('event_target_center').select('center_id').where('event_id', '=', eventId).execute(),
+  ])
 
   const attendees = await db
     .selectFrom('event_attendee as ea')
@@ -341,9 +372,9 @@ export async function getEventDetail(eventId: string): Promise<EventDetailDto> {
 
   // Event-level requiresFullAttendance overrides category default
   const requiresFullAttendance =
-    (event as any).event_requires_full_attendance !== null
-      ? Boolean((event as any).event_requires_full_attendance)
-      : Boolean((event as any).category_requires_full_attendance)
+    event.event_requires_full_attendance !== null
+      ? Boolean(event.event_requires_full_attendance)
+      : Boolean(event.category_requires_full_attendance)
 
   return {
     id: event.id,
@@ -355,8 +386,8 @@ export async function getEventDetail(eventId: string): Promise<EventDetailDto> {
     status: event.status as EventStatus,
     empowermentId: event.empowerment_id ?? null,
     guruId: event.guru_id ?? null,
-    eventGroupId: (event as any).event_group_id ?? null,
-    eventGroupName: (event as any).event_group_name ?? null,
+    eventGroupId: event.event_group_id ?? null,
+    eventGroupName: event.event_group_name ?? null,
     closedAt: toIsoString(event.closed_at),
     closedBy: event.closed_by ?? null,
     requiresFullAttendance,
@@ -364,11 +395,14 @@ export async function getEventDetail(eventId: string): Promise<EventDetailDto> {
       id: event.category_id,
       code: event.category_code,
       name: event.category_name,
-      requiresFullAttendance: Boolean((event as any).category_requires_full_attendance),
+      requiresFullAttendance: Boolean(event.category_requires_full_attendance),
     },
     days: dayDtos,
     attendees: attendeeDtos,
     metadata: normalizeMetadata(event.metadata),
+    audienceType: (event.audience_type ?? 'all') as EventAudienceType,
+    targetGroupIds: groupTargets.map((g) => g.group_id),
+    targetCenterIds: centerTargets.map((c) => c.center_id),
   }
 }
 
@@ -433,6 +467,10 @@ export async function createEvent(input: CreateEventInput, userId: string): Prom
     }
   }
 
+  const audienceType = input.audienceType ?? 'all'
+  const targetGroupIds = audienceType === 'groups' ? (input.targetGroupIds ?? []) : []
+  const targetCenterIds = audienceType === 'centers' ? (input.targetCenterIds ?? []) : []
+
   const result = await db.transaction().execute(async (trx) => {
     const eventRow = await trx
       .insertInto('event')
@@ -449,8 +487,9 @@ export async function createEvent(input: CreateEventInput, userId: string): Prom
         empowerment_id: empowermentId,
         guru_id: guruId,
         event_group_id: eventGroupId,
-        metadata: metadataToStore as any,
+        metadata: metadataToStore,
         requires_full_attendance: input.requiresFullAttendance ?? null,
+        audience_type: audienceType,
       })
       .returning(['id'])
       .executeTakeFirstOrThrow()
@@ -465,6 +504,20 @@ export async function createEvent(input: CreateEventInput, userId: string): Prom
             event_date: day.dateString,
           })),
         )
+        .execute()
+    }
+
+    if (targetGroupIds.length > 0) {
+      await trx
+        .insertInto('event_target_group')
+        .values(targetGroupIds.map((gid) => ({ event_id: eventRow.id, group_id: gid })))
+        .execute()
+    }
+
+    if (targetCenterIds.length > 0) {
+      await trx
+        .insertInto('event_target_center')
+        .values(targetCenterIds.map((cid) => ({ event_id: eventRow.id, center_id: cid })))
         .execute()
     }
 
@@ -490,10 +543,8 @@ export async function updateEvent(eventId: string, input: UpdateEventInput, user
       throw new Error('Closed events cannot be modified')
     }
 
-    const updatedStart = input.startDate ? ensureValidDate(input.startDate, 'start date') : new Date(current.start_date as Date)
-    const updatedEnd = input.endDate
-      ? ensureValidDate(input.endDate, 'end date')
-      : new Date(current.end_date as Date)
+    const updatedStart = input.startDate ? ensureValidDate(input.startDate, 'start date') : current.start_date
+    const updatedEnd = input.endDate ? ensureValidDate(input.endDate, 'end date') : current.end_date
 
     const categoryId = input.categoryId ?? current.category_id
     const category = await trx
@@ -530,8 +581,7 @@ export async function updateEvent(eventId: string, input: UpdateEventInput, user
     }
 
     const datesChanged =
-      updatedStart.getTime() !== new Date(current.start_date as Date).getTime() ||
-      updatedEnd.getTime() !== new Date(current.end_date as Date).getTime()
+      updatedStart.getTime() !== current.start_date.getTime() || updatedEnd.getTime() !== current.end_date.getTime()
 
     if (datesChanged) {
       const attendanceCount = await trx
@@ -562,7 +612,7 @@ export async function updateEvent(eventId: string, input: UpdateEventInput, user
       }
     }
 
-    const updatePayload: Record<string, unknown> = {
+    const updatePayload: Updateable<Event> = {
       name: input.name ?? current.name,
       description: input.description ?? current.description,
       start_date: updatedStart,
@@ -624,7 +674,30 @@ export async function updateEvent(eventId: string, input: UpdateEventInput, user
       updatePayload.status = input.status
     }
 
+    // Handle audience type update
+    if (input.audienceType !== undefined) {
+      updatePayload.audience_type = input.audienceType
+    }
+
     await trx.updateTable('event').set(updatePayload).where('id', '=', eventId).execute()
+
+    // Replace audience targets if audienceType is being updated
+    if (input.audienceType !== undefined) {
+      await trx.deleteFrom('event_target_group').where('event_id', '=', eventId).execute()
+      await trx.deleteFrom('event_target_center').where('event_id', '=', eventId).execute()
+
+      if (input.audienceType === 'groups' && input.targetGroupIds && input.targetGroupIds.length > 0) {
+        await trx
+          .insertInto('event_target_group')
+          .values(input.targetGroupIds.map((gid) => ({ event_id: eventId, group_id: gid })))
+          .execute()
+      } else if (input.audienceType === 'centers' && input.targetCenterIds && input.targetCenterIds.length > 0) {
+        await trx
+          .insertInto('event_target_center')
+          .values(input.targetCenterIds.map((cid) => ({ event_id: eventId, center_id: cid })))
+          .execute()
+      }
+    }
 
     if (input.registrationMode && input.registrationMode !== current.registration_mode) {
       await trx
@@ -646,7 +719,7 @@ export async function addAttendee(eventId: string, input: AddAttendeeInput, user
   return db.transaction().execute(async (trx) => {
     const event = await trx
       .selectFrom('event')
-      .select(['id', 'status', 'registration_mode'])
+      .select(['id', 'status', 'registration_mode', 'audience_type'])
       .where('id', '=', eventId)
       .executeTakeFirst()
 
@@ -656,6 +729,58 @@ export async function addAttendee(eventId: string, input: AddAttendeeInput, user
 
     if (event.status === 'CLOSED') {
       throw new Error('Cannot add attendees to a closed event')
+    }
+
+    // Viewers cannot self-register for walk-in events
+    if (event.registration_mode === 'WALK_IN') {
+      const registrant = await trx
+        .selectFrom('user')
+        .select('role')
+        .where('id', '=', userId)
+        .executeTakeFirst()
+      if (registrant?.role === 'viewer') {
+        throw new Error('Viewers cannot register for walk-in events.')
+      }
+    }
+
+    // Audience restrictions only apply to pre-registration events
+    const audienceType = (event.audience_type ?? 'all') as EventAudienceType
+    if (event.registration_mode === 'PRE_REGISTRATION' && audienceType === 'groups') {
+      const targetGroups = await trx
+        .selectFrom('event_target_group')
+        .select('group_id')
+        .where('event_id', '=', eventId)
+        .execute()
+      const groupIds = targetGroups.map((g) => g.group_id)
+      if (groupIds.length > 0) {
+        const membership = await trx
+          .selectFrom('person_group')
+          .select('personId')
+          .where('personId', '=', input.personId)
+          .where('groupId', 'in', groupIds)
+          .executeTakeFirst()
+        if (!membership) {
+          throw new Error('This event is restricted to members of specific groups. You are not eligible to register.')
+        }
+      }
+    } else if (event.registration_mode === 'PRE_REGISTRATION' && audienceType === 'centers') {
+      const targetCenters = await trx
+        .selectFrom('event_target_center')
+        .select('center_id')
+        .where('event_id', '=', eventId)
+        .execute()
+      const centerIds = targetCenters.map((c) => c.center_id)
+      if (centerIds.length > 0) {
+        const membership = await trx
+          .selectFrom('center_person')
+          .select('person_id')
+          .where('person_id', '=', input.personId)
+          .where('center_id', 'in', centerIds)
+          .executeTakeFirst()
+        if (!membership) {
+          throw new Error('This event is restricted to members of specific centers. You are not eligible to register.')
+        }
+      }
     }
 
     const person = await trx
@@ -700,28 +825,31 @@ export async function addAttendee(eventId: string, input: AddAttendeeInput, user
       .orderBy('day_number')
       .execute()
 
-    const attendee = await trx
-      .insertInto('event_attendee')
-      .values({
-        event_id: eventId,
-        person_id: input.personId,
-        registration_mode: event.registration_mode,
-        registered_by: userId,
-        notes: input.notes ?? null,
-        metadata: metadata as any,
-      })
-      .returningAll()
-      .executeTakeFirstOrThrow()
+	    const attendee = await trx
+	      .insertInto('event_attendee')
+	      .values({
+	        event_id: eventId,
+	        person_id: input.personId,
+	        registration_mode: event.registration_mode,
+	        registered_by: userId,
+	        notes: input.notes ?? null,
+	        metadata,
+	      })
+	      .returningAll()
+	      .executeTakeFirstOrThrow()
 
     let attendance: EventAttendeeDto['attendance'] = []
     let attendedAllDays = false
 
-    if (event.registration_mode === 'WALK_IN' && days.length === 1) {
-      const day = days[0]
-      const attendanceRecord = await trx
-        .insertInto('event_attendance')
-        .values({
-          event_attendee_id: attendee.id,
+	    if (event.registration_mode === 'WALK_IN' && days.length === 1) {
+	      const day = days[0]
+	      if (!day) {
+	        throw new Error('Event day not found')
+	      }
+	      const attendanceRecord = await trx
+	        .insertInto('event_attendance')
+	        .values({
+	          event_attendee_id: attendee.id,
           event_day_id: day.id,
           checked_in_by: userId,
         })
@@ -815,7 +943,7 @@ export async function updateAttendee(
       throw new Error('Attendee not found')
     }
 
-    const updatePayload: Record<string, unknown> = {}
+    const updatePayload: Updateable<EventAttendee> = {}
 
     if (input.notes !== undefined) {
       updatePayload.notes = input.notes ?? null
@@ -823,6 +951,10 @@ export async function updateAttendee(
 
     if (input.metadata !== undefined) {
       updatePayload.metadata = normalizeMetadata(input.metadata)
+    }
+
+    if (input.isCancelled !== undefined) {
+      updatePayload.is_cancelled = input.isCancelled
     }
 
     if (Object.keys(updatePayload).length > 0) {
@@ -1057,11 +1189,11 @@ export async function closeEvent(eventId: string, input: CloseEventInput, userId
       throw new Error('Event is already closed')
     }
 
-    // Event-level requiresFullAttendance overrides category default
-    const requiresFullAttendance =
-      (event as any).event_requires_full_attendance !== null
-        ? Boolean((event as any).event_requires_full_attendance)
-        : Boolean((event as any).category_requires_full_attendance)
+	    // Event-level requiresFullAttendance overrides category default
+	    const requiresFullAttendance =
+	      event.event_requires_full_attendance !== null
+	        ? Boolean(event.event_requires_full_attendance)
+	        : Boolean(event.category_requires_full_attendance)
 
     const dayRows = await trx
       .selectFrom('event_day')
@@ -1123,13 +1255,13 @@ export async function closeEvent(eventId: string, input: CloseEventInput, userId
         let recordId = attendee.empowerment_record_id ?? null
 
         if (!recordId) {
-          const existingRecord = await trx
-            .selectFrom('person_empowerment')
-            .select(['id'])
-            .where('person_id', '=', attendee.person_id)
-            .where('empowerment_id', '=', event.empowerment_id!)
-            .where('start_date', '=', event.start_date as Date)
-            .executeTakeFirst()
+	          const existingRecord = await trx
+	            .selectFrom('person_empowerment')
+	            .select(['id'])
+	            .where('person_id', '=', attendee.person_id)
+	            .where('empowerment_id', '=', event.empowerment_id!)
+	            .where('start_date', '=', event.start_date)
+	            .executeTakeFirst()
 
           if (existingRecord) {
             recordId = existingRecord.id
@@ -1208,7 +1340,7 @@ export async function closeEvent(eventId: string, input: CloseEventInput, userId
         const refugeNameRaw = metadata.refugeName
         const refugeName = typeof refugeNameRaw === 'string' ? refugeNameRaw.trim() : ''
 
-        const updatePayload: Record<string, unknown> = {}
+	        const updatePayload: Updateable<Person> = {}
 
         if (person.type !== 'sangha_member') {
           updatePayload.type = 'sangha_member'

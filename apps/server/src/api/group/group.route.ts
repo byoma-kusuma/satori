@@ -1,4 +1,6 @@
 import { Hono } from "hono";
+import { z } from "zod";
+import { zValidator } from "@hono/zod-validator";
 import {
   getAllGroups,
   getGroupById,
@@ -13,6 +15,9 @@ import {
 } from "./group.service";
 import { authenticated } from "../../middlewares/session";
 import { auth } from "../../lib/auth";
+import { sendEmail } from "../../lib/email";
+import { getUserById } from "../user/user.service";
+import { db } from "../../database";
 
 const groups = new Hono<{
   Variables: {
@@ -24,6 +29,20 @@ const groups = new Hono<{
 export const groupsRoutes = groups
   .use(authenticated)
   .get("/", async (c) => {
+    const sessionUser = c.get("user");
+    if (sessionUser) {
+      const userData = await getUserById(sessionUser.id);
+      if (userData.role === "group_admin") {
+        const assignments = await db
+          .selectFrom("user_group_assignment")
+          .select("group_id")
+          .where("user_id", "=", sessionUser.id)
+          .execute();
+        const groupIds = assignments.map((a) => a.group_id);
+        const groups = await getAllGroups(groupIds);
+        return c.json(groups);
+      }
+    }
     const groups = await getAllGroups();
     return c.json(groups);
   })
@@ -81,6 +100,41 @@ export const groupsRoutes = groups
     const personId = c.req.param("personId");
     await removePersonFromGroup(personId, groupId);
     return c.json({ message: "Person removed from group" });
-  });
+  })
+  .post(
+    "/:id/email",
+    zValidator(
+      "json",
+      z.object({
+        subject: z.string().min(1, "Subject is required"),
+        message: z.string().min(1, "Message is required"),
+      })
+    ),
+    async (c) => {
+      const groupId = c.req.param("id");
+      const { subject, message } = c.req.valid("json");
+      const user = c.get("user");
+      if (!user) return c.json({ error: "Unauthorized" }, 401);
+
+      const members = await getGroupMembers(groupId);
+      const withEmail = members.filter((m) => m.emailId);
+      const skipped = members.length - withEmail.length;
+
+      const results = await Promise.allSettled(
+        withEmail.map((m) =>
+          sendEmail({
+            to: m.emailId!,
+            subject,
+            text: message,
+          })
+        )
+      );
+
+      const sent = results.filter((r) => r.status === "fulfilled").length;
+      const failed = results.filter((r) => r.status === "rejected").length;
+
+      return c.json({ sent, skipped, failed });
+    }
+  );
 
 export type GroupType = typeof groupsRoutes;

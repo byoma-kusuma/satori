@@ -11,28 +11,37 @@ import { useToast } from '@/hooks/use-toast'
 import {
   getMahakramaHistoryQueryOptions,
   getMahakramaStepsQueryOptions,
+  getStepDocumentsQueryOptions,
   addInitialMahakramaStep,
   completeMahakramaStep,
+  requestMahakramaCompletion,
 } from '@/api/mahakrama'
 import { getKramaInstructorsQueryOptions } from '../data/api'
 import {
   mahakramaHistorySchema,
   mahakramaStepSchema,
   type MahakramaHistory,
-  type MahakramaStep,
 } from '@/features/mahakrama/data/schema'
+import { kramaInstructorSchema } from '@/features/persons/data/schema'
 import { MahakramaAddDialog } from './person-mahakrama-add-dialog'
 import { MahakramaCompleteDialog } from './person-mahakrama-complete-dialog'
+import { MahakramaRequestCompletionDialog } from './person-mahakrama-request-completion-dialog'
+import { MahakramaStepDetailDialog } from './person-mahakrama-step-detail-dialog'
 
 interface MahakramaTabProps {
   personId: string
+  readOnly?: boolean
+  isViewer?: boolean
+  studentEmail?: string | null
 }
 
-export function MahakramaTab({ personId }: MahakramaTabProps) {
+export function MahakramaTab({ personId, readOnly = false, isViewer = false, studentEmail }: MahakramaTabProps) {
   const queryClient = useQueryClient()
   const { toast } = useToast()
   const [addDialogOpen, setAddDialogOpen] = useState(false)
   const [completeDialogOpen, setCompleteDialogOpen] = useState(false)
+  const [requestCompletionDialogOpen, setRequestCompletionDialogOpen] = useState(false)
+  const [detailRecord, setDetailRecord] = useState<MahakramaHistory | null>(null)
 
   const { data: rawHistory = [], isLoading: historyLoading } = useQuery(getMahakramaHistoryQueryOptions(personId))
   const { data: steps = [], isLoading: stepsLoading } = useQuery(getMahakramaStepsQueryOptions())
@@ -54,12 +63,14 @@ export function MahakramaTab({ personId }: MahakramaTabProps) {
   }, [history])
 
   const currentRecord = sortedHistory.find((item) => item.status === 'current') || null
+  const pendingCompletionRecord = sortedHistory.find((item) => item.status === 'requested_completion') || null
+  const completableRecord = currentRecord || pendingCompletionRecord
 
   useEffect(() => {
-    if (!currentRecord) {
+    if (!completableRecord) {
       setCompleteDialogOpen(false)
     }
-  }, [currentRecord])
+  }, [completableRecord])
 
   const addMutation = useMutation({
     mutationFn: (payload: { mahakramaStepId: string; startDate: Date; instructorId: string; notes?: string | null }) =>
@@ -74,7 +85,7 @@ export function MahakramaTab({ personId }: MahakramaTabProps) {
       queryClient.invalidateQueries({ queryKey: ['mahakrama-history', personId] })
       setAddDialogOpen(false)
     },
-    onError: (error: unknown) => {
+    onError: (error) => {
       toast({
         title: 'Unable to start Mahakrama progression',
         description: error instanceof Error ? error.message : String(error),
@@ -84,18 +95,26 @@ export function MahakramaTab({ personId }: MahakramaTabProps) {
   })
 
   const completeMutation = useMutation({
-    mutationFn: (payload: { historyId: string; completedDate: Date; instructorId: string; completionNotes?: string | null }) =>
+    mutationFn: (payload: { historyId: string; completedDate: Date; instructorId: string; completionNotes?: string | null; sendDocumentIds?: string[] }) =>
       completeMahakramaStep(personId, payload.historyId, {
         completedDate: payload.completedDate.toISOString(),
         instructorId: payload.instructorId,
         completionNotes: payload.completionNotes ?? null,
+        sendDocumentIds: payload.sendDocumentIds,
       }),
-    onSuccess: () => {
-      toast({ title: 'Mahakrama step updated' })
+    onSuccess: (result, variables) => {
+      const requestedEmail = (variables.sendDocumentIds?.length ?? 0) > 0
+      if (requestedEmail && result?.emailSent) {
+        toast({ title: 'Step completed', description: 'Instructions emailed to student.' })
+      } else if (requestedEmail && !result?.emailSent) {
+        toast({ title: 'Step completed', description: 'Email could not be sent — check student email address.', variant: 'destructive' })
+      } else {
+        toast({ title: 'Mahakrama step updated' })
+      }
       queryClient.invalidateQueries({ queryKey: ['mahakrama-history', personId] })
       setCompleteDialogOpen(false)
     },
-    onError: (error: unknown) => {
+    onError: (error) => {
       toast({
         title: 'Unable to complete Mahakrama step',
         description: error instanceof Error ? error.message : String(error),
@@ -106,19 +125,32 @@ export function MahakramaTab({ personId }: MahakramaTabProps) {
 
   const mahakramaSteps = useMemo(() => {
     if (!Array.isArray(steps)) return []
-    return (steps as MahakramaStep[])
+    return steps
       .map((step) => mahakramaStepSchema.parse(step))
       .sort((a, b) => a.sequenceNumber - b.sequenceNumber)
   }, [steps])
 
+  const nextStep = useMemo(() => {
+    if (!completableRecord) return null
+    return mahakramaSteps.find((s) => s.sequenceNumber > completableRecord.stepSequenceNumber) ?? null
+  }, [completableRecord, mahakramaSteps])
+
+  const { data: nextStepDocuments = [] } = useQuery({
+    ...getStepDocumentsQueryOptions(nextStep?.id ?? ''),
+    enabled: Boolean(nextStep?.id),
+  })
+
   const instructorOptions = useMemo(
     () =>
       Array.isArray(instructors)
-        ? instructors.map((instructor: any) => ({
-            id: instructor.id,
-            firstName: instructor.firstName,
-            lastName: instructor.lastName,
-          }))
+        ? instructors.map((instructor) => {
+            const parsed = kramaInstructorSchema.parse(instructor)
+            return {
+              id: parsed.id,
+              firstName: parsed.firstName,
+              lastName: parsed.lastName,
+            }
+          })
         : [],
     [instructors],
   )
@@ -127,12 +159,43 @@ export function MahakramaTab({ personId }: MahakramaTabProps) {
     addMutation.mutate(values)
   }
 
-  const handleComplete = (values: { completedDate: Date; instructorId: string; completionNotes?: string | null }) => {
-    if (!currentRecord) return
+  const handleComplete = (
+    values: { completedDate: Date; instructorId: string; completionNotes?: string | null },
+    metadata: { sendDocumentIds: string[] },
+  ) => {
+    if (!completableRecord) return
     completeMutation.mutate({
-      historyId: currentRecord.id,
+      historyId: completableRecord.id,
       completedDate: values.completedDate,
       instructorId: values.instructorId,
+      completionNotes: values.completionNotes ?? null,
+      sendDocumentIds: metadata.sendDocumentIds,
+    })
+  }
+
+  const requestCompletionMutation = useMutation({
+    mutationFn: (payload: { historyId: string; completionNotes?: string | null }) =>
+      requestMahakramaCompletion(personId, payload.historyId, {
+        completionNotes: payload.completionNotes ?? null,
+      }),
+    onSuccess: () => {
+      toast({ title: 'Completion request submitted' })
+      queryClient.invalidateQueries({ queryKey: ['mahakrama-history', personId] })
+      setRequestCompletionDialogOpen(false)
+    },
+    onError: (error) => {
+      toast({
+        title: 'Unable to submit completion request',
+        description: error instanceof Error ? error.message : String(error),
+        variant: 'destructive',
+      })
+    },
+  })
+
+  const handleRequestCompletion = (values: { completionNotes?: string | null }) => {
+    if (!currentRecord) return
+    requestCompletionMutation.mutate({
+      historyId: currentRecord.id,
       completionNotes: values.completionNotes ?? null,
     })
   }
@@ -150,7 +213,7 @@ export function MahakramaTab({ personId }: MahakramaTabProps) {
               size='sm'
               variant='outline'
               onClick={() => setAddDialogOpen(true)}
-              disabled={sortedHistory.length > 0 || stepsLoading || addMutation.isPending}
+              disabled={readOnly || isViewer || sortedHistory.length > 0 || stepsLoading || addMutation.isPending}
             >
               <IconSparkles className='mr-2 h-4 w-4' />
               Add Current Mahakrama Step
@@ -172,9 +235,7 @@ export function MahakramaTab({ personId }: MahakramaTabProps) {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Sequence</TableHead>
-                      <TableHead>Group ID</TableHead>
                       <TableHead>Group Name</TableHead>
-                      <TableHead>Step ID</TableHead>
                       <TableHead>Step Name</TableHead>
                   <TableHead>Description</TableHead>
                   <TableHead>Start Date</TableHead>
@@ -190,23 +251,54 @@ export function MahakramaTab({ personId }: MahakramaTabProps) {
                   return (
                     <TableRow key={record.id}>
                       <TableCell>{record.stepSequenceNumber}</TableCell>
-                      <TableCell>{record.groupId}</TableCell>
                       <TableCell>{record.groupName}</TableCell>
-                      <TableCell>{record.stepId}</TableCell>
                       <TableCell>{record.stepName}</TableCell>
                       <TableCell className='max-w-xs text-sm text-muted-foreground'>{record.description || '—'}</TableCell>
                       <TableCell>{format(record.startDate, 'MMM d, yyyy')}</TableCell>
                       <TableCell>{record.endDate ? format(record.endDate, 'MMM d, yyyy') : '—'}</TableCell>
                       <TableCell>
-                        <Badge variant={isCurrent ? 'default' : 'secondary'} className='capitalize'>
-                          {record.status}
+                        <Badge
+                          variant={isCurrent ? 'default' : record.status === 'requested_completion' ? 'outline' : 'secondary'}
+                          className='capitalize'
+                        >
+                          {record.status === 'requested_completion' ? 'Requested Completion' : record.status}
                         </Badge>
                       </TableCell>
                       <TableCell>{record.instructorName || '—'}</TableCell>
                       <TableCell className='text-right'>
-                        {isCurrent ? (
-                          <Button size='sm' onClick={() => setCompleteDialogOpen(true)} disabled={completeMutation.isPending}>
+                        {isCurrent && !isViewer ? (
+                          <Button size='sm' onClick={() => setCompleteDialogOpen(true)} disabled={readOnly || completeMutation.isPending}>
                             Mark Complete
+                          </Button>
+                        ) : null}
+                        {isCurrent && isViewer ? (
+                          <div className='flex justify-end gap-1'>
+                            <Button size='sm' variant='outline' onClick={() => setDetailRecord(record)}>
+                              View Details
+                            </Button>
+                            <Button size='sm' onClick={() => setRequestCompletionDialogOpen(true)} disabled={requestCompletionMutation.isPending}>
+                              Mark Complete
+                            </Button>
+                          </div>
+                        ) : null}
+                        {record.status === 'requested_completion' && !isViewer ? (
+                          <div className='flex justify-end gap-1'>
+                            <Button size='sm' variant='outline' onClick={() => setDetailRecord(record)}>
+                              View Details
+                            </Button>
+                            <Button size='sm' onClick={() => setCompleteDialogOpen(true)} disabled={readOnly || completeMutation.isPending}>
+                              Review & Complete
+                            </Button>
+                          </div>
+                        ) : null}
+                        {record.status === 'requested_completion' && isViewer ? (
+                          <Button size='sm' variant='outline' onClick={() => setDetailRecord(record)}>
+                            View Details
+                          </Button>
+                        ) : null}
+                        {record.status === 'completed' ? (
+                          <Button size='sm' variant='outline' onClick={() => setDetailRecord(record)}>
+                            View Details
                           </Button>
                         ) : null}
                       </TableCell>
@@ -219,37 +311,59 @@ export function MahakramaTab({ personId }: MahakramaTabProps) {
         )}
       </CardContent>
 
-      <MahakramaAddDialog
-        open={addDialogOpen}
-        onOpenChange={setAddDialogOpen}
-        steps={mahakramaSteps.map((step) => ({
-          id: step.id,
-          sequenceNumber: step.sequenceNumber,
-          groupId: step.groupId,
-          groupName: step.groupName,
-          stepId: step.stepId,
-          stepName: step.stepName,
-        }))}
-        instructors={instructorOptions}
-        onSubmit={({ mahakramaStepId, startDate, instructorId, notes }) =>
-          handleAddCurrent({ mahakramaStepId, startDate, instructorId, notes })
-        }
-        submitting={addMutation.isPending}
-      />
+      {!readOnly && (
+        <MahakramaAddDialog
+          open={addDialogOpen}
+          onOpenChange={setAddDialogOpen}
+          steps={mahakramaSteps.map((step) => ({
+            id: step.id,
+            sequenceNumber: step.sequenceNumber,
+            groupId: step.groupId,
+            groupName: step.groupName,
+            stepId: step.stepId,
+            stepName: step.stepName,
+          }))}
+          instructors={instructorOptions}
+          onSubmit={({ mahakramaStepId, startDate, instructorId, notes }) =>
+            handleAddCurrent({ mahakramaStepId, startDate, instructorId, notes })
+          }
+          submitting={addMutation.isPending}
+        />
+      )}
 
-      {currentRecord && (
+      {completableRecord && !readOnly && !isViewer && (
         <MahakramaCompleteDialog
           open={completeDialogOpen}
           onOpenChange={setCompleteDialogOpen}
-          startDate={currentRecord.startDate}
-          stepName={currentRecord.stepName}
+          startDate={completableRecord.startDate}
+          stepName={completableRecord.stepName}
           instructors={instructorOptions}
-          onSubmit={({ completedDate, instructorId, completionNotes }) =>
-            handleComplete({ completedDate, instructorId, completionNotes })
-          }
+          hasNextStep={!!nextStep}
+          nextStepDocuments={nextStepDocuments}
+          onSubmit={(values, metadata) => handleComplete(values, metadata)}
           submitting={completeMutation.isPending}
+          studentNotes={completableRecord.status === 'requested_completion' ? completableRecord.studentNotes : null}
+          studentEmail={studentEmail}
         />
       )}
+
+      {currentRecord && isViewer && (
+        <MahakramaRequestCompletionDialog
+          open={requestCompletionDialogOpen}
+          onOpenChange={setRequestCompletionDialogOpen}
+          stepName={currentRecord.stepName}
+          onSubmit={handleRequestCompletion}
+          submitting={requestCompletionMutation.isPending}
+        />
+      )}
+
+      <MahakramaStepDetailDialog
+        open={Boolean(detailRecord)}
+        onOpenChange={(open) => { if (!open) setDetailRecord(null) }}
+        record={detailRecord}
+        isViewer={isViewer}
+        personId={personId}
+      />
     </Card>
   )
 }

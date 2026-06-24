@@ -2,9 +2,10 @@
 
 import { z } from 'zod'
 import { useForm } from 'react-hook-form'
-import { useRef } from 'react'
+import { useRef, useEffect } from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useNavigate } from '@tanstack/react-router'
+import { useQuery } from '@tanstack/react-query'
 import { toast } from '@/hooks/use-toast'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -16,6 +17,8 @@ import { ProfileDropdown } from '@/components/profile-dropdown'
 import { Search } from '@/components/search'
 import { ThemeSwitch } from '@/components/theme-switch'
 import { GeneralInfoTab } from './general-info-tab'
+import { usePermissions } from '@/contexts/permission-context'
+import { getCentersQueryOptions } from '@/api/centers'
 
 type PersonForm = z.infer<typeof personInputSchema>
 
@@ -23,6 +26,8 @@ export function CreatePersonPage() {
   const navigate = useNavigate()
   const formRef = useRef<HTMLFormElement>(null)
   const createPersonMutation = useCreatePerson()
+  const { userRole } = usePermissions()
+  const { data: centers = [] } = useQuery(getCentersQueryOptions)
 
   const form = useForm<PersonForm>({
     resolver: zodResolver(personInputSchema),
@@ -61,38 +66,20 @@ export function CreatePersonPage() {
     },
   })
 
+  // Auto-set center for center_admin when their centers load
+  useEffect(() => {
+    if (userRole === 'center_admin' && centers.length > 0 && !form.getValues('centerId')) {
+      form.setValue('centerId', (centers[0] as { id: string }).id)
+    }
+  }, [userRole, centers, form])
+
   const onSubmit = (vals: PersonForm) => {
-    const processedVals: any = {
-      firstName: vals.firstName,
-      middleName: vals.middleName || null,
-      lastName: vals.lastName,
-      address: vals.address,
-      centerId: vals.centerId === undefined || vals.centerId === '' ? null : vals.centerId,
-      type: vals.type,
-      emailId: vals.emailId || null,
-      primaryPhone: vals.primaryPhone || null,
-      secondaryPhone: vals.secondaryPhone || null,
-      viberNumber: vals.viberNumber || null,
-      yearOfBirth: vals.yearOfBirth || null,
-      gender: vals.gender || null,
-      country: vals.country || null,
-      nationality: vals.nationality || null,
-      languagePreference: vals.languagePreference || null,
-      occupation: vals.occupation || null,
-      notes: vals.notes || null,
-      refugeName: vals.refugeName || null,
-      yearOfRefuge: vals.yearOfRefuge || null,
-      title: vals.title || null,
-      membershipType: vals.membershipType || null,
-      hasMembershipCard: vals.hasMembershipCard || null,
-      membershipCardNumber: vals.membershipCardNumber || null,
-      emergencyContactName: vals.emergencyContactName || null,
-      emergencyContactRelationship: vals.emergencyContactRelationship || null,
-      emergencyContactPhone: vals.emergencyContactPhone || null,
-      yearOfRefugeCalendarType: vals.yearOfRefugeCalendarType || null,
-      is_krama_instructor: vals.is_krama_instructor || false,
-      krama_instructor_person_id: vals.krama_instructor_person_id === 'none' ? null : vals.krama_instructor_person_id || null,
-      referredBy: vals.referredBy || null,
+    const processedVals: PersonForm = {
+      ...vals,
+      krama_instructor_person_id:
+        vals.krama_instructor_person_id === 'none'
+          ? undefined
+          : vals.krama_instructor_person_id,
     }
 
     createPersonMutation.mutate(processedVals, {
@@ -101,8 +88,8 @@ export function CreatePersonPage() {
         form.reset()
         navigate({ to: '/persons' })
       },
-      onError: (err: unknown) => {
-        toast({ title: 'Creation failed', description: String(err), variant: 'destructive' })
+      onError: (error) => {
+        toast({ title: 'Creation failed', description: error instanceof Error ? error.message : String(error), variant: 'destructive' })
       },
     })
   }
@@ -129,7 +116,7 @@ export function CreatePersonPage() {
           <CardContent>
             <GeneralInfoTab
               form={form}
-              person={{ hasMajorEmpowerment: false, membershipCardNumber: null, country: undefined }}
+              person={null}
               formRef={formRef}
               onSubmit={onSubmit}
             />
@@ -145,4 +132,3 @@ export function CreatePersonPage() {
     </>
   )
 }
-

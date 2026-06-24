@@ -1,7 +1,7 @@
-import nodemailer from "nodemailer";
+import * as nodemailer from "nodemailer";
 import { EmailOptions } from "./email-interface";
 
-export async function sendEmailGmail(options: EmailOptions): Promise<any> {
+export async function sendEmailGmail(options: EmailOptions): Promise<void> {
   const transporter = nodemailer.createTransport({
     service: "gmail",
     auth: {
@@ -15,9 +15,13 @@ export async function sendEmailGmail(options: EmailOptions): Promise<any> {
     to: options.to,
     subject: options.subject,
     text: options.text,
-    html: options.html || ""
+    html: options.html || "",
+    attachments: options.attachments?.map((a) => ({
+      filename: a.filename,
+      content: a.content,
+      contentType: a.contentType,
+    })),
   };
 
-  const info = await transporter.sendMail(mailOptions);
-  return info;
+  await transporter.sendMail(mailOptions);
 }

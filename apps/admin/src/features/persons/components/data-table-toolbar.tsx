@@ -2,23 +2,92 @@ import { Cross2Icon } from '@radix-ui/react-icons'
 import { Table } from '@tanstack/react-table'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { personTypes } from '../data/person-types'
 import { DataTableFacetedFilter } from './data-table-faceted-filter'
 import { PersonsActionBar } from './persons-action-bar'
 import { DataTableViewOptions } from './data-table-view-options'
 
+interface InstructorOption {
+  id: string
+  name: string
+}
+
 interface DataTableToolbarProps<TData> {
   table: Table<TData>
+  showStudentFilter?: boolean
+  studentView?: 'mine' | 'all'
+  onStudentViewChange?: (view: 'mine' | 'all') => void
+  showInstructorFilter?: boolean
+  instructorOptions?: InstructorOption[]
+  instructorFilter?: string | null
+  onInstructorFilterChange?: (instructorId: string | null) => void
 }
 
 export function DataTableToolbar<TData>({
   table,
+  showStudentFilter,
+  studentView,
+  onStudentViewChange,
+  showInstructorFilter,
+  instructorOptions = [],
+  instructorFilter,
+  onInstructorFilterChange,
 }: DataTableToolbarProps<TData>) {
   const isFiltered = table.getState().columnFilters.length > 0
 
   return (
     <div className='flex items-center justify-between gap-2'>
       <div className='flex flex-1 items-center space-x-2'>
+        {showStudentFilter && onStudentViewChange && (
+          <div className='flex h-8 items-center rounded-md border bg-muted p-0.5 text-sm'>
+            <button
+              onClick={() => onStudentViewChange('mine')}
+              className={`rounded px-2.5 py-1 text-xs font-medium transition-colors ${
+                studentView === 'mine'
+                  ? 'bg-background text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              My Students
+            </button>
+            <button
+              onClick={() => onStudentViewChange('all')}
+              className={`rounded px-2.5 py-1 text-xs font-medium transition-colors ${
+                studentView === 'all'
+                  ? 'bg-background text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              All
+            </button>
+          </div>
+        )}
+        {showInstructorFilter && onInstructorFilterChange && (
+          <Select
+            value={instructorFilter ?? '__all__'}
+            onValueChange={(v) => onInstructorFilterChange(v === '__all__' ? null : v)}
+          >
+            <SelectTrigger className='h-8 w-[180px] text-xs'>
+              <SelectValue placeholder='Krama Instructor' />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value='__all__'>All Instructors</SelectItem>
+              <SelectItem value='__none__'>No Instructor</SelectItem>
+              {instructorOptions.map((inst) => (
+                <SelectItem key={inst.id} value={inst.id}>
+                  {inst.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
         <Input
           placeholder='Filter persons...'
           value={(table.getColumn('firstName')?.getFilterValue() as string) ?? ''}

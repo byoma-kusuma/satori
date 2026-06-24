@@ -69,13 +69,27 @@ CREATE TYPE public.gender_type AS ENUM (
 
 
 --
+-- Name: membership_type; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.membership_type AS ENUM (
+    'Life Time',
+    'Board Member',
+    'General Member',
+    'Honorary Member'
+);
+
+
+--
 -- Name: person_title; Type: TYPE; Schema: public; Owner: -
 --
 
 CREATE TYPE public.person_title AS ENUM (
     'dharma_dhar',
     'sahayak_dharmacharya',
-    'sahayak_samathacharya'
+    'sahayak_samathacharya',
+    'khenpo',
+    'dharmacharya'
 );
 
 
@@ -87,9 +101,38 @@ CREATE TYPE public.person_type AS ENUM (
     'interested',
     'contact',
     'sangha_member',
-    'new_inquiry',
     'attended_orientation'
 );
+
+
+--
+-- Name: registration_status; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.registration_status AS ENUM (
+    'new',
+    'complete',
+    'invalid'
+);
+
+
+--
+-- Name: user_role; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.user_role AS ENUM (
+    'admin',
+    'krama_instructor',
+    'viewer',
+    'sysadmin'
+);
+
+
+--
+-- Name: TYPE user_role; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TYPE public.user_role IS 'User roles: sysadmin (system administrator), admin (administrator), krama_instructor (krama instructor), viewer (read-only)';
 
 
 --
@@ -146,16 +189,52 @@ CREATE TABLE public.account (
 
 
 --
--- Name: event_category; Type: TABLE; Schema: public; Owner: -
+-- Name: center; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.event_category (
+CREATE TABLE public.center (
     id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
-    code text NOT NULL,
     name text NOT NULL,
-    requires_full_attendance boolean DEFAULT false NOT NULL,
+    address text,
+    country text,
+    notes text,
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
     updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP
+);
+
+
+--
+-- Name: center_person; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.center_person (
+    id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
+    center_id uuid NOT NULL,
+    person_id uuid NOT NULL,
+    "position" text,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP
+);
+
+
+--
+-- Name: empowerment; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.empowerment (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    name character varying(255) NOT NULL,
+    class character varying(50),
+    description text,
+    prerequisites text,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    created_by character varying(255) NOT NULL,
+    last_updated_by character varying(255) NOT NULL,
+    type text,
+    form text,
+    major_empowerment boolean DEFAULT false NOT NULL,
+    CONSTRAINT empowerment_class_check CHECK (((class)::text = ANY ((ARRAY['Kriyā Tantra'::character varying, 'Charyā Tantra'::character varying, 'Yoga Tantra'::character varying, 'Anuttarayoga Tantra'::character varying])::text[])))
 );
 
 
@@ -180,7 +259,30 @@ CREATE TABLE public.event (
     closed_by text,
     empowerment_id uuid,
     guru_id uuid,
+    metadata jsonb DEFAULT '{}'::jsonb NOT NULL,
+    event_group_id uuid,
+    requires_full_attendance boolean,
     CONSTRAINT event_date_range CHECK ((end_date >= start_date))
+);
+
+
+--
+-- Name: COLUMN event.requires_full_attendance; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.event.requires_full_attendance IS 'Overrides the category default when set. NULL means use category default.';
+
+
+--
+-- Name: event_attendance; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.event_attendance (
+    id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
+    event_attendee_id uuid NOT NULL,
+    event_day_id uuid NOT NULL,
+    checked_in_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    checked_in_by text NOT NULL
 );
 
 
@@ -198,20 +300,23 @@ CREATE TABLE public.event_attendee (
     is_cancelled boolean DEFAULT false NOT NULL,
     notes text,
     received_empowerment boolean DEFAULT false NOT NULL,
-    empowerment_record_id uuid
+    empowerment_record_id uuid,
+    metadata jsonb DEFAULT '{}'::jsonb NOT NULL,
+    CONSTRAINT event_attendee_empowerment_record CHECK ((((received_empowerment = false) AND (empowerment_record_id IS NULL)) OR ((received_empowerment = true) AND (empowerment_record_id IS NOT NULL))))
 );
 
 
 --
--- Name: event_attendance; Type: TABLE; Schema: public; Owner: -
+-- Name: event_category; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.event_attendance (
+CREATE TABLE public.event_category (
     id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
-    event_attendee_id uuid NOT NULL,
-    event_day_id uuid NOT NULL,
-    checked_in_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    checked_in_by text NOT NULL
+    code text NOT NULL,
+    name text NOT NULL,
+    requires_full_attendance boolean DEFAULT false NOT NULL,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP
 );
 
 
@@ -226,6 +331,20 @@ CREATE TABLE public.event_day (
     event_date date NOT NULL,
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT event_day_number_check CHECK ((day_number > 0))
+);
+
+
+--
+-- Name: event_group; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.event_group (
+    id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
+    name text NOT NULL,
+    description text,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+    created_by text
 );
 
 
@@ -245,6 +364,60 @@ CREATE TABLE public."group" (
 
 
 --
+-- Name: guru; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.guru (
+    id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
+    "guruName" character varying(255) NOT NULL,
+    "createdAt" timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+    "createdBy" text NOT NULL,
+    "lastUpdatedBy" text NOT NULL
+);
+
+
+--
+-- Name: mahakrama_history; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.mahakrama_history (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    person_id uuid NOT NULL,
+    mahakrama_step_id uuid NOT NULL,
+    status character varying(20) NOT NULL,
+    start_date timestamp with time zone NOT NULL,
+    end_date timestamp with time zone,
+    mahakrama_instructor_id uuid,
+    completion_notes text,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    created_by character varying(255) NOT NULL,
+    last_updated_by character varying(255) NOT NULL,
+    CONSTRAINT mahakrama_history_status_check CHECK (((status)::text = ANY ((ARRAY['current'::character varying, 'completed'::character varying])::text[])))
+);
+
+
+--
+-- Name: mahakrama_step; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.mahakrama_step (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    sequence_number double precision NOT NULL,
+    group_id character varying(100) NOT NULL,
+    group_name character varying(255) NOT NULL,
+    step_id character varying(100) NOT NULL,
+    step_name character varying(255) NOT NULL,
+    description text,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    created_by character varying(255) NOT NULL,
+    last_updated_by character varying(255) NOT NULL
+);
+
+
+--
 -- Name: person; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -258,12 +431,14 @@ CREATE TABLE public.person (
     "yearOfBirth" integer,
     photo text,
     gender public.gender_type,
-    refugee boolean NOT NULL,
-    center public.center_location NOT NULL,
     "createdAt" timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
     "createdBy" text NOT NULL,
     "lastUpdatedBy" text NOT NULL,
+    "referredBy" character varying(255),
+    "emergencyContactName" character varying(100),
+    "emergencyContactRelationship" character varying(50),
+    "emergencyContactPhone" character varying(20),
     type public.person_type DEFAULT 'interested'::public.person_type NOT NULL,
     country character varying(100),
     nationality character varying(100),
@@ -271,11 +446,52 @@ CREATE TABLE public.person (
     "refugeName" character varying(100),
     "yearOfRefuge" integer,
     title public.person_title,
-    "membershipStatus" character varying(50),
     "hasMembershipCard" boolean,
+    "middleName" character varying(100),
+    "primaryPhone" character varying(20),
+    "secondaryPhone" character varying(20),
+    occupation character varying(100),
+    notes text,
+    "membershipType" public.membership_type,
+    "membershipCardNumber" character varying(255),
+    "yearOfRefugeCalendarType" character varying(2),
+    is_krama_instructor boolean DEFAULT false,
+    krama_instructor_person_id uuid,
+    "personCode" character varying(6),
+    center_id uuid,
+    viber_number character varying(50),
+    CONSTRAINT check_year_of_refuge_calendar_type CHECK ((("yearOfRefugeCalendarType")::text = ANY ((ARRAY['BS'::character varying, 'AD'::character varying])::text[]))),
     CONSTRAINT "person_yearOfBirth_check" CHECK (("yearOfBirth" > 1900)),
     CONSTRAINT person_yearofrefuge_check CHECK ((("yearOfRefuge" IS NULL) OR ("yearOfRefuge" > 1900)))
 );
+
+
+--
+-- Name: COLUMN person."referredBy"; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.person."referredBy" IS 'Free form text field indicating who referred this person';
+
+
+--
+-- Name: COLUMN person."emergencyContactName"; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.person."emergencyContactName" IS 'Name of emergency contact person';
+
+
+--
+-- Name: COLUMN person."emergencyContactRelationship"; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.person."emergencyContactRelationship" IS 'Relationship to the emergency contact (e.g., spouse, parent, sibling)';
+
+
+--
+-- Name: COLUMN person."emergencyContactPhone"; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.person."emergencyContactPhone" IS 'Phone number of emergency contact person';
 
 
 --
@@ -321,17 +537,98 @@ COMMENT ON COLUMN public.person.title IS 'Dharma title for Sangha members';
 
 
 --
--- Name: COLUMN person."membershipStatus"; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.person."membershipStatus" IS 'Current membership status (for Sangha members)';
-
-
---
 -- Name: COLUMN person."hasMembershipCard"; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.person."hasMembershipCard" IS 'Whether the person has a membership card (for Sangha members)';
+
+
+--
+-- Name: COLUMN person."middleName"; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.person."middleName" IS 'Middle name of the person';
+
+
+--
+-- Name: COLUMN person."primaryPhone"; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.person."primaryPhone" IS 'Primary phone number of the person';
+
+
+--
+-- Name: COLUMN person."secondaryPhone"; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.person."secondaryPhone" IS 'Secondary phone number of the person';
+
+
+--
+-- Name: COLUMN person.occupation; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.person.occupation IS 'Occupation of the person';
+
+
+--
+-- Name: COLUMN person.notes; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.person.notes IS 'Additional notes or comments about the person';
+
+
+--
+-- Name: COLUMN person."membershipType"; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.person."membershipType" IS 'Type of membership for Sangha members';
+
+
+--
+-- Name: COLUMN person."membershipCardNumber"; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.person."membershipCardNumber" IS 'Membership card number for Sangha members';
+
+
+--
+-- Name: COLUMN person."yearOfRefugeCalendarType"; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.person."yearOfRefugeCalendarType" IS 'Calendar type for year of refuge (BS or AD)';
+
+
+--
+-- Name: person_empowerment; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.person_empowerment (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    empowerment_id uuid NOT NULL,
+    person_id uuid NOT NULL,
+    guru_id uuid,
+    start_date timestamp with time zone,
+    end_date timestamp with time zone,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    created_by character varying(255) NOT NULL,
+    last_updated_by character varying(255) NOT NULL
+);
+
+
+--
+-- Name: COLUMN person_empowerment.guru_id; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.person_empowerment.guru_id IS 'Guru who gave the empowerment (optional)';
+
+
+--
+-- Name: COLUMN person_empowerment.start_date; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.person_empowerment.start_date IS 'Start date of the empowerment (optional)';
 
 
 --
@@ -344,6 +641,56 @@ CREATE TABLE public.person_group (
     "groupId" uuid NOT NULL,
     "joinedAt" timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
     "addedBy" text NOT NULL
+);
+
+
+--
+-- Name: person_relationship; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.person_relationship (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    person_id uuid NOT NULL,
+    related_person_id uuid NOT NULL,
+    relationship_type character varying(100) NOT NULL,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    created_by character varying(255) NOT NULL,
+    last_updated_by character varying(255) NOT NULL,
+    CONSTRAINT person_relationship_not_self CHECK ((person_id <> related_person_id))
+);
+
+
+--
+-- Name: registration; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.registration (
+    id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
+    src_timestamp timestamp with time zone,
+    first_name character varying(100) NOT NULL,
+    middle_name character varying(100),
+    last_name character varying(100) NOT NULL,
+    phone character varying(40),
+    email character varying(255),
+    address text,
+    country character varying(100),
+    gender public.gender_type,
+    previously_attended_camp boolean,
+    krama_instructor_text text,
+    empowerment_text text,
+    session_text text,
+    status public.registration_status DEFAULT 'new'::public.registration_status NOT NULL,
+    invalid_reason text,
+    status_updated_at timestamp with time zone,
+    status_updated_by text,
+    imported_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+    imported_by text,
+    "createdAt" timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+    import_batch_id uuid,
+    raw_data jsonb,
+    viber_number character varying(40)
 );
 
 
@@ -383,8 +730,18 @@ CREATE TABLE public."user" (
     "emailVerified" boolean NOT NULL,
     image text,
     "createdAt" timestamp without time zone NOT NULL,
-    "updatedAt" timestamp without time zone NOT NULL
+    "updatedAt" timestamp without time zone NOT NULL,
+    role public.user_role DEFAULT 'viewer'::public.user_role NOT NULL,
+    person_id uuid,
+    "deletedAt" timestamp without time zone
 );
+
+
+--
+-- Name: COLUMN "user".role; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public."user".role IS 'Role of the user for access control (admin, krama_instructor, viewer)';
 
 
 --
@@ -410,27 +767,43 @@ ALTER TABLE ONLY public.account
 
 
 --
--- Name: event_category event_category_code_key; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: center center_name_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.event_category
-    ADD CONSTRAINT event_category_code_key UNIQUE (code);
-
-
---
--- Name: event_category event_category_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.event_category
-    ADD CONSTRAINT event_category_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.center
+    ADD CONSTRAINT center_name_key UNIQUE (name);
 
 
 --
--- Name: event event_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: center_person center_person_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.event
-    ADD CONSTRAINT event_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.center_person
+    ADD CONSTRAINT center_person_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: center_person center_person_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.center_person
+    ADD CONSTRAINT center_person_unique UNIQUE (center_id, person_id);
+
+
+--
+-- Name: center center_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.center
+    ADD CONSTRAINT center_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: empowerment empowerment_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.empowerment
+    ADD CONSTRAINT empowerment_pkey PRIMARY KEY (id);
 
 
 --
@@ -466,6 +839,22 @@ ALTER TABLE ONLY public.event_attendee
 
 
 --
+-- Name: event_category event_category_code_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.event_category
+    ADD CONSTRAINT event_category_code_key UNIQUE (code);
+
+
+--
+-- Name: event_category event_category_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.event_category
+    ADD CONSTRAINT event_category_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: event_day event_day_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -490,11 +879,75 @@ ALTER TABLE ONLY public.event_day
 
 
 --
+-- Name: event_group event_group_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.event_group
+    ADD CONSTRAINT event_group_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: event event_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.event
+    ADD CONSTRAINT event_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: group group_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."group"
     ADD CONSTRAINT group_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: guru guru_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.guru
+    ADD CONSTRAINT guru_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: mahakrama_history mahakrama_history_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.mahakrama_history
+    ADD CONSTRAINT mahakrama_history_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: mahakrama_step mahakrama_step_group_step_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.mahakrama_step
+    ADD CONSTRAINT mahakrama_step_group_step_unique UNIQUE (group_id, step_id);
+
+
+--
+-- Name: mahakrama_step mahakrama_step_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.mahakrama_step
+    ADD CONSTRAINT mahakrama_step_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: mahakrama_step mahakrama_step_sequence_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.mahakrama_step
+    ADD CONSTRAINT mahakrama_step_sequence_unique UNIQUE (sequence_number);
+
+
+--
+-- Name: person_empowerment person_empowerment_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.person_empowerment
+    ADD CONSTRAINT person_empowerment_pkey PRIMARY KEY (id);
 
 
 --
@@ -514,11 +967,43 @@ ALTER TABLE ONLY public.person_group
 
 
 --
+-- Name: person person_personCode_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.person
+    ADD CONSTRAINT "person_personCode_key" UNIQUE ("personCode");
+
+
+--
 -- Name: person person_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.person
     ADD CONSTRAINT person_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: person_relationship person_relationship_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.person_relationship
+    ADD CONSTRAINT person_relationship_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: person_relationship person_relationship_unique_pair; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.person_relationship
+    ADD CONSTRAINT person_relationship_unique_pair UNIQUE (person_id, related_person_id);
+
+
+--
+-- Name: registration registration_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.registration
+    ADD CONSTRAINT registration_pkey PRIMARY KEY (id);
 
 
 --
@@ -554,6 +1039,14 @@ ALTER TABLE ONLY public."user"
 
 
 --
+-- Name: user user_person_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public."user"
+    ADD CONSTRAINT user_person_unique UNIQUE (person_id);
+
+
+--
 -- Name: user user_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -567,6 +1060,41 @@ ALTER TABLE ONLY public."user"
 
 ALTER TABLE ONLY public.verification
     ADD CONSTRAINT verification_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: event_group_name_unique; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX event_group_name_unique ON public.event_group USING btree (name);
+
+
+--
+-- Name: idx_center_person_center_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_center_person_center_id ON public.center_person USING btree (center_id);
+
+
+--
+-- Name: idx_center_person_person_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_center_person_person_id ON public.center_person USING btree (person_id);
+
+
+--
+-- Name: idx_empowerment_class; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_empowerment_class ON public.empowerment USING btree (class);
+
+
+--
+-- Name: idx_empowerment_name; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_empowerment_name ON public.empowerment USING btree (name);
 
 
 --
@@ -626,6 +1154,13 @@ CREATE INDEX idx_event_day_event_id ON public.event_day USING btree (event_id);
 
 
 --
+-- Name: idx_event_group_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_event_group_id ON public.event USING btree (event_group_id);
+
+
+--
 -- Name: idx_event_registration_mode; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -654,10 +1189,59 @@ CREATE INDEX idx_group_name ON public."group" USING btree (name);
 
 
 --
--- Name: idx_person_center; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_guru_name; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_person_center ON public.person USING btree (center);
+CREATE INDEX idx_guru_name ON public.guru USING btree ("guruName");
+
+
+--
+-- Name: idx_mahakrama_history_current; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX idx_mahakrama_history_current ON public.mahakrama_history USING btree (person_id) WHERE ((status)::text = 'current'::text);
+
+
+--
+-- Name: idx_mahakrama_history_person; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_mahakrama_history_person ON public.mahakrama_history USING btree (person_id);
+
+
+--
+-- Name: idx_mahakrama_history_step; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_mahakrama_history_step ON public.mahakrama_history USING btree (mahakrama_step_id);
+
+
+--
+-- Name: idx_mahakrama_step_group_step; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_mahakrama_step_group_step ON public.mahakrama_step USING btree (group_id, step_id);
+
+
+--
+-- Name: idx_mahakrama_step_sequence; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_mahakrama_step_sequence ON public.mahakrama_step USING btree (sequence_number);
+
+
+--
+-- Name: idx_person_center_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_person_center_id ON public.person USING btree (center_id);
+
+
+--
+-- Name: idx_person_code; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_person_code ON public.person USING btree ("personCode");
 
 
 --
@@ -682,6 +1266,48 @@ CREATE INDEX idx_person_email ON public.person USING btree ("emailId") WHERE ("e
 
 
 --
+-- Name: idx_person_emergency_contact_name; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_person_emergency_contact_name ON public.person USING btree ("emergencyContactName") WHERE ("emergencyContactName" IS NOT NULL);
+
+
+--
+-- Name: idx_person_emergency_contact_phone; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_person_emergency_contact_phone ON public.person USING btree ("emergencyContactPhone") WHERE ("emergencyContactPhone" IS NOT NULL);
+
+
+--
+-- Name: idx_person_empowerment_empowerment_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_person_empowerment_empowerment_id ON public.person_empowerment USING btree (empowerment_id);
+
+
+--
+-- Name: idx_person_empowerment_guru_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_person_empowerment_guru_id ON public.person_empowerment USING btree (guru_id);
+
+
+--
+-- Name: idx_person_empowerment_person_empowerment_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_person_empowerment_person_empowerment_id ON public.person_empowerment USING btree (person_id, empowerment_id);
+
+
+--
+-- Name: idx_person_empowerment_person_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_person_empowerment_person_id ON public.person_empowerment USING btree (person_id);
+
+
+--
 -- Name: idx_person_group_added_by; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -703,6 +1329,20 @@ CREATE INDEX idx_person_group_person_id ON public.person_group USING btree ("per
 
 
 --
+-- Name: idx_person_is_krama_instructor; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_person_is_krama_instructor ON public.person USING btree (is_krama_instructor);
+
+
+--
+-- Name: idx_person_krama_instructor_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_person_krama_instructor_id ON public.person USING btree (krama_instructor_person_id);
+
+
+--
 -- Name: idx_person_language_pref; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -714,6 +1354,27 @@ CREATE INDEX idx_person_language_pref ON public.person USING btree ("languagePre
 --
 
 CREATE INDEX idx_person_membership_card ON public.person USING btree ("hasMembershipCard") WHERE ("hasMembershipCard" IS NOT NULL);
+
+
+--
+-- Name: idx_person_membership_card_number; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_person_membership_card_number ON public.person USING btree ("membershipCardNumber") WHERE ("membershipCardNumber" IS NOT NULL);
+
+
+--
+-- Name: idx_person_membership_type; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_person_membership_type ON public.person USING btree ("membershipType") WHERE ("membershipType" IS NOT NULL);
+
+
+--
+-- Name: idx_person_middle_name; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_person_middle_name ON public.person USING btree ("middleName") WHERE ("middleName" IS NOT NULL);
 
 
 --
@@ -731,6 +1392,13 @@ CREATE INDEX idx_person_nationality ON public.person USING btree (nationality) W
 
 
 --
+-- Name: idx_person_occupation; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_person_occupation ON public.person USING btree (occupation) WHERE (occupation IS NOT NULL);
+
+
+--
 -- Name: idx_person_phone; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -738,10 +1406,38 @@ CREATE INDEX idx_person_phone ON public.person USING btree ("phoneNumber") WHERE
 
 
 --
--- Name: idx_person_refugee; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_person_primary_phone; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_person_refugee ON public.person USING btree (refugee);
+CREATE INDEX idx_person_primary_phone ON public.person USING btree ("primaryPhone") WHERE ("primaryPhone" IS NOT NULL);
+
+
+--
+-- Name: idx_person_referred_by; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_person_referred_by ON public.person USING btree ("referredBy") WHERE ("referredBy" IS NOT NULL);
+
+
+--
+-- Name: idx_person_relationship_person_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_person_relationship_person_id ON public.person_relationship USING btree (person_id);
+
+
+--
+-- Name: idx_person_relationship_related_person_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_person_relationship_related_person_id ON public.person_relationship USING btree (related_person_id);
+
+
+--
+-- Name: idx_person_secondary_phone; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_person_secondary_phone ON public.person USING btree ("secondaryPhone") WHERE ("secondaryPhone" IS NOT NULL);
 
 
 --
@@ -766,10 +1462,80 @@ CREATE INDEX idx_person_updated_by ON public.person USING btree (split_part("las
 
 
 --
--- Name: event update_event_updated_at; Type: TRIGGER; Schema: public; Owner: -
+-- Name: idx_person_year_of_refuge_calendar_type; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE TRIGGER update_event_updated_at BEFORE UPDATE ON public.event FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column_snake();
+CREATE INDEX idx_person_year_of_refuge_calendar_type ON public.person USING btree ("yearOfRefugeCalendarType") WHERE ("yearOfRefugeCalendarType" IS NOT NULL);
+
+
+--
+-- Name: idx_registration_dupe_key; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_registration_dupe_key ON public.registration USING btree (src_timestamp, lower(TRIM(BOTH FROM first_name)), lower(TRIM(BOTH FROM last_name)), COALESCE(TRIM(BOTH FROM phone), ''::text), COALESCE(lower(TRIM(BOTH FROM email)), ''::text));
+
+
+--
+-- Name: idx_registration_email; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_registration_email ON public.registration USING btree (lower((email)::text)) WHERE (email IS NOT NULL);
+
+
+--
+-- Name: idx_registration_import_batch; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_registration_import_batch ON public.registration USING btree (import_batch_id);
+
+
+--
+-- Name: idx_registration_phone; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_registration_phone ON public.registration USING btree (phone) WHERE (phone IS NOT NULL);
+
+
+--
+-- Name: idx_registration_raw_data; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_registration_raw_data ON public.registration USING gin (raw_data);
+
+
+--
+-- Name: idx_registration_status; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_registration_status ON public.registration USING btree (status);
+
+
+--
+-- Name: idx_user_person_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_user_person_id ON public."user" USING btree (person_id);
+
+
+--
+-- Name: idx_user_role; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_user_role ON public."user" USING btree (role);
+
+
+--
+-- Name: center_person update_center_person_updated_at; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER update_center_person_updated_at BEFORE UPDATE ON public.center_person FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column_snake();
+
+
+--
+-- Name: center update_center_updated_at; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER update_center_updated_at BEFORE UPDATE ON public.center FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column_snake();
 
 
 --
@@ -780,6 +1546,20 @@ CREATE TRIGGER update_event_category_updated_at BEFORE UPDATE ON public.event_ca
 
 
 --
+-- Name: event_group update_event_group_updated_at; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER update_event_group_updated_at BEFORE UPDATE ON public.event_group FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column_snake();
+
+
+--
+-- Name: event update_event_updated_at; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER update_event_updated_at BEFORE UPDATE ON public.event FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column_snake();
+
+
+--
 -- Name: group update_group_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -787,10 +1567,24 @@ CREATE TRIGGER update_group_updated_at BEFORE UPDATE ON public."group" FOR EACH 
 
 
 --
+-- Name: guru update_guru_updated_at; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER update_guru_updated_at BEFORE UPDATE ON public.guru FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+
+--
 -- Name: person update_person_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
 CREATE TRIGGER update_person_updated_at BEFORE UPDATE ON public.person FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+
+--
+-- Name: registration update_registration_updated_at; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER update_registration_updated_at BEFORE UPDATE ON public.registration FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
 
 --
@@ -802,27 +1596,19 @@ ALTER TABLE ONLY public.account
 
 
 --
--- Name: event event_category_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: center_person center_person_center_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.event
-    ADD CONSTRAINT event_category_id_fkey FOREIGN KEY (category_id) REFERENCES public.event_category(id);
-
-
---
--- Name: event event_empowerment_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.event
-    ADD CONSTRAINT event_empowerment_id_fkey FOREIGN KEY (empowerment_id) REFERENCES public.empowerment(id);
+ALTER TABLE ONLY public.center_person
+    ADD CONSTRAINT center_person_center_id_fkey FOREIGN KEY (center_id) REFERENCES public.center(id) ON DELETE CASCADE;
 
 
 --
--- Name: event event_guru_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: center_person center_person_person_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.event
-    ADD CONSTRAINT event_guru_id_fkey FOREIGN KEY (guru_id) REFERENCES public.guru(id);
+ALTER TABLE ONLY public.center_person
+    ADD CONSTRAINT center_person_person_id_fkey FOREIGN KEY (person_id) REFERENCES public.person(id) ON DELETE CASCADE;
 
 
 --
@@ -866,11 +1652,43 @@ ALTER TABLE ONLY public.event_attendee
 
 
 --
+-- Name: event event_category_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.event
+    ADD CONSTRAINT event_category_id_fkey FOREIGN KEY (category_id) REFERENCES public.event_category(id);
+
+
+--
 -- Name: event_day event_day_event_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.event_day
     ADD CONSTRAINT event_day_event_id_fkey FOREIGN KEY (event_id) REFERENCES public.event(id) ON DELETE CASCADE;
+
+
+--
+-- Name: event event_empowerment_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.event
+    ADD CONSTRAINT event_empowerment_id_fkey FOREIGN KEY (empowerment_id) REFERENCES public.empowerment(id);
+
+
+--
+-- Name: event event_event_group_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.event
+    ADD CONSTRAINT event_event_group_id_fkey FOREIGN KEY (event_group_id) REFERENCES public.event_group(id) ON DELETE RESTRICT;
+
+
+--
+-- Name: event event_guru_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.event
+    ADD CONSTRAINT event_guru_id_fkey FOREIGN KEY (guru_id) REFERENCES public.guru(id);
 
 
 --
@@ -890,11 +1708,99 @@ ALTER TABLE ONLY public.person_group
 
 
 --
+-- Name: person fk_person_krama_instructor; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.person
+    ADD CONSTRAINT fk_person_krama_instructor FOREIGN KEY (krama_instructor_person_id) REFERENCES public.person(id) ON DELETE SET NULL;
+
+
+--
+-- Name: mahakrama_history mahakrama_history_mahakrama_instructor_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.mahakrama_history
+    ADD CONSTRAINT mahakrama_history_mahakrama_instructor_id_fkey FOREIGN KEY (mahakrama_instructor_id) REFERENCES public.person(id);
+
+
+--
+-- Name: mahakrama_history mahakrama_history_mahakrama_step_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.mahakrama_history
+    ADD CONSTRAINT mahakrama_history_mahakrama_step_id_fkey FOREIGN KEY (mahakrama_step_id) REFERENCES public.mahakrama_step(id);
+
+
+--
+-- Name: mahakrama_history mahakrama_history_person_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.mahakrama_history
+    ADD CONSTRAINT mahakrama_history_person_id_fkey FOREIGN KEY (person_id) REFERENCES public.person(id) ON DELETE CASCADE;
+
+
+--
+-- Name: person person_center_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.person
+    ADD CONSTRAINT person_center_id_fkey FOREIGN KEY (center_id) REFERENCES public.center(id) ON DELETE SET NULL;
+
+
+--
+-- Name: person_empowerment person_empowerment_empowerment_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.person_empowerment
+    ADD CONSTRAINT person_empowerment_empowerment_id_fkey FOREIGN KEY (empowerment_id) REFERENCES public.empowerment(id) ON DELETE RESTRICT;
+
+
+--
+-- Name: person_empowerment person_empowerment_guru_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.person_empowerment
+    ADD CONSTRAINT person_empowerment_guru_id_fkey FOREIGN KEY (guru_id) REFERENCES public.guru(id) ON DELETE RESTRICT;
+
+
+--
+-- Name: person_empowerment person_empowerment_person_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.person_empowerment
+    ADD CONSTRAINT person_empowerment_person_id_fkey FOREIGN KEY (person_id) REFERENCES public.person(id) ON DELETE CASCADE;
+
+
+--
+-- Name: person_relationship person_relationship_person_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.person_relationship
+    ADD CONSTRAINT person_relationship_person_id_fkey FOREIGN KEY (person_id) REFERENCES public.person(id) ON DELETE CASCADE;
+
+
+--
+-- Name: person_relationship person_relationship_related_person_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.person_relationship
+    ADD CONSTRAINT person_relationship_related_person_id_fkey FOREIGN KEY (related_person_id) REFERENCES public.person(id) ON DELETE CASCADE;
+
+
+--
 -- Name: session session_userId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.session
     ADD CONSTRAINT "session_userId_fkey" FOREIGN KEY ("userId") REFERENCES public."user"(id);
+
+
+--
+-- Name: user user_person_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public."user"
+    ADD CONSTRAINT user_person_fk FOREIGN KEY (person_id) REFERENCES public.person(id) ON DELETE SET NULL;
 
 
 --
@@ -907,9 +1813,47 @@ ALTER TABLE ONLY public.session
 --
 
 INSERT INTO public.schema_migrations (version) VALUES
+    ('20250120000001'),
+    ('20250120000002'),
     ('20250218032240'),
+    ('20250219000000'),
+    ('20250219000001'),
     ('20250303000000'),
     ('20250311000000'),
     ('20250317213500'),
     ('20250708084043'),
-    ('20251001000000');
+    ('20250718000000'),
+    ('20250718000001'),
+    ('20250718000003'),
+    ('20250718000004'),
+    ('20250718000005'),
+    ('20250718000006'),
+    ('20250825000000'),
+    ('20250914000000'),
+    ('20250923140000'),
+    ('20250923150000'),
+    ('20250924000000'),
+    ('20250924000001'),
+    ('20251001000000'),
+    ('20251002000000'),
+    ('20251002000001'),
+    ('20251002000002'),
+    ('20251002000003'),
+    ('20251002000004'),
+    ('20251002000005'),
+    ('20251002000006'),
+    ('20251003000000'),
+    ('20251004000000'),
+    ('20251005000000'),
+    ('20251005020000'),
+    ('20251007000000'),
+    ('20251013000000'),
+    ('20251013000001'),
+    ('20251015000000'),
+    ('20251015001000'),
+    ('20251015002000'),
+    ('20251018083024'),
+    ('20251020090000'),
+    ('20251020091500'),
+    ('20251022000000'),
+    ('20251105000000');

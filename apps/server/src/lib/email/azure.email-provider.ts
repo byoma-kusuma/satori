@@ -1,7 +1,7 @@
 import { EmailClient } from "@azure/communication-email";
 import { EmailOptions } from "./email-interface";
 
-export async function sendEmailAzure(options: EmailOptions): Promise<any> {
+export async function sendEmailAzure(options: EmailOptions): Promise<void> {
   const connectionString = process.env.AZURE_COMMUNICATION_CONNECTION_STRING;
   const fromEmail = process.env.AZURE_COMMUNICATION_FROM_EMAIL;
 
@@ -23,16 +23,15 @@ export async function sendEmailAzure(options: EmailOptions): Promise<any> {
       html: options.html || options.text,
     },
     recipients: {
-      to: [
-        {
-          address: options.to,
-        },
-      ],
+      to: [{ address: options.to }],
     },
+    attachments: options.attachments?.map((a) => ({
+      name: a.filename,
+      contentType: a.contentType,
+      contentInBase64: a.content.toString('base64'),
+    })),
   };
 
   const poller = await client.beginSend(message);
-  const result = await poller.pollUntilDone();
-  
-  return result;
-}
+  await poller.pollUntilDone();
+} 

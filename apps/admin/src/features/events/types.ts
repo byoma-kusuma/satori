@@ -1,5 +1,8 @@
+import type { JsonObject } from '@/types/json'
+
 export type EventRegistrationMode = 'PRE_REGISTRATION' | 'WALK_IN'
 export type EventStatus = 'DRAFT' | 'ACTIVE' | 'CLOSED'
+export type EventAudienceType = 'all' | 'groups' | 'centers'
 
 export interface EventCategory {
   id: string
@@ -8,7 +11,7 @@ export interface EventCategory {
   requiresFullAttendance: boolean
 }
 
-export type EventMetadata = Record<string, unknown>
+export type EventMetadata = JsonObject
 
 export interface EmpowermentEventMetadata extends EventMetadata {
   type: 'EMPOWERMENT'
@@ -30,6 +33,9 @@ export interface EventSummary {
   totalAttendees: number
   checkedInAttendees: number
   daysCount: number
+  audienceType: EventAudienceType
+  targetGroupIds: string[]
+  targetCenterIds: string[]
 }
 
 export interface EventDay {
@@ -90,6 +96,9 @@ export interface EventDetail {
   days: EventDay[]
   attendees: EventAttendee[]
   metadata: EventMetadata | null
+  audienceType: EventAudienceType
+  targetGroupIds: string[]
+  targetCenterIds: string[]
 }
 
 export interface CreateEventPayload {
@@ -104,6 +113,9 @@ export interface CreateEventPayload {
   eventGroupId?: string | null
   metadata?: EventMetadata
   requiresFullAttendance?: boolean | null
+  audienceType?: EventAudienceType
+  targetGroupIds?: string[]
+  targetCenterIds?: string[]
 }
 
 export type UpdateEventPayload = Partial<CreateEventPayload> & {
@@ -119,6 +131,7 @@ export interface AddAttendeePayload {
 export interface UpdateAttendeePayload {
   notes?: string | null
   metadata?: EventMetadata
+  isCancelled?: boolean
 }
 
 export interface CheckInPayload {

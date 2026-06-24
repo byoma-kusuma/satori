@@ -2,6 +2,7 @@ import { Hono } from 'hono'
 import { z } from 'zod'
 import { zValidator } from '@hono/zod-validator'
 import { HTTPException } from 'hono/http-exception'
+import { NoResultError } from 'kysely'
 
 import { authenticated } from '../../middlewares/session'
 import { adminOnly } from '../../middlewares/authorization'
@@ -39,12 +40,26 @@ app.onError((err, c) => {
 
 export const eventGroupRoutes = app
   .use(authenticated)
-  .use(adminOnly)
-  // List all groups
+  // List all groups (accessible to all authenticated users)
   .get('/', async (c) => {
     const rows = await EventGroupService.getAllEventGroups()
     return c.json(rows)
   })
+  // Get by id (accessible to all authenticated users)
+  .get('/:id', zValidator('param', paramsSchema), async (c) => {
+    try {
+      const { id } = c.req.valid('param')
+      const row = await EventGroupService.getEventGroupById(id)
+      return c.json(row)
+    } catch (error) {
+      if (error instanceof NoResultError) {
+        throw new HTTPException(404, { message: 'Not Found' })
+      }
+      throw error
+    }
+  })
+  // Write operations require admin
+  .use(adminOnly)
   // Create group
   .post('/', zValidator('json', createSchema), async (c) => {
     const user = c.get('user')
@@ -54,16 +69,6 @@ export const eventGroupRoutes = app
       user?.id,
     )
     return c.json(created, 201)
-  })
-  // Get by id
-  .get('/:id', zValidator('param', paramsSchema), async (c) => {
-    try {
-      const { id } = c.req.valid('param')
-      const row = await EventGroupService.getEventGroupById(id)
-      return c.json(row)
-    } catch (e: any) {
-      throw new HTTPException(404, { message: 'Not Found' })
-    }
   })
   // Update
   .put('/:id', zValidator('param', paramsSchema), zValidator('json', updateSchema), async (c) => {
@@ -81,13 +86,13 @@ export const eventGroupRoutes = app
     try {
       await EventGroupService.deleteEventGroup(id)
       return c.json({ success: true })
-    } catch (e: any) {
-      if (typeof e?.message === 'string' && e.message.includes('Cannot delete: this group has events assigned.')) {
+    } catch (error) {
+      const message = error instanceof Error ? error.message : ''
+      if (message.includes('Cannot delete: this group has events assigned.')) {
         return c.json({ success: false, message: 'Cannot delete: this group has events assigned.' }, 400)
       }
-      throw e
+      throw error
     }
   })
 
 export type EventGroupRoutes = typeof eventGroupRoutes
-

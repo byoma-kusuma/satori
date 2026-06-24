@@ -17,6 +17,8 @@ import {
   removePersonFromCenter,
   centerExists,
 } from './center.service'
+import { getUserById } from '../user/user.service'
+import { db } from '../../database'
 
 const centerInputSchema = z.object({
   name: z.string().min(1, 'Center name is required'),
@@ -44,6 +46,20 @@ const centers = new Hono<{
 centers.use(authenticated)
 
 centers.get('/', async (c) => {
+  const sessionUser = c.get('user')
+  if (sessionUser) {
+    const userData = await getUserById(sessionUser.id)
+    if (userData.role === 'center_admin') {
+      const assignments = await db
+        .selectFrom('user_center_assignment')
+        .select('center_id')
+        .where('user_id', '=', sessionUser.id)
+        .execute()
+      const centerIds = assignments.map((a) => a.center_id)
+      const data = await listCenters(centerIds)
+      return c.json(data)
+    }
+  }
   const data = await listCenters()
   return c.json(data)
 })
@@ -57,14 +73,14 @@ centers.get('/:id', async (c) => {
 })
 
 centers.post('/', zValidator('json', centerInputSchema), async (c) => {
-  const input = c.req.valid('json')
+  const input = centerInputSchema.parse(c.req.valid('json'))
   const center = await createCenter(input)
   return c.json(center, 201)
 })
 
 centers.put('/:id', zValidator('json', centerInputSchema), async (c) => {
   const id = c.req.param('id')
-  const input = c.req.valid('json')
+  const input = centerInputSchema.parse(c.req.valid('json'))
   const center = await updateCenter(id, input)
   if (!center) {
     return c.json({ error: 'Center not found' }, 404)
@@ -97,7 +113,7 @@ centers.post('/:id/persons', zValidator('json', assignPersonSchema), async (c) =
   if (!exists) {
     return c.json({ error: 'Center not found' }, 404)
   }
-  const input = c.req.valid('json')
+  const input = assignPersonSchema.parse(c.req.valid('json'))
   const user = c.get('user')
 
   if (!user) {

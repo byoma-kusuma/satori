@@ -5,6 +5,9 @@ import { z } from 'zod'
 import { db } from '../../database'
 import { auth } from '../../lib/auth'
 import { authenticated } from '../../middlewares/session'
+import { requirePermission } from '../../middlewares/authorization'
+import type { Updateable } from 'kysely'
+import type { Guru } from '../../types'
 
 const guruInputSchema = z.object({
   name: z.string().min(1, 'Name is required'),
@@ -52,7 +55,7 @@ export const gurusRoutes = app
     
     return c.json(guru)
   })
-  .post('/', zValidator('json', guruInputSchema), async (c) => {
+  .post('/', requirePermission('canManageSettings'), zValidator('json', guruInputSchema), async (c) => {
     const data = c.req.valid('json')
     const user = requireUser(c.get('user'))
 
@@ -68,12 +71,12 @@ export const gurusRoutes = app
 
     return c.json(guru, 201)
   })
-  .put('/:id', zValidator('json', guruUpdateSchema), async (c) => {
+  .put('/:id', requirePermission('canManageSettings'), zValidator('json', guruUpdateSchema), async (c) => {
     const id = c.req.param('id')
     const data = c.req.valid('json')
     const user = requireUser(c.get('user'))
 
-    const updateData: any = {
+    const updateData: Updateable<Guru> = {
       lastUpdatedBy: user.id,
     }
 
@@ -94,7 +97,7 @@ export const gurusRoutes = app
 
     return c.json(guru)
   })
-  .delete('/:id', async (c) => {
+  .delete('/:id', requirePermission('canManageSettings'), async (c) => {
     const id = c.req.param('id')
 
     try {
@@ -108,9 +111,10 @@ export const gurusRoutes = app
       }
 
       return c.json({ message: 'Guru deleted successfully' })
-    } catch (error: any) {
+    } catch (error) {
       // Check if it's a foreign key constraint violation
-      if (error.code === '23503') {
+      const code = error instanceof Error && 'code' in error ? (error as Error & { code?: string }).code : undefined
+      if (code === '23503') {
         return c.json({
           error: 'Cannot delete guru because it is referenced in person empowerments. Please remove all related empowerments first.'
         }, 400)

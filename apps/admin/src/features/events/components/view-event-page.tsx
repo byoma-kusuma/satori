@@ -114,6 +114,42 @@ function EventDetailContent({ eventId }: { eventId: string }) {
     }
   }
 
+  const handleDisapproveAttendee = async (attendeeId: string) => {
+    if (isClosed) return
+    try {
+      await updateAttendeeMutation.mutateAsync({
+        eventId: event.id,
+        attendeeId,
+        payload: { isCancelled: true },
+      })
+      toast({ title: 'Attendee disapproved' })
+    } catch (error) {
+      toast({
+        title: 'Unable to disapprove attendee',
+        description: error instanceof Error ? error.message : 'Please try again later.',
+        variant: 'destructive',
+      })
+    }
+  }
+
+  const handleReapproveAttendee = async (attendeeId: string) => {
+    if (isClosed) return
+    try {
+      await updateAttendeeMutation.mutateAsync({
+        eventId: event.id,
+        attendeeId,
+        payload: { isCancelled: false },
+      })
+      toast({ title: 'Attendee reapproved' })
+    } catch (error) {
+      toast({
+        title: 'Unable to reapprove attendee',
+        description: error instanceof Error ? error.message : 'Please try again later.',
+        variant: 'destructive',
+      })
+    }
+  }
+
   const handleAddExistingAttendee = async (personId: string) => {
     if (isClosed) throw new Error('Event is closed')
     try {
@@ -339,6 +375,8 @@ function EventDetailContent({ eventId }: { eventId: string }) {
           event={event}
           onToggleCheckIn={handleToggleCheckIn}
           onRemoveAttendee={handleRemoveAttendee}
+          onDisapproveAttendee={isClosed ? undefined : handleDisapproveAttendee}
+          onReapproveAttendee={isClosed ? undefined : handleReapproveAttendee}
           disabled={isClosed || setCheckInMutation.isPending}
           onUpdateMetadataField={attendeeMetadataField ? handleUpdateMetadataField : undefined}
           updatingAttendeeId={updatingAttendeeId}

@@ -64,7 +64,7 @@ const personInputSchema = z.object({
     { message: "Photo must be a valid image data URL" }
   ),
   yearOfBirth: z.number().int().min(1900).nullable().optional().default(null),
-  type: z.enum(["interested", "contact", "sangha_member", "attended_orientation"]).default("interested"),
+  type: z.string().min(1).default("interested"),
   country: z.string().nullable().optional().default(null),
   nationality: z.string().nullable().optional().default(null),
   languagePreference: z.string().nullable().optional().default(null),
@@ -126,12 +126,12 @@ export const personsRoutes = persons
 
     const type = c.req.query('type') as PersonType | undefined;
 
-    if (type && ['interested', 'contact', 'sangha_member', 'attended_orientation'].includes(type)) {
+    if (type) {
       const persons = await getPersonsByType(type);
       return c.json(persons);
     }
 
-    const persons = await getAllPersons(userData.role, userData.personId);
+    const persons = await getAllPersons(userData.role, userData.personId, user.id);
     return c.json(persons);
   })
   // Krama Instructor routes - MUST be before /:id routes
@@ -147,7 +147,8 @@ export const personsRoutes = persons
     // Get full user data including role and personId
     const userData = await getUserById(user.id);
 
-    const person = await getPersonById(id, userData.role, userData.personId);
+    const person = await getPersonById(id, userData.role, userData.personId, user.id);
+    if (!person) throw new HTTPException(403, { message: 'Access denied' });
     return c.json(person);
   })
   .get("/:id/groups", requirePermission("canViewGroups"), async (c) => {
@@ -166,7 +167,7 @@ export const personsRoutes = persons
     return c.json(personWithKrama);
   })
   .post("/", zValidator("json", personInputSchema), requirePermission("canCreatePersons"), async (c) => {
-    const personData = await c.req.valid("json");
+    const personData = personInputSchema.parse(c.req.valid("json"));
     const user = c.get("user");
     if (!user) throw new Error("User not found");
     const newPerson = await createPerson(personData, user.id);

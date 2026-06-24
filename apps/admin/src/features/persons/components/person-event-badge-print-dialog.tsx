@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useReactToPrint } from 'react-to-print'
 import { QRCodeSVG } from 'qrcode.react'
 import { Button } from '@/components/ui/button'
@@ -67,14 +67,15 @@ export function PersonEventBadgePrintDialog({ open, onOpenChange, person, events
 
   
 
-  // Get unique event groups
-  const eventGroups: { id: string; name: string }[] = Array.from(
-    new Set(
-      events
-        .filter(e => e.eventGroupName && e.eventGroupId)
-        .map(e => JSON.stringify({ id: String(e.eventGroupId), name: e.eventGroupName }))
-    )
-  ).map(str => JSON.parse(str))
+  const eventGroups = useMemo(() => {
+    const groups = new Map<string, string>()
+    for (const event of events) {
+      if (event.eventGroupId && event.eventGroupName) {
+        groups.set(event.eventGroupId, event.eventGroupName)
+      }
+    }
+    return Array.from(groups.entries()).map(([id, name]) => ({ id, name }))
+  }, [events])
 
   // If in group mode with no selection but only one group available, auto-select it
   useEffect(() => {
@@ -96,7 +97,6 @@ export function PersonEventBadgePrintDialog({ open, onOpenChange, person, events
 
   const onPrintClick = () => {
     if (!printRef.current) {
-      console.warn('Print content is not ready yet')
       return
     }
     // Call immediately to preserve the user gesture
@@ -136,7 +136,14 @@ export function PersonEventBadgePrintDialog({ open, onOpenChange, person, events
           {/* Filter Mode Selection */}
           <div className='space-y-2'>
             <Label>Select Events</Label>
-            <Select value={filterMode} onValueChange={(v) => setFilterMode(v as any)}>
+            <Select
+              value={filterMode}
+              onValueChange={(value) => {
+                if (value === 'all' || value === 'group' || value === 'custom') {
+                  setFilterMode(value)
+                }
+              }}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Select filter mode" />
               </SelectTrigger>

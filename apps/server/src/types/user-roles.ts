@@ -1,11 +1,13 @@
 // User role enum - must match database enum exactly
-export const userRoleEnum = ['sysadmin', 'admin', 'krama_instructor', 'viewer'] as const;
+export const userRoleEnum = ['sysadmin', 'admin', 'center_admin', 'group_admin', 'krama_instructor', 'viewer'] as const;
 export type UserRole = (typeof userRoleEnum)[number];
 
 // Human-readable labels for user roles
 export const userRoleLabels: Record<UserRole, string> = {
   sysadmin: 'System Administrator',
   admin: 'Administrator',
+  center_admin: 'Center Administrator',
+  group_admin: 'Group Administrator',
   krama_instructor: 'Krama Instructor',
   viewer: 'Viewer',
 };
@@ -13,8 +15,10 @@ export const userRoleLabels: Record<UserRole, string> = {
 // Role descriptions
 export const userRoleDescriptions: Record<UserRole, string> = {
   sysadmin: 'Full system access with elevated privileges for system configuration and management',
-  admin: 'Full system access including user management, all CRUD operations, and system settings',
-  krama_instructor: 'Full system access including user management, all CRUD operations, and system settings',
+  admin: 'Full system access including user management and all CRUD operations, except Mahakrama and Import',
+  center_admin: 'Full CRUD access for persons, events, and empowerments within assigned centers; can send notifications to their centers',
+  group_admin: 'Full CRUD access for persons, events, and empowerments within assigned groups; can send notifications to their groups',
+  krama_instructor: 'Access to persons, events, and groups management; cannot access Users, Gurus, Empowerments, Mahakrama, or Import',
   viewer: 'Read-only access to persons and events, no create/edit/delete permissions',
 };
 
@@ -45,6 +49,11 @@ export interface Permission {
   
   // System settings
   canManageSettings: boolean;
+
+  // Section access
+  canAccessMahakrama: boolean;
+  canImport: boolean;
+  canManageNotifications: boolean;
 }
 
 // Define permissions for each role
@@ -74,6 +83,11 @@ export const rolePermissions: Record<UserRole, Permission> = {
 
     // System settings
     canManageSettings: true,
+
+    // Section access
+    canAccessMahakrama: true,
+    canImport: true,
+    canManageNotifications: true,
   },
 
   admin: {
@@ -101,60 +115,139 @@ export const rolePermissions: Record<UserRole, Permission> = {
 
     // System settings
     canManageSettings: true,
+
+    // Section access
+    canAccessMahakrama: false,
+    canImport: false,
+    canManageNotifications: true,
   },
-  
-  krama_instructor: {
+
+  center_admin: {
     // User management
-    canManageUsers: true,
-    canViewUsers: true,
-    
+    canManageUsers: false,
+    canViewUsers: false,
+
     // Person management
     canCreatePersons: true,
     canEditPersons: true,
     canDeletePersons: true,
     canViewPersons: true,
-    
+
     // Event management
     canCreateEvents: true,
     canEditEvents: true,
     canDeleteEvents: true,
     canViewEvents: true,
-    
-    // Group management
-    canCreateGroups: true,
-    canEditGroups: true,
-    canDeleteGroups: true,
-    canViewGroups: true,
-    
-    // System settings
-    canManageSettings: true,
-  },
-  
-  viewer: {
-    // User management
-    canManageUsers: false,
-    canViewUsers: false,
-    
-    // Person management
-    canCreatePersons: false,
-    canEditPersons: false,
-    canDeletePersons: false,
-    canViewPersons: true,
-    
-    // Event management
-    canCreateEvents: false,
-    canEditEvents: false,
-    canDeleteEvents: false,
-    canViewEvents: true,
-    
+
     // Group management
     canCreateGroups: false,
     canEditGroups: false,
     canDeleteGroups: false,
     canViewGroups: true,
-    
+
     // System settings
     canManageSettings: false,
+
+    // Section access
+    canAccessMahakrama: false,
+    canImport: false,
+    canManageNotifications: true,
+  },
+
+  group_admin: {
+    // User management
+    canManageUsers: false,
+    canViewUsers: false,
+
+    // Person management
+    canCreatePersons: true,
+    canEditPersons: true,
+    canDeletePersons: true,
+    canViewPersons: true,
+
+    // Event management
+    canCreateEvents: true,
+    canEditEvents: true,
+    canDeleteEvents: true,
+    canViewEvents: true,
+
+    // Group management
+    canCreateGroups: false,
+    canEditGroups: false,
+    canDeleteGroups: false,
+    canViewGroups: true,
+
+    // System settings
+    canManageSettings: false,
+
+    // Section access
+    canAccessMahakrama: false,
+    canImport: false,
+    canManageNotifications: true,
+  },
+
+  krama_instructor: {
+    // User management
+    canManageUsers: false,
+    canViewUsers: false,
+
+    // Person management
+    canCreatePersons: true,
+    canEditPersons: true,
+    canDeletePersons: true,
+    canViewPersons: true,
+
+    // Event management
+    canCreateEvents: true,
+    canEditEvents: true,
+    canDeleteEvents: true,
+    canViewEvents: true,
+
+    // Group management
+    canCreateGroups: true,
+    canEditGroups: true,
+    canDeleteGroups: true,
+    canViewGroups: true,
+
+    // System settings
+    canManageSettings: false,
+
+    // Section access
+    canAccessMahakrama: false,
+    canImport: false,
+    canManageNotifications: true,
+  },
+
+  viewer: {
+    // User management
+    canManageUsers: false,
+    canViewUsers: false,
+
+    // Person management
+    canCreatePersons: false,
+    canEditPersons: false,
+    canDeletePersons: false,
+    canViewPersons: true,
+
+    // Event management
+    canCreateEvents: false,
+    canEditEvents: false,
+    canDeleteEvents: false,
+    canViewEvents: true,
+
+    // Group management
+    canCreateGroups: false,
+    canEditGroups: false,
+    canDeleteGroups: false,
+    canViewGroups: true,
+
+    // System settings
+    canManageSettings: false,
+
+    // Section access
+    canAccessMahakrama: false,
+    canImport: false,
+    canManageNotifications: false,
   },
 };
 

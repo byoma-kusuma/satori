@@ -25,9 +25,10 @@ import { IconPrinter } from '@tabler/icons-react'
 
 interface EventsTabProps {
   personId: string
+  readOnly?: boolean
 }
 
-export function EventsTab({ personId }: EventsTabProps) {
+export function EventsTab({ personId, readOnly }: EventsTabProps) {
   const { data: events } = useSuspenseQuery(getPersonEventsQueryOptions(personId))
   const { data: person } = useSuspenseQuery(getPersonQueryOptions(personId))
   const [timeFilter, setTimeFilter] = useState<string>('all')
@@ -126,12 +127,14 @@ export function EventsTab({ personId }: EventsTabProps) {
           </Button>
         )}
 
-        <div className='ml-auto'>
-          <Button size="sm" onClick={() => setPrintOpen(true)}>
-            <IconPrinter className='w-4 h-4 mr-2' />
-            Print Badge
-          </Button>
-        </div>
+        {!readOnly && (
+          <div className='ml-auto'>
+            <Button size="sm" onClick={() => setPrintOpen(true)}>
+              <IconPrinter className='w-4 h-4 mr-2' />
+              Print Badge
+            </Button>
+          </div>
+        )}
       </div>
 
       <div className="rounded-md border">

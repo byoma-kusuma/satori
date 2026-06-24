@@ -5,7 +5,8 @@ networks:
     name: traefik-public
     external: false
   satori-app-network:
-    external: true
+    name: satori-app-network
+    external: false
 
 services:
   # Helper service to generate password hash from plain text
@@ -20,12 +21,13 @@ services:
     restart: "no"
 
   traefik:
-    image: traefik:v3.1
+    image: traefik:v2.11
     container_name: traefik
     restart: always
     command:
       - "--providers.docker=true"
       - "--providers.docker.exposedByDefault=false"
+      - "--providers.docker.endpoint=unix:///var/run/docker.sock"
 
       - "--entrypoints.web.address=:80"
       - "--entrypoints.websecure.address=:443"
@@ -47,10 +49,11 @@ services:
       CF_DNS_API_TOKEN: "${CF_DNS_API_TOKEN}"
       TRAEFIK_USERNAME: "${TRAEFIK_USERNAME:-admin}"
       TRAEFIK_PASSWORD: "${TRAEFIK_PASSWORD}"
+      DOCKER_API_VERSION: "1.44"
     labels:
       # Dashboard routing
       - "traefik.enable=true"
-      - "traefik.http.routers.dashboard.rule=Host(`traefik.byomakusuma.com`)"
+      - "traefik.http.routers.dashboard.rule=Host(`${TRAEFIK_DOMAIN}`)"
       - "traefik.http.routers.dashboard.entrypoints=websecure"
       - "traefik.http.routers.dashboard.tls.certresolver=cf"
       - "traefik.http.routers.dashboard.service=api@internal"
@@ -78,7 +81,7 @@ services:
     labels:
       # Portainer routing
       - "traefik.enable=true"
-      - "traefik.http.routers.portainer.rule=Host(`portainer.byomakusuma.com`)"
+      - "traefik.http.routers.portainer.rule=Host(`${PORTAINER_DOMAIN}`)"
       - "traefik.http.routers.portainer.entrypoints=websecure"
       - "traefik.http.routers.portainer.tls.certresolver=cf"
       - "traefik.http.services.portainer.loadbalancer.server.port=9000"

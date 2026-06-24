@@ -70,6 +70,8 @@ interface Props {
   event: EventDetail
   onToggleCheckIn: (attendeeId: string, dayId: string, checked: boolean) => void
   onRemoveAttendee: (attendeeId: string) => void
+  onDisapproveAttendee?: (attendeeId: string) => void
+  onReapproveAttendee?: (attendeeId: string) => void
   disabled?: boolean
   onUpdateMetadataField?: (attendeeId: string, value: string) => Promise<void> | void
   updatingAttendeeId?: string | null
@@ -88,6 +90,8 @@ export function AttendeeTable({
   event,
   onToggleCheckIn,
   onRemoveAttendee,
+  onDisapproveAttendee,
+  onReapproveAttendee,
   disabled,
   onUpdateMetadataField,
   updatingAttendeeId,
@@ -108,8 +112,9 @@ export function AttendeeTable({
     const attendee = event.attendees.find((item) => item.attendeeId === attendeeId)
     if (!attendee) return null
 
-    const record = attendee.metadata as Record<string, unknown>
-    const currentValue = typeof record?.[metadataField] === 'string' ? (record[metadataField] as string) : ''
+    const record = attendee.metadata
+    const candidate = record?.[metadataField]
+    const currentValue = typeof candidate === 'string' ? candidate : ''
     const isUpdating = updatingAttendeeId === attendeeId
 
     return (
@@ -125,8 +130,9 @@ export function AttendeeTable({
 
   const renderMetadataInfo = (metadata: Attendee['metadata']) => {
     if (metadataField) return null
-    const record = metadata as Record<string, unknown>
-    const value = typeof record?.['referredBy'] === 'string' ? (record['referredBy'] as string) : undefined
+    const record = metadata
+    const candidate = record?.['referredBy']
+    const value = typeof candidate === 'string' ? candidate : undefined
     return value ? <div className='text-xs text-muted-foreground'>Referred by: {value}</div> : null
   }
 
@@ -185,6 +191,21 @@ export function AttendeeTable({
         },
     },
   ]
+
+    if (onDisapproveAttendee) {
+      base.push({
+        id: 'approvalStatus',
+        accessorFn: (row) => (row.isCancelled ? 'Disapproved' : 'Registered'),
+        header: 'Approval',
+        meta: { className: 'w-[120px]' },
+        filterFn: 'equals',
+        cell: ({ row }) => (
+          <Badge variant={row.original.isCancelled ? 'destructive' : 'default'}>
+            {row.original.isCancelled ? 'Disapproved' : 'Registered'}
+          </Badge>
+        ),
+      })
+    }
 
     event.days.forEach((day) => {
       base.push({
@@ -252,16 +273,39 @@ export function AttendeeTable({
     base.push({
       id: 'actions',
       header: 'Actions',
-      meta: { className: 'text-right w-[100px]' },
+      meta: { className: 'text-right w-[160px]' },
       cell: ({ row }) => (
-        <Button
-          size='sm'
-          variant='ghost'
-          onClick={() => onRemoveAttendee(row.original.attendeeId)}
-          disabled={disabled || row.original.receivedEmpowerment}
-        >
-          Remove
-        </Button>
+        <div className='flex justify-end gap-1'>
+          {onDisapproveAttendee && !row.original.isCancelled && (
+            <Button
+              size='sm'
+              variant='ghost'
+              className='text-destructive hover:text-destructive'
+              onClick={() => onDisapproveAttendee(row.original.attendeeId)}
+              disabled={disabled}
+            >
+              Disapprove
+            </Button>
+          )}
+          {onReapproveAttendee && row.original.isCancelled && (
+            <Button
+              size='sm'
+              variant='ghost'
+              onClick={() => onReapproveAttendee(row.original.attendeeId)}
+              disabled={disabled}
+            >
+              Reapprove
+            </Button>
+          )}
+          <Button
+            size='sm'
+            variant='ghost'
+            onClick={() => onRemoveAttendee(row.original.attendeeId)}
+            disabled={disabled || row.original.receivedEmpowerment}
+          >
+            Remove
+          </Button>
+        </div>
       ),
     })
 
@@ -278,9 +322,13 @@ export function AttendeeTable({
     event.registrationMode,
     event.attendees,
     onUpdateMetadataField,
+    onDisapproveAttendee,
+    onReapproveAttendee,
   ])
 
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>(
+    onDisapproveAttendee ? [{ id: 'approvalStatus', value: 'Registered' }] : []
+  )
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
 
   const table = useReactTable({
@@ -312,7 +360,7 @@ export function AttendeeTable({
 
   return (
     <div className='space-y-4'>
-      <AttendeeTableToolbar table={table} />
+      <AttendeeTableToolbar table={table} hasApprovalFilter={Boolean(onDisapproveAttendee)} />
       <div className='rounded-md border'>
         <Table>
           <TableHeader>

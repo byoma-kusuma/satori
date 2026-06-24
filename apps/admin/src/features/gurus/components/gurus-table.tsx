@@ -24,7 +24,7 @@ import {
 
 import { DataTablePagination } from './data-table-pagination'
 import { DataTableToolbar } from './data-table-toolbar'
-import { columns } from './gurus-columns'
+import { getGuruColumns } from './gurus-columns'
 import { GuruDialog } from './guru-dialog'
 import {
   AlertDialog,
@@ -37,11 +37,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { getGurusQueryOptions, useCreateGuru, useUpdateGuru, useDeleteGuru } from '../data/api'
-
-interface Guru {
-  id: string
-  name: string
-}
+import type { Guru } from '../data/schema'
 
 export function GurusTable() {
   const [sorting, setSorting] = useState<SortingState>([])
@@ -82,13 +78,13 @@ export function GurusTable() {
             description: 'Guru deleted successfully',
           })
         },
-        onError: (error: any) => {
+        onError: (error) => {
           toast({
             title: 'Error',
-            description: error?.message || 'Failed to delete guru',
+            description: error instanceof Error ? error.message : 'Failed to delete guru',
             variant: 'destructive',
           })
-        }
+        },
       })
     }
   }
@@ -114,25 +110,11 @@ export function GurusTable() {
     }
   }
 
-  const columnsWithActions = columns.map((column) => {
-    if (column.id === 'actions') {
-      return {
-        ...column,
-        cell: ({ row }: any) => (
-          <column.cell
-            row={row}
-            onEdit={handleEdit}
-            onDelete={handleDelete}
-          />
-        ),
-      }
-    }
-    return column
-  })
+  const columns = getGuruColumns({ onEdit: handleEdit, onDelete: handleDelete })
 
   const table = useReactTable({
     data: gurus,
-    columns: columnsWithActions,
+    columns,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     getCoreRowModel: getCoreRowModel(),

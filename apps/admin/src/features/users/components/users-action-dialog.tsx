@@ -1,12 +1,13 @@
 "use client"
 
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useQuery } from '@tanstack/react-query'
 
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Dialog,
   DialogContent,
@@ -24,7 +25,6 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import { toast } from '@/hooks/use-toast'
 import { User } from '../data/schema'
 import { useUsers } from '../context/users-context'
@@ -33,7 +33,11 @@ import {
   getAvailablePersonsQueryOptions,
   useCreateUser,
   useUpdateUser,
+  useUpdateUserCenterAssignments,
+  useUpdateUserGroupAssignments,
 } from '@/api/users'
+import { getCentersQueryOptions } from '@/api/centers'
+import { getGroupsQueryOptions } from '@/api/groups'
 import { PersonSelect, type PersonOption } from '@/components/ui/person-select'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { userRoleEnum, userRoleLabels, type UserRole } from '@/types/user-roles'
@@ -69,6 +73,15 @@ export function UsersActionDialog({ currentRow, open, onOpenChange }: Props) {
   const updateUserMutation = useUpdateUser()
   const isSubmitting = createUserMutation.isPending || updateUserMutation.isPending
 
+  const updateCenterAssignments = useUpdateUserCenterAssignments()
+  const updateGroupAssignments = useUpdateUserGroupAssignments()
+
+  const [selectedCenterIds, setSelectedCenterIds] = useState<string[]>([])
+  const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>([])
+
+  const { data: allCenters = [] } = useQuery({ ...getCentersQueryOptions, enabled: open })
+  const { data: allGroups = [] } = useQuery({ ...getGroupsQueryOptions, enabled: open })
+
   const form = useForm<UserForm>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -97,6 +110,8 @@ export function UsersActionDialog({ currentRow, open, onOpenChange }: Props) {
         role: (currentRow?.role as UserRole) ?? 'viewer',
         personId: currentRow?.personId ?? undefined,
       })
+      setSelectedCenterIds([])
+      setSelectedGroupIds([])
       refetch()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -196,7 +211,13 @@ export function UsersActionDialog({ currentRow, open, onOpenChange }: Props) {
         personId: values.personId ?? null,
       },
       {
-        onSuccess: () => {
+        onSuccess: async (newUser) => {
+          // Assign scope for center_admin / group_admin
+          if (values.role === 'center_admin' && selectedCenterIds.length > 0) {
+            await updateCenterAssignments.mutateAsync({ userId: newUser.id, centerIds: selectedCenterIds })
+          } else if (values.role === 'group_admin' && selectedGroupIds.length > 0) {
+            await updateGroupAssignments.mutateAsync({ userId: newUser.id, groupIds: selectedGroupIds })
+          }
           toast({
             title: 'User created successfully',
             description: `User ${values.name} has been created with ${values.role || 'viewer'} role.`,
@@ -236,7 +257,7 @@ export function UsersActionDialog({ currentRow, open, onOpenChange }: Props) {
               : 'Use this form to create a new user linked to an existing person if desired.'}
           </DialogDescription>
         </DialogHeader>
-        <ScrollArea className='-mr-4 h-[26.25rem] w-full py-1 pr-4'>
+        <div className='max-h-[32rem] overflow-y-auto py-1 pr-1'>
           <Form {...form}>
             <form id='user-form' onSubmit={form.handleSubmit(handleSubmit)} className='space-y-4 p-0.5'>
               <FormField
@@ -362,9 +383,57 @@ export function UsersActionDialog({ currentRow, open, onOpenChange }: Props) {
                   </FormItem>
                 )}
               />
+              {!isEdit && watchRole === 'center_admin' && (
+                <div className='space-y-2'>
+                  <FormLabel>Assigned Centers</FormLabel>
+                  <div className='rounded-md border p-3 space-y-2'>
+                    {allCenters.length === 0 ? (
+                      <p className='text-sm text-muted-foreground'>No centers available</p>
+                    ) : (
+                      allCenters.map((center) => (
+                        <label key={center.id} className='flex items-center gap-2 cursor-pointer'>
+                          <Checkbox
+                            checked={selectedCenterIds.includes(center.id)}
+                            onCheckedChange={(checked) =>
+                              setSelectedCenterIds((prev) =>
+                                checked ? [...prev, center.id] : prev.filter((id) => id !== center.id)
+                              )
+                            }
+                          />
+                          <span className='text-sm'>{center.name}</span>
+                        </label>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+              {!isEdit && watchRole === 'group_admin' && (
+                <div className='space-y-2'>
+                  <FormLabel>Assigned Groups</FormLabel>
+                  <div className='rounded-md border p-3 space-y-2'>
+                    {allGroups.length === 0 ? (
+                      <p className='text-sm text-muted-foreground'>No groups available</p>
+                    ) : (
+                      allGroups.map((group) => (
+                        <label key={group.id} className='flex items-center gap-2 cursor-pointer'>
+                          <Checkbox
+                            checked={selectedGroupIds.includes(group.id)}
+                            onCheckedChange={(checked) =>
+                              setSelectedGroupIds((prev) =>
+                                checked ? [...prev, group.id] : prev.filter((id) => id !== group.id)
+                              )
+                            }
+                          />
+                          <span className='text-sm'>{group.name}</span>
+                        </label>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
             </form>
           </Form>
-        </ScrollArea>
+        </div>
         <DialogFooter>
           <Button type='submit' form='user-form' disabled={isSubmitting}>
             {isSubmitting ? (isEdit ? 'Saving…' : 'Creating…') : isEdit ? 'Save changes' : 'Create User'}

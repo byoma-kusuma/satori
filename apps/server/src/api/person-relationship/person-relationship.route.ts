@@ -87,7 +87,7 @@ export const personRelationshipRoutes = relationships
     return c.json(relationship);
   })
   .post('/', zValidator('json', relationshipInputSchema), requirePermission('canEditPersons'), async (c) => {
-    const payload = c.req.valid('json');
+    const payload = relationshipInputSchema.parse(c.req.valid('json'));
     const user = requireUser(c.get('user'));
 
     const relationship = await createRelationship(payload, user.id);
@@ -100,7 +100,7 @@ export const personRelationshipRoutes = relationships
     requirePermission('canEditPersons'),
     async (c) => {
       const { id } = c.req.valid('param');
-      const payload = c.req.valid('json');
+      const payload = relationshipUpdateSchema.parse(c.req.valid('json'));
       const user = requireUser(c.get('user'));
 
       const relationship = await updateRelationship(id, payload, user.id);

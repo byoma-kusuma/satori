@@ -3,11 +3,17 @@ import { Group, Person } from '../../types';
 
 export type GroupInput = Omit<Group, 'id' | 'createdAt' | 'updatedAt' | 'createdBy' | 'lastUpdatedBy'>;
 
-export async function getAllGroups() {
-  return db
+export async function getAllGroups(groupIds?: string[]) {
+  if (groupIds !== undefined && groupIds.length === 0) return []
+  let query = db
     .selectFrom('group')
-    .selectAll()
-    .execute();
+    .leftJoin('user', 'user.id', 'group.createdBy')
+    .selectAll('group')
+    .select('user.name as createdByName')
+  if (groupIds && groupIds.length > 0) {
+    query = query.where('group.id', 'in', groupIds)
+  }
+  return query.execute()
 }
 
 export async function getGroupById(id: string) {
@@ -74,8 +80,9 @@ export async function getGroupMembers(groupId: string) {
   return db
     .selectFrom('person')
     .innerJoin('person_group', 'person.id', 'person_group.personId')
+    .leftJoin('user', 'user.id', 'person_group.addedBy')
     .selectAll('person')
-    .select(['person_group.joinedAt', 'person_group.addedBy'])
+    .select(['person_group.joinedAt', 'person_group.addedBy', 'user.name as addedByName'])
     .where('person_group.groupId', '=', groupId)
     .execute();
 }

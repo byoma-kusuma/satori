@@ -31,12 +31,19 @@ declare module '@tanstack/react-table' {
   }
 }
 
-interface DataTableProps<TData = unknown> {
+interface DataTableProps<TData> {
   columns: ColumnDef<TData>[]
   data: TData[]
+  showStudentFilter?: boolean
+  studentView?: 'mine' | 'all'
+  onStudentViewChange?: (view: 'mine' | 'all') => void
+  showInstructorFilter?: boolean
+  instructorOptions?: { id: string; name: string }[]
+  instructorFilter?: string | null
+  onInstructorFilterChange?: (instructorId: string | null) => void
 }
 
-export function PersonsTable<TData>({ columns, data }: DataTableProps<TData>) {
+export function PersonsTable<TData>({ columns, data, showStudentFilter, studentView, onStudentViewChange, showInstructorFilter, instructorOptions, instructorFilter, onInstructorFilterChange }: DataTableProps<TData>) {
   const navigate = useNavigate()
   const [rowSelection, setRowSelection] = useState({})
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
@@ -67,7 +74,16 @@ export function PersonsTable<TData>({ columns, data }: DataTableProps<TData>) {
 
   return (
     <div className='space-y-4'>
-      <DataTableToolbar table={table} />
+      <DataTableToolbar
+        table={table}
+        showStudentFilter={showStudentFilter}
+        studentView={studentView}
+        onStudentViewChange={onStudentViewChange}
+        showInstructorFilter={showInstructorFilter}
+        instructorOptions={instructorOptions}
+        instructorFilter={instructorFilter}
+        onInstructorFilterChange={onInstructorFilterChange}
+      />
       <div className='rounded-md border'>
         <Table>
           <TableHeader>

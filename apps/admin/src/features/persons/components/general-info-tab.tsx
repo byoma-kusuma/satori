@@ -21,13 +21,15 @@ import {
 } from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Textarea } from '@/components/ui/textarea'
-import { personTypeLabels, titleLabels, membershipTypeLabels, countries } from '../data/schema'
+import { countries, kramaInstructorSchema, membershipTypeLabels, titleLabels, type Person, type PersonInput } from '../data/schema'
 import { getKramaInstructorsQueryOptions } from '../data/api'
+import { personTypeConfigQueryOptions } from '@/api/person-type-config'
 import { SearchableNationalitySelect } from '@/components/ui/searchable-nationality-select'
+import { usePermissions } from '@/contexts/permission-context'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { IconUpload, IconX, IconId } from '@tabler/icons-react'
 import React from 'react'
-import PhoneInput from 'react-phone-number-input'
+import PhoneInput, { type Country } from 'react-phone-number-input'
 import 'react-phone-number-input/style.css'
 import { PhotoIdPrintDialog } from './photo-id-print-dialog'
 import { countryToPhoneCode } from '@/utils/country-phone-codes'
@@ -35,11 +37,14 @@ import { Badge } from '@/components/ui/badge'
 import { CenterSelect } from '@/components/ui/center-select'
 
 interface GeneralInfoTabProps {
-  form: UseFormReturn<any>
-  person: any
+  form: UseFormReturn<PersonInput>
+  person: Person | null
   formRef: React.RefObject<HTMLFormElement>
-  onSubmit: (data: any) => void
+  onSubmit: (data: PersonInput) => void
+  readOnly?: boolean
 }
+
+const isPhoneCountry = (value: string): value is Country => /^[A-Z]{2}$/.test(value)
 
 // Helper function to compress and resize image
 const compressImage = (file: File, maxWidth = 400, maxHeight = 400, quality = 0.8): Promise<string> => {
@@ -47,7 +52,7 @@ const compressImage = (file: File, maxWidth = 400, maxHeight = 400, quality = 0.
     const canvas = document.createElement('canvas')
     const ctx = canvas.getContext('2d')
     const img = new Image()
-    let objectUrl: string
+    const objectUrl = URL.createObjectURL(file)
     
     if (!ctx) {
       reject(new Error('Failed to create canvas context'))
@@ -76,7 +81,7 @@ const compressImage = (file: File, maxWidth = 400, maxHeight = 400, quality = 0.
         ctx.drawImage(img, 0, 0, width, height)
         const compressedDataUrl = canvas.toDataURL('image/jpeg', quality)
         resolve(compressedDataUrl)
-      } catch (error) {
+      } catch {
         reject(new Error('Failed to process image'))
       } finally {
         URL.revokeObjectURL(objectUrl)
@@ -87,8 +92,7 @@ const compressImage = (file: File, maxWidth = 400, maxHeight = 400, quality = 0.
       URL.revokeObjectURL(objectUrl)
       reject(new Error('Failed to load image'))
     }
-    
-    objectUrl = URL.createObjectURL(file)
+
     img.src = objectUrl
   })
 }
@@ -107,12 +111,14 @@ const validateImageFile = (file: File): { isValid: boolean; error?: string } => 
   return { isValid: true }
 }
 
-export function GeneralInfoTab({ form, person, formRef, onSubmit }: GeneralInfoTabProps) {
+export function GeneralInfoTab({ form, person, formRef, onSubmit, readOnly = false }: GeneralInfoTabProps) {
+  const { userRole } = usePermissions()
+  const isCenterAdmin = userRole === 'center_admin'
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false)
   const [showPhotoIdDialog, setShowPhotoIdDialog] = useState(false)
-  const [primaryPhoneCountry, setPrimaryPhoneCountry] = useState<string>('NP')
-  const [secondaryPhoneCountry, setSecondaryPhoneCountry] = useState<string>('NP')
-  const [viberNumberCountry, setViberNumberCountry] = useState<string>('NP')
+  const [primaryPhoneCountry, setPrimaryPhoneCountry] = useState<Country>('NP')
+  const [secondaryPhoneCountry, setSecondaryPhoneCountry] = useState<Country>('NP')
+  const [viberNumberCountry, setViberNumberCountry] = useState<Country>('NP')
 
   const personType = form.watch('type')
   const selectedCountry = form.watch('country')
@@ -122,18 +128,20 @@ export function GeneralInfoTab({ form, person, formRef, onSubmit }: GeneralInfoT
   
   // Initialize phone country codes based on existing data
   React.useEffect(() => {
-    if (person.country && countryToPhoneCode[person.country]) {
-      const countryCode = countryToPhoneCode[person.country]
+    if (!person || !person.country) return
+    const countryCode = countryToPhoneCode[person.country]
+    if (countryCode && isPhoneCountry(countryCode)) {
       setPrimaryPhoneCountry(countryCode)
       setSecondaryPhoneCountry(countryCode)
       setViberNumberCountry(countryCode)
     }
-  }, [person.country])
+  }, [person?.country])
   
   // Update phone country codes when country changes
   React.useEffect(() => {
-    if (selectedCountry && countryToPhoneCode[selectedCountry]) {
+    if (selectedCountry) {
       const newCountryCode = countryToPhoneCode[selectedCountry]
+      if (!newCountryCode || !isPhoneCountry(newCountryCode)) return
 
       if (!primaryPhone || primaryPhone.trim() === '') {
         setPrimaryPhoneCountry(newCountryCode)
@@ -149,6 +157,10 @@ export function GeneralInfoTab({ form, person, formRef, onSubmit }: GeneralInfoT
     }
   }, [selectedCountry, primaryPhone, secondaryPhone, viberNumber])
   
+  // Fetch dynamic person types from config
+  const { data: personTypeConfigs = [] } = useQuery(personTypeConfigQueryOptions)
+  const activePersonTypes = personTypeConfigs.filter((t) => t.is_active)
+
   // Fetch Krama Instructors when person type is attended_orientation or sangha_member
   const { data: kramaInstructors = [] } = useQuery({
     ...getKramaInstructorsQueryOptions(),
@@ -163,7 +175,8 @@ export function GeneralInfoTab({ form, person, formRef, onSubmit }: GeneralInfoT
         onSubmit={form.handleSubmit(onSubmit)}
         className="space-y-5"
       >
-        {person.hasMajorEmpowerment && (
+        <fieldset disabled={readOnly}>
+        {person?.hasMajorEmpowerment && (
           <div className='flex items-center gap-2 rounded-md border border-dashed border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-700'>
             <Badge className='bg-amber-500 text-amber-950 uppercase tracking-wide hover:bg-amber-500/90'>Major Empowerment</Badge>
             <span>At least one major empowerment recorded</span>
@@ -185,10 +198,9 @@ export function GeneralInfoTab({ form, person, formRef, onSubmit }: GeneralInfoT
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value="interested">Interested</SelectItem>
-                    <SelectItem value="contact">Contact</SelectItem>
-                    <SelectItem value="sangha_member">Sangha Member</SelectItem>
-                    <SelectItem value="attended_orientation">Attended Orientation</SelectItem>
+                    {activePersonTypes.map((t) => (
+                      <SelectItem key={t.code} value={t.code}>{t.label}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
                 <FormMessage />
@@ -354,7 +366,7 @@ export function GeneralInfoTab({ form, person, formRef, onSubmit }: GeneralInfoT
                 type="button"
                 variant="outline"
                 onClick={() => setShowPhotoIdDialog(true)}
-                disabled={!person.membershipCardNumber}
+                disabled={!person?.membershipCardNumber}
               >
                 <IconId className="w-4 h-4 mr-2" />
                 Print ID Card
@@ -376,6 +388,7 @@ export function GeneralInfoTab({ form, person, formRef, onSubmit }: GeneralInfoT
                     value={field.value ?? undefined}
                     onValueChange={(value) => field.onChange(value)}
                     placeholder="Select center"
+                    disabled={isCenterAdmin}
                   />
                 </FormControl>
                 <FormMessage />
@@ -448,11 +461,14 @@ export function GeneralInfoTab({ form, person, formRef, onSubmit }: GeneralInfoT
                     </FormControl>
                     <SelectContent>
                       <SelectItem value="none">None</SelectItem>
-                      {kramaInstructors.map((instructor: any) => (
-                        <SelectItem key={instructor.id} value={instructor.id}>
-                          {instructor.firstName} {instructor.lastName}
-                        </SelectItem>
-                      ))}
+                      {kramaInstructors.map((instructor) => {
+                        const parsed = kramaInstructorSchema.parse(instructor)
+                        return (
+                          <SelectItem key={parsed.id} value={parsed.id}>
+                            {parsed.firstName} {parsed.lastName}
+                          </SelectItem>
+                        )
+                      })}
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -521,7 +537,7 @@ export function GeneralInfoTab({ form, person, formRef, onSubmit }: GeneralInfoT
                     <PhoneInput
                       international
                       countryCallingCodeEditable={true}
-                      defaultCountry={primaryPhoneCountry as any}
+                      defaultCountry={primaryPhoneCountry}
                       placeholder="Enter primary phone"
                       value={field.value || ''}
                       onChange={(value) => field.onChange(value || '')}
@@ -544,7 +560,7 @@ export function GeneralInfoTab({ form, person, formRef, onSubmit }: GeneralInfoT
                     <PhoneInput
                       international
                       countryCallingCodeEditable={true}
-                      defaultCountry={secondaryPhoneCountry as any}
+                      defaultCountry={secondaryPhoneCountry}
                       placeholder="Enter secondary phone"
                       value={field.value || ''}
                       onChange={(value) => field.onChange(value || '')}
@@ -567,7 +583,7 @@ export function GeneralInfoTab({ form, person, formRef, onSubmit }: GeneralInfoT
                     <PhoneInput
                       international
                       countryCallingCodeEditable={true}
-                      defaultCountry={viberNumberCountry as any}
+                      defaultCountry={viberNumberCountry}
                       placeholder="Enter Viber number"
                       value={field.value || ''}
                       onChange={(value) => field.onChange(value || '')}
@@ -860,21 +876,24 @@ export function GeneralInfoTab({ form, person, formRef, onSubmit }: GeneralInfoT
             />
           </div>
         )}
+        </fieldset>
       </form>
       
-      <PhotoIdPrintDialog
-        open={showPhotoIdDialog}
-        onOpenChange={setShowPhotoIdDialog}
-        person={{
-          id: person.id,
-          firstName: person.firstName,
-          middleName: person.middleName,
-          lastName: person.lastName,
-          membershipCardNumber: person.membershipCardNumber,
-          membershipType: person.membershipType,
-          photo: person.photo,
-        }}
-      />
+      {person ? (
+        <PhotoIdPrintDialog
+          open={showPhotoIdDialog}
+          onOpenChange={setShowPhotoIdDialog}
+          person={{
+            id: person.id,
+            firstName: person.firstName,
+            middleName: person.middleName,
+            lastName: person.lastName,
+            membershipCardNumber: person.membershipCardNumber,
+            membershipType: person.membershipType,
+            photo: person.photo,
+          }}
+        />
+      ) : null}
     </Form>
   )
 }

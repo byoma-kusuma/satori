@@ -2,6 +2,8 @@ import { ColumnDef } from '@tanstack/react-table'
 import { format } from 'date-fns'
 import { Badge } from '@/components/ui/badge'
 import { DataTableRowActions } from './person-empowerment-row-actions'
+import type { Empowerment } from '@/features/empowerments/data/schema'
+import type { Guru } from '@/features/gurus/data/schema'
 
 export interface PersonEmpowerment {
   id: string
@@ -17,7 +19,7 @@ export interface PersonEmpowerment {
   guru_id: string | null
 }
 
-export const createPersonEmpowermentColumns = (empowerments: any[], gurus: any[]): ColumnDef<PersonEmpowerment>[] => [
+export const createPersonEmpowermentColumns = (empowerments: Empowerment[], gurus: Guru[]): ColumnDef<PersonEmpowerment>[] => [
   {
     accessorKey: 'empowerment_name',
     header: 'Empowerment Name',
@@ -50,7 +52,7 @@ export const createPersonEmpowermentColumns = (empowerments: any[], gurus: any[]
     accessorKey: 'start_date',
     header: 'Start Date',
     cell: ({ row }) => {
-      const date = row.getValue('start_date') as string | null
+      const date = row.getValue<string | null>('start_date')
       return date ? format(new Date(date), 'MMM dd, yyyy') : '-'
     },
   },
@@ -58,7 +60,7 @@ export const createPersonEmpowermentColumns = (empowerments: any[], gurus: any[]
     accessorKey: 'end_date',
     header: 'End Date',
     cell: ({ row }) => {
-      const date = row.getValue('end_date') as string | null
+      const date = row.getValue<string | null>('end_date')
       return date ? format(new Date(date), 'MMM dd, yyyy') : '-'
     },
   },

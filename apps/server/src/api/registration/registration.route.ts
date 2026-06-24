@@ -15,7 +15,7 @@ import {
   updateRegistration,
 } from './registration.service'
 import { db } from '../../database'
-import { adminOnly } from '../../middlewares/authorization'
+import { requirePermission } from '../../middlewares/authorization'
 import { bulkAddAttendees } from '../event/event.service'
 import { generatePersonCode } from '../person/person.service'
 
@@ -43,7 +43,7 @@ const registrationInput = z.object({
   session_text: z.string().optional().nullable(),
 })
 
-const importSchema = z.object({ rows: z.array(z.record(z.string(), z.string())) })
+const importSchema = z.object({ rows: z.array(z.record(z.string(), z.string().optional())) })
 
 const setInvalidSchema = z.object({ ids: z.array(z.string().uuid()), reason: z.string().min(1) })
 
@@ -54,16 +54,33 @@ const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, ' ').tri
 const levenshtein = (a: string, b: string) => {
   const al = a.length
   const bl = b.length
-  const dp = Array.from({ length: al + 1 }, () => Array(bl + 1).fill(0))
-  for (let i = 0; i <= al; i++) dp[i][0] = i
-  for (let j = 0; j <= bl; j++) dp[0][j] = j
+
+  const prev = new Uint32Array(bl + 1)
+  const curr = new Uint32Array(bl + 1)
+
+  const at = (arr: Uint32Array, index: number) => {
+    const value = arr[index]
+    if (value === undefined) {
+      throw new Error('Levenshtein index out of bounds')
+    }
+    return value
+  }
+
+  for (let j = 0; j <= bl; j++) prev[j] = j
+
   for (let i = 1; i <= al; i++) {
+    curr[0] = i
     for (let j = 1; j <= bl; j++) {
       const cost = a[i - 1] === b[j - 1] ? 0 : 1
-      dp[i][j] = Math.min(dp[i - 1][j] + 1, dp[i][j - 1] + 1, dp[i - 1][j - 1] + cost)
+      const deletion = at(prev, j) + 1
+      const insertion = at(curr, j - 1) + 1
+      const substitution = at(prev, j - 1) + cost
+      curr[j] = Math.min(deletion, insertion, substitution)
     }
+    prev.set(curr)
   }
-  return dp[al][bl]
+
+  return at(prev, bl)
 }
 
 const similarity = (a: string, b: string) => {
@@ -152,6 +169,7 @@ async function fuzzyFindEvents(names: string[]): Promise<string[]> {
 
     if (matches.length > 0) {
       const best = matches[0]
+      if (!best) continue
       console.log(`[Event Match] "${trimmed}" → "${best.name}" (matched)`)
       ids.push(best.id)
     }
@@ -340,27 +358,27 @@ export const registrationRoutes = app
     const rows = await listRegistrations()
     return c.json(rows)
   })
-  .post('/import', adminOnly, zValidator('json', importSchema), async (c) => {
+  .post('/import', requirePermission('canImport'), zValidator('json', importSchema), async (c) => {
     const user = c.get('user')
     if (!user) throw new HTTPException(401, { message: 'Unauthorized' })
     const { rows } = c.req.valid('json')
-    const summary = await importRegistrations(rows as any, user.id)
+    const summary = await importRegistrations(rows, user.id)
     return c.json(summary)
   })
-  .get('/import-history', adminOnly, async (c) => {
+  .get('/import-history', requirePermission('canImport'), async (c) => {
     const user = c.get('user')
     if (!user) throw new HTTPException(401, { message: 'Unauthorized' })
     const rows = await (await import('./registration.service')).listImportHistory(20)
     return c.json(rows)
   })
-  .post('/set-invalid', adminOnly, zValidator('json', setInvalidSchema), async (c) => {
+  .post('/set-invalid', requirePermission('canImport'), zValidator('json', setInvalidSchema), async (c) => {
     const user = c.get('user')
     if (!user) throw new HTTPException(401, { message: 'Unauthorized' })
     const { ids, reason } = c.req.valid('json')
     await setInvalid(ids, reason, user.id)
     return c.json({ success: true })
   })
-  .post('/convert', adminOnly, zValidator('json', convertSchema), async (c) => {
+  .post('/convert', requirePermission('canImport'), zValidator('json', convertSchema), async (c) => {
     const user = c.get('user')
     if (!user) throw new HTTPException(401, { message: 'Unauthorized' })
     const { ids } = c.req.valid('json')
@@ -378,7 +396,7 @@ export const registrationRoutes = app
 
     const results: { id: string; personId?: string; error?: string }[] = []
 
-    for (const r of regs as any[]) {
+    for (const r of regs) {
       console.log(`[Convert] Processing registration ${r.id}, session_text: "${r.session_text}"`)
 
       try {
@@ -390,7 +408,7 @@ export const registrationRoutes = app
           const personCode = await generatePersonCode(r.first_name, r.last_name)
           const parsedCountry = parseCountry(r.country)
           const normalizedPhone = normalizePhoneWithCountryCode(r.phone, parsedCountry)
-          const normalizedViberNumber = normalizePhoneWithCountryCode(r.viberNumber, parsedCountry)
+          const normalizedViberNumber = normalizePhoneWithCountryCode(r.viber_number, parsedCountry)
 
           const person = await trx
             .insertInto('person')
@@ -470,15 +488,16 @@ export const registrationRoutes = app
 
           results.push({ id: r.id, personId: person.id })
         })
-      } catch (e: any) {
-        console.error(`[Registration] Failed to convert registration ${r.id}:`, e)
-        results.push({ id: r.id, error: e?.message || 'Failed to convert' })
+      } catch (error) {
+        console.error(`[Registration] Failed to convert registration ${r.id}:`, error)
+        const message = error instanceof Error ? error.message : 'Failed to convert'
+        results.push({ id: r.id, error: message })
       }
     }
 
     return c.json({ results })
   })
-  .delete('/clear-all', adminOnly, async (c) => {
+  .delete('/clear-all', requirePermission('canImport'), async (c) => {
     const user = c.get('user')
     if (!user) throw new HTTPException(401, { message: 'Unauthorized' })
     const result = await clearAllRegistrations()
@@ -492,7 +511,7 @@ export const registrationRoutes = app
   .post('/', zValidator('json', registrationInput), async (c) => {
     const user = c.get('user')
     if (!user) throw new HTTPException(401, { message: 'Unauthorized' })
-    const rec = await createRegistration(c.req.valid('json'), user.id)
+    const rec = await createRegistration(registrationInput.parse(c.req.valid('json')), user.id)
     return c.json(rec, 201)
   })
   .put('/:id', zValidator('json', registrationInput.partial()), async (c) => {

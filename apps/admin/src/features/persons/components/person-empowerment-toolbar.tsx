@@ -8,11 +8,13 @@ import { PersonEmpowerment } from './person-empowerment-columns'
 interface PersonEmpowermentToolbarProps {
   table: Table<PersonEmpowerment>
   onAdd: () => void
+  readOnly?: boolean
 }
 
 export function PersonEmpowermentToolbar({
   table,
   onAdd,
+  readOnly = false,
 }: PersonEmpowermentToolbarProps) {
   const isFiltered = table.getState().columnFilters.length > 0
 
@@ -38,7 +40,7 @@ export function PersonEmpowermentToolbar({
           </Button>
         )}
       </div>
-      <Button onClick={onAdd} size="sm" className="ml-auto h-8">
+      <Button onClick={onAdd} size="sm" className="ml-auto h-8" disabled={readOnly}>
         <IconPlus className="mr-2 h-4 w-4" />
         Add Empowerment
       </Button>
